@@ -56,7 +56,7 @@ export async function explainFigure(
   caption: string,
   image: { data: Buffer; mime: string },
 ): Promise<{ text: string; provider: string }> {
-  const { data, provider } = await llmJson<{ explanation: string }>({
+  const ask = () => llmJson<{ explanation: string }>({
     system: `Tu aides un lecteur francophone, pas forcément spécialiste, à lire une figure d'article scientifique.
 Explique en français simple : ce que représente la figure (type de graphique, axes, unités, panneaux A/B/C…), ce qu'on y voit concrètement (tendances, différences, valeurs marquantes), et ce que les auteurs veulent montrer avec. Appuie-toi sur l'image et sur la légende ; si un détail n'est pas lisible, dis-le plutôt que de l'inventer. Garde les termes techniques anglais d'usage en les expliquant. Écris des phrases complètes et naturelles (pas de style télégraphique) : 5 à 10 phrases, ou une courte liste.`,
     user: `Article : « ${a.title} »
@@ -66,7 +66,12 @@ Légende de la figure :
 ${caption.slice(0, 3000) || "(pas de légende)"}`,
     schema: {
       type: "object",
-      properties: { explanation: { type: "string" } },
+      properties: {
+        explanation: {
+          type: "string",
+          description: "Le texte complet de l'explication, adressé au lecteur (pas un résumé de ce que tu as fait).",
+        },
+      },
       required: ["explanation"],
       additionalProperties: false,
     },
@@ -74,6 +79,10 @@ ${caption.slice(0, 3000) || "(pas de légende)"}`,
     tier: "heavy",
     image,
   });
+  let { data, provider } = await ask();
+  // Now and then the answer field holds a one-line note about the work instead of the
+  // explanation itself: ask once more.
+  if (data.explanation.trim().length < 250) ({ data, provider } = await ask());
   return { text: data.explanation, provider };
 }
 
