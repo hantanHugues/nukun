@@ -1,5 +1,7 @@
 # Nùkún
 
+**Nùkún garde un œil sur le monde.** *(Nùkún keeps an eye on the world.)*
+
 > **English** — Nùkún ("the eye" in Fon) is a free Windows app to follow research and official science news on whatever interests you. It finds open-access papers from official sources (arXiv, PubMed Central, PLOS, OpenAlex…), translates them into English or French, explains passages and figures, and learns your tastes like a social feed, across languages. **[Download the latest version](https://github.com/hantanHugues/nukun/releases/latest)**, or visit the [website](https://hantanhugues.github.io/nukun/en/) and its [help page](https://hantanhugues.github.io/nukun/en/help.html).
 
 *Nùkún* veut dire « l'œil » en fongbè. Application de bureau (Windows) pour suivre la recherche et l'actualité officielle sur les sujets qui t'intéressent, quels qu'ils soient : articles en libre accès traduits en français, et un fil de recommandations qui part de tes centres d'intérêt puis apprend de tes lectures. Site : [hantanhugues.github.io/nukun](https://hantanhugues.github.io/nukun/), avec une [page d'aide](https://hantanhugues.github.io/nukun/aide.html).
