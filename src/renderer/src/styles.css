@@ -1378,14 +1378,17 @@ figure.blk figcaption {
   align-items: center;
   gap: 8px;
   margin: 0 auto 16px;
-  padding: 8px 16px;
-  border: none;
+  padding: 6px 14px;
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-full);
-  background: var(--brand);
-  color: #fff;
-  font-weight: 500;
+  background: var(--surface-strong);
+  color: var(--text-medium);
+  font-size: 13px;
   cursor: pointer;
   box-shadow: var(--shadow);
+}
+.new-banner:hover {
+  color: var(--text);
 }
 figure.blk .fig-explain {
   margin-top: 8px;

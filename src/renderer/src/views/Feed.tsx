@@ -130,7 +130,14 @@ export function Feed({ kind }: { kind: ArticleKind }) {
     });
     // A refresh found new articles: offer them without moving the reader.
     const offRefresh = api.on("refresh-progress", (p) => {
-      if (!p.running && p.newArticles) setNewCount(p.newArticles);
+      if (p.running || !p.newArticles) return;
+      // At the top of the feed: show them straight away. Further down: offer them,
+      // so the cards being read do not move.
+      const main = document.getElementById("main-scroll");
+      if (!main || main.scrollTop < 300) {
+        savedPos[kind] = null;
+        void loadFirst(false);
+      } else setNewCount(p.newArticles);
     });
     return () => {
       offUpdate();
@@ -206,7 +213,7 @@ export function Feed({ kind }: { kind: ArticleKind }) {
 
       {newCount > 0 && (
         <button className="new-banner" onClick={showNew}>
-          <RefreshCw size={14} /> {newCount} nouveaux articles : afficher
+          <RefreshCw size={14} /> Nouveaux articles : afficher
         </button>
       )}
 
