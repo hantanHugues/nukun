@@ -625,6 +625,7 @@ a:hover {
 .acard.hero .media {
   aspect-ratio: auto;
   min-height: 320px;
+  max-height: 440px; /* tall figures must not stretch the card */
   border-bottom: none;
   border-right: 1px solid var(--border);
 }
@@ -1322,4 +1323,26 @@ figure.blk figcaption {
   font-size: 14px;
   line-height: 1.5;
   color: var(--text-medium);
+}
+.main {
+  scrollbar-gutter: stable; /* no layout jump when the tour freezes scrolling */
+}
+.main.tour-frozen {
+  overflow: hidden;
+}
+.tour-skip {
+  position: fixed;
+  left: 24px;
+  bottom: 24px;
+  pointer-events: auto;
+  background: var(--surface-strong);
+  box-shadow: var(--shadow);
+}
+.tour-skip kbd {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border-strong);
+  color: var(--text-weak);
 }

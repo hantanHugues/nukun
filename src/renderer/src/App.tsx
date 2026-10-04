@@ -22,6 +22,8 @@ export type Route =
 
 interface Ctx {
   go: (r: Route) => void;
+  /** The screen currently shown. */
+  view: Route["view"];
   toast: (msg: string) => void;
   settings: Settings | null;
   reloadSettings: () => Promise<void>;
@@ -93,7 +95,7 @@ export function App() {
   const active = route.view === "reader" ? route.from.view : route.view;
 
   return (
-    <AppCtx.Provider value={{ go, toast, settings, reloadSettings, refresh }}>
+    <AppCtx.Provider value={{ go, view: route.view, toast, settings, reloadSettings, refresh }}>
       <div className="app">
         <div className="dots" />
         <header className="titlebar">
