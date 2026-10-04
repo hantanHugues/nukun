@@ -314,6 +314,8 @@ export interface InterestProfileView {
   interests: { id: string; label: string; share: number; read: number; news: "full" | "general" | "none"; custom?: boolean }[];
   /** Disciplines explored next to the interests at the moment. */
   explore: DomainId[];
+  /** Recommendations by meaning (multilingual model): state and articles analysed. */
+  semantic: { state: "idle" | "loading" | "ready" | "error"; analysed: number };
   topTerms: { term: string; weight: number }[];
   domains: { id: DomainId; weight: number; impressions: number }[];
   aiInterests: { label: string; keywords: string[] }[];

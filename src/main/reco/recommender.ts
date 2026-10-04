@@ -2,6 +2,7 @@ import type { Article, DomainId, FeedItem, Interaction, InterestProfileView } fr
 import { FIELDS, fieldLabel, languageLabel } from "@shared/types";
 import { LEGACY_DOMAINS } from "../sources/classify";
 import { JsonDoc } from "../store";
+import { cosine, DIM } from "./semantic";
 import type { AiInterest } from "../ai/assist";
 
 /**
@@ -25,6 +26,10 @@ interface Profile {
   aiInterests: AiInterest[];
   /** Keywords of the interests chosen at first launch: the starting point of the feed. */
   seeds?: string[];
+  /** Meaning of what the reader likes (sum of article vectors, fading like terms). */
+  semantic?: number[];
+  /** Meaning of the chosen interests: the starting point, before any reading. */
+  semanticSeed?: number[];
   signals: number;
   signalsSinceAnalysis: number;
   lastDecay: string;
@@ -169,11 +174,12 @@ export class Recommender {
       if (Math.abs(p.terms[k]) < 0.01) delete p.terms[k];
     }
     for (const d of Object.values(p.domains)) d.w *= f;
+    if (p.semantic) p.semantic = p.semantic.map((x) => x * f);
     p.lastDecay = new Date().toISOString();
   }
 
   /** Learn from one interaction. Returns true when an AI re-analysis of tastes is due. */
-  learn(a: Article, i: Interaction): boolean {
+  learn(a: Article, i: Interaction, meaning?: Float32Array): boolean {
     const p = this.profile;
     const d = (p.domains[a.domain] ??= { w: 0, imp: 0, pos: 0 });
     if (i.type === "impression") {
@@ -188,6 +194,10 @@ export class Recommender {
     this.decay();
     const vec = [...this.vector(a).entries()].sort((x, y) => y[1] - x[1]).slice(0, 40);
     for (const [t, v] of vec) p.terms[t] = (p.terms[t] ?? 0) + w * v;
+    if (meaning) {
+      const s = (p.semantic ??= new Array(DIM).fill(0));
+      for (let k = 0; k < DIM; k++) s[k] += w * meaning[k];
+    }
     d.w = Math.max(-3, Math.min(10, d.w + w * 0.3));
     if (w > 0) d.pos += 1;
     p.signals += 1;
@@ -222,6 +232,64 @@ export class Recommender {
     this.doc.save();
   }
 
+  /** The meaning of the chosen interests (one vector per interest), as a starting point. */
+  seedSemantic(vectors: Float32Array[]) {
+    const sum = new Array(DIM).fill(0);
+    for (const v of vectors) for (let k = 0; k < DIM; k++) sum[k] += v[k];
+    const norm = Math.hypot(...sum) || 1;
+    this.profile.semanticSeed = sum.map((x) => x / norm);
+    this.doc.save();
+  }
+
+  /**
+   * Profiles from before recommendations by meaning: rebuild what the reader likes
+   * from their reading history (same weights as live signals, older ones fading).
+   */
+  replayMeaning(history: { a: Article; meaning: Float32Array }[]) {
+    const p = this.profile;
+    if (p.semantic) return;
+    const s = new Array(DIM).fill(0);
+    let any = false;
+    for (const { a, meaning } of history) {
+      const st = a.state;
+      let w = 0;
+      if (st.opened) w += WEIGHTS.open;
+      if (st.liked) w += WEIGHTS.like;
+      if (st.saved) w += WEIGHTS.save;
+      if (st.finished) w += WEIGHTS.finish;
+      if (st.posted) w += WEIGHTS.posted;
+      if (st.dismissed) w += WEIGHTS.dismiss;
+      w += Math.min(st.dwellSec / 120, 3);
+      if (!w) continue;
+      const days = (Date.now() - Date.parse(st.lastOpened ?? a.fetchedAt)) / 86400000;
+      w *= Math.pow(0.5, Math.max(0, days) / 30);
+      for (let k = 0; k < DIM; k++) s[k] += w * meaning[k];
+      any = true;
+    }
+    if (any) {
+      p.semantic = s;
+      this.doc.save();
+    }
+  }
+
+  get hasSemanticSeed() {
+    return !!this.profile.semanticSeed;
+  }
+
+  /**
+   * What the reader likes, by meaning: the interests at first, then more and more
+   * what they read (the seed weighs as much as about three strong signals).
+   */
+  private semanticProfile(): number[] | undefined {
+    const p = this.profile;
+    if (!p.semanticSeed && !p.semantic) return undefined;
+    const v = new Array(DIM).fill(0);
+    if (p.semanticSeed) for (let k = 0; k < DIM; k++) v[k] += 3 * p.semanticSeed[k];
+    if (p.semantic) for (let k = 0; k < DIM; k++) v[k] += p.semantic[k];
+    const norm = Math.hypot(...v);
+    return norm ? v.map((x) => x / norm) : undefined;
+  }
+
   /** Disciplines outside the chosen interests that the reader keeps reading. */
   adopted(outside: Set<DomainId>): DomainId[] {
     return Object.entries(this.profile.domains)
@@ -240,6 +308,7 @@ export class Recommender {
     enabledDomains: Record<DomainId, boolean>,
     explore: Set<DomainId> = new Set(),
     balance?: Balance,
+    meaningOf?: (a: Article) => Float32Array | undefined,
   ): FeedItem[] {
     const p = this.profile;
     const now = Date.now();
@@ -269,11 +338,60 @@ export class Recommender {
       });
 
     const maxSim = Math.max(1e-6, ...scored.map((s) => s.sim));
+    // Closeness by meaning, any language. Raw cosines sit in a narrow band (0.7–0.9
+    // with this model): they are spread out between the median and the best one.
+    const profileMeaning = meaningOf ? this.semanticProfile() : undefined;
+    const sem = new Map<string, number>();
+    if (profileMeaning) {
+      for (const s of scored) {
+        const v = meaningOf!(s.a);
+        if (v) sem.set(s.a.id, cosine(profileMeaning, v));
+      }
+    }
+    // Two texts in different languages score lower than two in the same language,
+    // even on the same subject: each language is compared to its own median.
+    const median = (xs: number[]) => {
+      const o = [...xs].sort((x, y) => x - y);
+      return o[Math.floor(o.length / 2)] ?? 0;
+    };
+    const byLang = new Map<string, number[]>();
+    for (const s of scored) {
+      const c = sem.get(s.a.id);
+      if (c === undefined) continue;
+      const l = s.a.lang ?? "en";
+      if (!byLang.has(l)) byLang.set(l, []);
+      byLang.get(l)!.push(c);
+    }
+    const all = [...sem.values()];
+    const globalMedian = median(all);
+    const foreign = [...byLang].filter(([l]) => l !== "en").flatMap(([, v]) => v);
+    const shift = (l: string) => {
+      if (l === "en") return 0;
+      // Few articles in that language: use all non-English ones together.
+      const own = byLang.get(l) ?? [];
+      return globalMedian - median(own.length >= 8 ? own : foreign);
+    };
+    for (const s of scored) {
+      const c = sem.get(s.a.id);
+      if (c !== undefined) sem.set(s.a.id, c + shift(s.a.lang ?? "en"));
+    }
+    const sorted = [...sem.values()].sort((x, y) => x - y);
+    const mid = sorted[Math.floor(sorted.length / 2)] ?? 0;
+    const top = sorted[sorted.length - 1] ?? 1;
+    const semN = (id: string) => {
+      const c = sem.get(id);
+      return c === undefined ? undefined : Math.max(-1, Math.min(1, (c - mid) / Math.max(1e-6, top - mid)));
+    };
     const items = scored.map((s) => {
-      const simN = Math.max(-1, s.sim / maxSim);
+      const words = Math.max(-1, s.sim / maxSim);
+      const meaning = semN(s.a.id);
+      // Words and meaning count equally; meaning alone when the words cannot be
+      // compared (an article in another language than what was read).
+      const comparable = (s.a.lang ?? "en") === "en" || !!s.a.titleFr;
+      const simN = meaning === undefined ? words : comparable ? 0.5 * words + 0.5 * meaning : meaning;
       const dom = Math.max(-1, s.ds.w / maxDomW);
       const score = 0.55 * simN + 0.15 * dom + 0.2 * s.fresh + s.explore - s.seenPenalty;
-      return { ...s, score };
+      return { ...s, score, meaning };
     });
     items.sort((x, y) => y.score - x.score);
     // Discoveries wait for their slot, unless the reader already likes that discipline.
@@ -296,19 +414,24 @@ export class Recommender {
     // interest with many articles cannot hide the others.
     const shown = new Map<string, number>();
     const totalW = balance ? [...balance.weights.values()].reduce((s, w) => s + w, 0) || 1 : 1;
+    // Interest of each article, looked up once.
+    const groupOf = new Map(pool.map((c) => [c.a.id, balance?.of(c.a)]));
     const overshare = (a: Article) => {
-      if (!balance) return 0;
-      const g = balance.of(a);
-      if (!g) return 0;
+      const g = groupOf.get(a.id);
+      if (!balance || !g) return 0;
       const target = (balance.weights.get(g) ?? 1) / totalW;
       return Math.max(0, ((shown.get(g) ?? 0) + 1) / (chosen.length + 1) - target);
     };
+    // Similarity of each candidate to the last 8 chosen articles, computed once per
+    // pair as articles are chosen (instead of again at every step).
+    const recent = new Map<string, number[]>(pool.map((c) => [c.a.id, []]));
     while (chosen.length < limit && pool.length) {
       let bestI = 0;
       let best = -Infinity;
       for (let i = 0; i < pool.length; i++) {
         const c = pool[i];
-        const redundancy = chosen.length ? Math.max(...chosen.slice(-8).map((x) => cos(x.vec, c.vec))) : 0;
+        const sims = recent.get(c.a.id)!;
+        const redundancy = sims.length ? Math.max(...sims) : 0;
         const last2 = chosen.slice(-2);
         const sameSourceRun = last2.length === 2 && last2.every((x) => x.a.source === c.a.source) ? 0.15 : 0;
         const sameDomainRun = last2.length === 2 && last2.every((x) => x.a.domain === c.a.domain) ? 0.12 : 0;
@@ -319,9 +442,17 @@ export class Recommender {
         }
       }
       const pick = pool.splice(bestI, 1)[0];
-      const g = balance?.of(pick.a);
+      const g = groupOf.get(pick.a.id);
       if (g) shown.set(g, (shown.get(g) ?? 0) + 1);
       chosen.push(pick);
+      const pickMeaning = meaningOf?.(pick.a);
+      for (const c of pool) {
+        const sims = recent.get(c.a.id)!;
+        const m = pickMeaning && meaningOf!(c.a);
+        // Meaning vectors sit close together: rescaled so "same subject" ≈ 1.
+        sims.push(pickMeaning && m ? Math.max(0, (cosine(pickMeaning, m) - 0.75) * 4) : cos(pick.vec, c.vec));
+        if (sims.length > 8) sims.shift();
+      }
     }
 
     // One slot in seven goes to discovery: a fresh article from a domain read less often.
@@ -341,10 +472,12 @@ export class Recommender {
       if (i % 7 === 3 && otherLangs.length) {
         for (let tries = 0; tries < otherLangs.length; tries++) {
           const lang = otherLangs[li++ % otherLangs.length];
-          const pickIdx = rest.findIndex((x) => x.a.lang === lang);
+          // Only an article close to what the reader likes, when its meaning is known.
+          const pickIdx = rest.findIndex((x) => x.a.lang === lang && (x.meaning === undefined || x.meaning > 0.2));
           if (pickIdx < 0) continue;
           const pick = rest.splice(pickIdx, 1)[0];
-          result.push({ article: pick.a, score: pick.score, reasons: [`Article en ${languageLabel(lang).toLowerCase()}`] });
+          const why = pick.meaning !== undefined ? ", proche par le sens de ce que tu aimes" : "";
+          result.push({ article: pick.a, score: pick.score, reasons: [`Article en ${languageLabel(lang).toLowerCase()}${why}`] });
           break;
         }
       }
@@ -366,8 +499,12 @@ export class Recommender {
     return result.slice(0, limit);
   }
 
-  private reasons(c: { a: Article; contrib: [string, number][]; ds: DomainStat; fresh: number }): string[] {
+  private reasons(c: { a: Article; contrib: [string, number][]; ds: DomainStat; fresh: number; meaning?: number }): string[] {
     const r: string[] = [];
+    // Close in meaning without shared words (often another language): say so.
+    if ((c.meaning ?? 0) > 0.5 && c.contrib.length < 2) {
+      r.push(this.profile.signals < 5 ? "Proche par le sens de tes centres d'intérêt" : "Proche par le sens de tes lectures");
+    }
     const terms = c.contrib
       .sort((x, y) => y[1] - x[1])
       .map(([t]) => t)
@@ -381,7 +518,7 @@ export class Recommender {
     return r;
   }
 
-  view(): Omit<InterestProfileView, "interests" | "explore"> {
+  view(): Omit<InterestProfileView, "interests" | "explore" | "semantic"> {
     const p = this.profile;
     return {
       topTerms: Object.entries(p.terms)

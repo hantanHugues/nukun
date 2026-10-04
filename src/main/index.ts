@@ -157,10 +157,7 @@ function registerIpc() {
   ipcMain.handle("getUsage", () => getUsage());
   ipcMain.handle("getSourceStatus", () => lib.sourceStatus());
   ipcMain.handle("getProfile", () => lib.profileView());
-  ipcMain.handle("resetProfile", () => {
-    lib.reco.reset();
-    send("feed-updated");
-  });
+  ipcMain.handle("resetProfile", () => lib.resetProfile());
   ipcMain.handle("analyzeInterests", () => lib.analyzeInterests());
   ipcMain.handle("getDraft", (_e, id: string) => lib.getDraft(id));
   ipcMain.handle("listDrafts", () => lib.listDrafts());
@@ -217,6 +214,8 @@ if (!app.requestSingleInstanceLock()) {
     registerIpc();
     createWindow();
     scheduleRefresh();
+    // Meaning of the articles not analysed yet (first launch: downloads the model once).
+    setTimeout(() => lib.indexMeaning(), 5000);
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow();
     });

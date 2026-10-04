@@ -22,6 +22,10 @@ arXiv, Europe PMC (PubMed Central), bioRxiv, medRxiv, PLOS, eLife, NASA Science,
 
 **Centres d'intérêt.** Au premier lancement, avant tout chargement, tu choisis au moins 3 sujets parmi 27 (espace, IA, santé, économie, histoire, sport…) ou tu cherches n'importe quoi d'autre (« couture », « football », « MQTT », dans n'importe quelle langue) : l'app propose alors les sujets de recherche OpenAlex correspondants. Seules les sources et disciplines liées à tes choix sont interrogées, les filtres des deux fils sont tes centres d'intérêt, et les articles sont classés par OpenAlex à partir de leur DOI. Articles en **8 langues** (anglais, français, espagnol, portugais, allemand, russe, japonais, chinois).
 
+## Recommandations par le sens
+
+En plus des mots, l'app compare le **sens** des articles, dans toutes les langues : un article allemand sur la solitude est reconnu comme proche d'articles anglais sur les émotions, même sans aucun mot en commun. Un petit modèle multilingue (multilingual-e5-small, 130 Mo, téléchargé une seule fois au premier lancement) tourne sur le processeur du PC : pas de carte graphique, pas de clé, pas de coût. Sans connexion au premier lancement, le fil se base sur les mots en attendant.
+
 ## IA
 
 Mode par défaut : **Hybride**, sans aucun coût.

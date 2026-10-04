@@ -43,6 +43,7 @@ import { recallExplanation, rememberExplanation } from "./ai/memory";
 import { translateContent } from "./ai/translate";
 import { loadFullText, PendingError } from "./content/loader";
 import { Recommender } from "./reco/recommender";
+import { embedQueries, SemanticIndex } from "./reco/semantic";
 import { getSettings, saveSettings, semanticScholarKey } from "./settings";
 import { epmcFindByDoi, FETCHERS, openalexClassify, searchTopics, type RawArticle } from "./sources";
 import { classifyText, detectLanguage, LEGACY_DOMAINS } from "./sources/classify";
@@ -64,6 +65,8 @@ export class Library {
   /** `explore`: disciplines next to the reader's interests, picked again at each refresh. */
   private meta = new JsonDoc<{ lastRefresh?: string; explore?: DomainId[] }>("meta.json", {});
   readonly reco = new Recommender();
+  /** Meaning of each article (multilingual model), for recommendations across languages. */
+  readonly semantic = new SemanticIndex();
   private refreshing: Promise<void> | null = null;
   private translating = new Map<string, Promise<void>>();
   /** Passages waiting to be translated because they are on screen, per article. */
@@ -128,6 +131,7 @@ export class Library {
   }
 
   flush() {
+    this.semantic.flush();
     this.topicNames.flush();
     this.db.flush();
     this.status.flush();
@@ -169,6 +173,7 @@ export class Library {
       interests.flatMap((i) => i.keywords),
       [...fields],
     );
+    void this.seedMeaning();
     this.meta.data.explore = this.pickExplore(interests);
     this.meta.save();
     this.feedCache.clear();
@@ -178,6 +183,32 @@ export class Library {
 
   /** French names of research topics, translated once (shared by every search). */
   private topicNames = new JsonDoc<Record<string, string>>("topic-names.json", {});
+
+  /** The meaning of the chosen interests, the semantic starting point of the feed. */
+  async seedMeaning() {
+    const s = getSettings();
+    if (!s.interests.length) return;
+    try {
+      const vectors = await embedQueries(s.interests.map((i) => `${i.label} : ${i.keywords.join(", ")}`));
+      this.reco.seedSemantic(vectors);
+    } catch {
+      /* model unavailable for now: tried again at next launch */
+    }
+  }
+
+  /** Meaning of the articles not analysed yet, in the background. */
+  indexMeaning() {
+    if (!getSettings().interestsChosen) return;
+    // Read and dismissed articles too: they tell what the reader likes or not.
+    void this.semantic.indexMissing(this.all().filter((a) => a.availability === "ok" || a.state.opened)).then(() => {
+      if (!this.reco.hasSemanticSeed) void this.seedMeaning();
+      const history = this.all()
+        .filter((a) => a.state.opened || a.state.dismissed || a.state.liked || a.state.saved)
+        .map((a) => ({ a, meaning: this.semantic.get(a.id)! }))
+        .filter((x) => x.meaning);
+      this.reco.replayMeaning(history);
+    });
+  }
 
   async searchTopics(q: string) {
     const hits = await searchTopics(q);
@@ -233,6 +264,7 @@ export class Library {
         custom: i.custom,
       })),
       explore: [...this.explore],
+      semantic: { state: this.semantic.state, analysed: this.semantic.size },
     };
   }
 
@@ -277,8 +309,8 @@ export class Library {
     // chosen (older profiles), the disciplines switched on in the settings apply.
     const enabled =
       filter === "all" && kind === "paper" && !s.interestsChosen ? s.domains : ({} as Record<DomainId, boolean>);
-    if (filter !== "all") return this.reco.rank(candidates, limit, enabled);
-    return this.reco.rank(candidates, limit, enabled, this.explore, this.balance());
+    if (filter !== "all") return this.reco.rank(candidates, limit, enabled, undefined, undefined, (a) => this.semantic.get(a.id));
+    return this.reco.rank(candidates, limit, enabled, this.explore, this.balance(), (a) => this.semantic.get(a.id));
   }
 
   /** Share of the feed for each interest: equal at first, then larger for what is read. */
@@ -407,6 +439,7 @@ export class Library {
     // Not needed to read the feed: done in the background, without the spinner.
     // (Card images and titles are prepared as the reader scrolls: prepareCards.)
     void (async () => {
+      this.indexMeaning();
       await this.resolvePending();
       this.emit.feedUpdated();
       // News titles, for when the reader opens the Actus tab.
@@ -506,6 +539,20 @@ export class Library {
         removeFile(contentFile(a.id));
       }
     }
+    this.semantic.prune(new Set(Object.keys(this.db.data)));
+  }
+
+  /** Start the algorithm again from the chosen interests (reading history is kept). */
+  resetProfile() {
+    const s = getSettings();
+    this.reco.reset();
+    this.reco.seedInterests(
+      s.interests.flatMap((i) => i.keywords),
+      fieldsOf(s.interests),
+    );
+    void this.seedMeaning();
+    this.feedCache.clear();
+    this.emit.feedUpdated();
   }
 
   /** Articles already prepared for their card (full text fetched once). */
@@ -790,7 +837,7 @@ export class Library {
         st.progress = Math.max(st.progress, i.value ?? 0);
         if (st.progress >= 0.92 && !st.finished) {
           st.finished = true;
-          this.reco.learn(a, { id: a.id, type: "finish" });
+          this.reco.learn(a, { id: a.id, type: "finish" }, this.semantic.get(a.id));
         }
         break;
       case "like":
@@ -813,7 +860,7 @@ export class Library {
         break;
     }
     this.db.save();
-    const due = this.reco.learn(a, i);
+    const due = this.reco.learn(a, i, this.semantic.get(a.id));
     if (due) void this.analyzeInterests();
   }
 

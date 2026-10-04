@@ -31,6 +31,13 @@ Every item has a `kind`: `paper` (research) or `news` (official organisations an
 - `matchesInterest` decides what belongs to an interest: a followed topic, a field, or for news a source tag (a general source such as CNRS is sorted by field or by keywords in the text). Both feeds offer one filter per interest (`i:<id>`).
 - At each refresh two neighbouring fields are picked (`neighbourFields`: the other catalogue interests of the same family, and the fields of searched topics). Their papers only appear in discovery slots until the reader likes them; `Recommender.adopted` then lets `Library.suggestion` offer to add the matching interest.
 
+## Meaning (multilingual embeddings)
+
+- `reco/semantic.ts` runs multilingual-e5-small (transformers.js, ONNX on the CPU, downloaded once into `userData/models`). Each article (title + summary, in its own language) becomes a 384-dimension vector, stored as 8-bit integers in `embeddings.json`. Articles are analysed in the background after each refresh.
+- The recommender keeps a meaning profile next to the term profile: the vectors of what is read, liked or dismissed (same weights and fading as terms), plus the vectors of the chosen interests as a starting point. Older profiles are rebuilt once from the reading history (`replayMeaning`).
+- Ranking mixes words and meaning half and half, meaning alone for articles in another language. Cross-language similarities run lower than same-language ones, so each language is compared to its own median. The slot for other languages only takes articles close in meaning.
+- Diversification (no run of near-identical articles) uses meaning vectors and computes each pair once.
+
 ## Disciplines and languages
 
 - Articles are classified in the 26 OpenAlex fields (`FIELDS` in `shared/types.ts`, grouped in 4 domains). Sources map their own categories to fields (arXiv categories, bioRxiv categories, PLOS subjects, HAL codes…) and are only queried for enabled fields. After each refresh, `Library.classifyNew` asks OpenAlex for the field of every new DOI (50 per request).

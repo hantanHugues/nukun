@@ -48,6 +48,13 @@ export function Profile() {
           Chaque article ouvert, lu jusqu'au bout, aimé, sauvegardé ou écarté ajuste ton fil. Les signaux anciens s'effacent peu à
           peu, comme sur un réseau social. {p.signals} signaux enregistrés.
         </p>
+        <p className="small muted" style={{ maxWidth: 640, margin: 0 }}>
+          {p.semantic.state === "loading"
+            ? "Recommandations par le sens : préparation du modèle multilingue (130 Mo, téléchargé une seule fois)…"
+            : p.semantic.state === "error"
+              ? "Recommandations par le sens indisponibles pour l'instant (connexion ?) : le fil se base sur les mots."
+              : `Recommandations par le sens, dans toutes les langues : ${p.semantic.analysed} articles analysés sur ton PC.`}
+        </p>
       </div>
 
       <div className="card section" style={{ marginBottom: 20 }}>

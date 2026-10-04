@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",
+    "@huggingface/transformers": "^4.3.0",
     "@mozilla/readability": "^0.6.0",
     "cheerio": "^1.2.0",
     "fast-xml-parser": "^5.11.2",
@@ -55,7 +56,17 @@
     "files": [
       "out/**",
       "resources/**",
-      "package.json"
+      "package.json",
+      "!node_modules/onnxruntime-node/bin/napi-v6/{darwin,linux}/**",
+      "!node_modules/onnxruntime-node/bin/napi-v6/win32/arm64/**",
+      "!node_modules/onnxruntime-web/dist/*.wasm",
+      "!node_modules/onnxruntime-web/**/*.map",
+      "!node_modules/@img/sharp-wasm32/**"
+    ],
+    "asarUnpack": [
+      "node_modules/onnxruntime-node/**",
+      "node_modules/sharp/**",
+      "node_modules/@img/**"
     ],
     "win": {
       "target": [
