@@ -6,6 +6,7 @@ import { epmcFindByDoi } from "../sources";
 import { absolutize, escapeText, htmlToBlocks } from "./html";
 import { jatsToBlocks } from "./jats";
 import { pdfToBlocks } from "./pdf";
+import { t } from "@shared/i18n";
 
 type Loaded = Omit<ArticleContent, "id" | "tr">;
 
@@ -40,7 +41,7 @@ async function loadRef(ref: FullTextRef, a: Article): Promise<Loaded> {
       return osf(ref.preprintId, a.url);
     case "doi-lookup": {
       const hit = await epmcFindByDoi(ref.doi);
-      if (!hit) throw new PendingError("Le texte intégral n'est pas encore disponible gratuitement pour cet article.");
+      if (!hit) throw new PendingError(t("Le texte intégral n'est pas encore disponible gratuitement pour cet article."));
       return pmc(hit.pmcid, a);
     }
   }
@@ -178,7 +179,7 @@ async function nature(url: string): Promise<Loaded> {
   const pdfUrl = `${url}.pdf`;
   if (bodyBlocks.filter((b) => b.t === "p").length < 5) {
     // Freshly accepted papers only carry the abstract for a few days: try again later.
-    throw new PendingError("Le texte intégral de cet article n'est pas encore en ligne. Il sera vérifié à nouveau plus tard.");
+    throw new PendingError(t("Le texte intégral de cet article n'est pas encore en ligne. Il sera vérifié à nouveau plus tard."));
   }
   blocks.push(...bodyBlocks);
   return { blocks, originalUrl: url, pdfUrl };
@@ -211,7 +212,7 @@ async function scielo(url: string, pdfUrl?: string): Promise<Loaded> {
   } catch {
     /* fall back to the PDF below */
   }
-  if (!pdfUrl) throw new Error("Texte intégral SciELO indisponible.");
+  if (!pdfUrl) throw new Error(t("Texte intégral SciELO indisponible."));
   return pdf(pdfUrl, url);
 }
 
@@ -223,7 +224,7 @@ async function readable(url: string): Promise<Loaded> {
   const { Readability } = await import("@mozilla/readability");
   const { document } = parseHTML(html);
   const art = new Readability(document as unknown as Document).parse();
-  if (!art?.content) throw new Error("Impossible d'extraire l'article de cette page.");
+  if (!art?.content) throw new Error(t("Impossible d'extraire l'article de cette page."));
   return inline(art.content, url);
 }
 
@@ -264,11 +265,11 @@ async function pdf(url: string, originalUrl: string): Promise<Loaded> {
 async function osf(preprintId: string, originalUrl: string): Promise<Loaded> {
   const p = await getJson(`https://api.osf.io/v2/preprints/${preprintId}/`);
   const fileHref: string | undefined = p.data?.relationships?.primary_file?.links?.related?.href;
-  if (!fileHref) throw new Error("Fichier de la prépublication introuvable sur OSF.");
+  if (!fileHref) throw new Error(t("Fichier de la prépublication introuvable sur OSF."));
   const f = await getJson(fileHref);
   const download: string | undefined = f.data?.links?.download;
   const name: string = f.data?.attributes?.name ?? "";
-  if (!download) throw new Error("Fichier de la prépublication introuvable sur OSF.");
+  if (!download) throw new Error(t("Fichier de la prépublication introuvable sur OSF."));
   if (/\.docx$/i.test(name)) return docx(download, originalUrl);
   return pdf(download, originalUrl);
 }

@@ -5,6 +5,7 @@
 export type DomainId = string;
 
 import type { Interest } from "./interests";
+import { t } from "./i18n";
 export type { Interest } from "./interests";
 
 export type FieldGroup = "life" | "social" | "physical" | "health";
@@ -47,7 +48,8 @@ export const FIELDS: { id: DomainId; label: string; group: FieldGroup }[] = [
 
 export const UNCLASSIFIED: DomainId = "0";
 
-export const fieldLabel = (id: DomainId) => FIELDS.find((f) => f.id === id)?.label ?? "Non classé";
+// Labels are written in French and shown in the app's language.
+export const fieldLabel = (id: DomainId) => t(FIELDS.find((f) => f.id === id)?.label ?? "Non classé");
 export const fieldGroup = (id: DomainId): FieldGroup | undefined => FIELDS.find((f) => f.id === id)?.group;
 
 /** Languages of articles the app can fetch and translate (ISO 639-1). */
@@ -61,7 +63,7 @@ export const LANGUAGES: { id: string; label: string }[] = [
   { id: "ja", label: "Japonais" },
   { id: "zh", label: "Chinois" },
 ];
-export const languageLabel = (id?: string) => LANGUAGES.find((l) => l.id === id)?.label ?? id ?? "Anglais";
+export const languageLabel = (id?: string) => t(LANGUAGES.find((l) => l.id === id)?.label ?? id ?? "Anglais");
 
 export type SourceId =
   | "arxiv"
@@ -152,8 +154,13 @@ export interface Article {
   langChecked?: boolean; // language checked against the text itself
   loadError?: string;
   // AI-generated French presentation
+  /** Title and summary in the reading language (French or English, see `teaserLang`). */
   titleFr?: string;
   teaserFr?: string;
+  /** Language of `titleFr` / `teaserFr` (French when absent). */
+  teaserLang?: string;
+  /** Titles and summaries made in each reading language, kept when the language changes. */
+  teasers?: Record<string, { title: string; teaser: string }>;
   // user state
   state: ArticleState;
 }
@@ -202,6 +209,8 @@ export interface ArticleContent {
   tr: Record<number, string[]>;
   glossary?: GlossaryTerm[];
   translatedBy?: string;
+  /** Language the passages were translated into (French when absent). */
+  trLang?: string;
   /** Passages translated so far, by provider (including the shared memory). */
   trBy?: Record<string, number>;
   /** Explanations asked while reading this article, kept for later visits. */
@@ -274,6 +283,8 @@ export interface Settings {
   /** Interest suggestions the reader turned down. */
   dismissedSuggestions?: string[];
   refreshHours: number;
+  /** Language of the app and of the translations: from Windows at first, then chosen. */
+  uiLang?: "fr" | "en";
   /**
    * Save mobile data: an article is downloaded only when opened (cards keep no
    * image until then), and nothing big is downloaded in the background.

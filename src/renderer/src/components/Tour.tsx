@@ -1,6 +1,7 @@
 import type React from "react";
 import { ArrowLeft, ArrowRight, X } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { t } from "@shared/i18n";
 import { type Route, useApp } from "../App";
 
 /**
@@ -27,6 +28,7 @@ const STEPS: Step[] = [
   { view: "feed", target: "nav-settings", title: "Réglages", text: "Tout se règle ici. On y va." },
   // The settings, section by section.
   { view: "settings", target: "settings-nav", title: "Sommaire", text: "Clique sur une section pour y aller directement." },
+  { view: "settings", target: "lang", title: "Langue", text: "Français ou anglais : la langue de l'app et celle des traductions." },
   { view: "settings", target: "ai-modes", title: "Ton IA", text: "Elle traduit, explique et répond à tes questions. Hybride (conseillé) : gratuit, avec Claude pour les passages techniques si tu l'as." },
   { view: "settings", target: "gemini-key", title: "Clé Google gratuite", text: "Crée-la sur aistudio.google.com/apikey et colle-la ici : c'est elle qui fait l'essentiel des traductions." },
   { view: "settings", target: "ollama", title: "IA locale", text: "Facultatif : une IA sur ton PC, sans connexion. Ta carte graphique est détectée et le bon modèle conseillé." },
@@ -197,7 +199,7 @@ export function Tour({ onDone }: { onDone: () => void }) {
   return (
     <div className="tour" aria-live="polite">
       <button className="btn tour-skip" onClick={close}>
-        <X size={15} /> Passer la visite <kbd>Échap</kbd>
+        <X size={15} /> {t("Passer la visite")} <kbd>{t("Échap")}</kbd>
       </button>
       {spot ? (
         <div
@@ -220,15 +222,15 @@ export function Tour({ onDone }: { onDone: () => void }) {
         className="tour-bubble card"
         style={{ left: pos.left, top: pos.top, width: W, ...(waiting ? { opacity: 0, pointerEvents: "none" } : null) }}
         role="dialog"
-        aria-label={step.title}
+        aria-label={t(step.title)}
       >
         <div className="row" style={{ justifyContent: "space-between" }}>
-          <strong>{step.title}</strong>
-          <button className="btn sm icon ghost" onClick={close} title="Quitter la visite" aria-label="Quitter la visite">
+          <strong>{t(step.title)}</strong>
+          <button className="btn sm icon ghost" onClick={close} title={t("Quitter la visite")} aria-label={t("Quitter la visite")}>
             <X size={15} />
           </button>
         </div>
-        <p>{step.text}</p>
+        <p>{t(step.text)}</p>
         <div className="row" style={{ justifyContent: "space-between" }}>
           <div className="row" style={{ gap: 4 }}>
             <span className="small muted">
@@ -236,7 +238,7 @@ export function Tour({ onDone }: { onDone: () => void }) {
             </span>
             {i < STEPS.length - 1 && (
               <button className="btn sm ghost" onClick={close}>
-                Passer la visite
+                {t("Passer la visite")}
               </button>
             )}
           </div>
@@ -247,7 +249,7 @@ export function Tour({ onDone }: { onDone: () => void }) {
               </button>
             )}
             <button className="btn sm primary" onClick={next}>
-              {i === STEPS.length - 1 ? "Terminer" : "Suivant"} <ArrowRight size={14} />
+              {i === STEPS.length - 1 ? t("Terminer") : t("Suivant")} <ArrowRight size={14} />
             </button>
           </div>
         </div>

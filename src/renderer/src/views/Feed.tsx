@@ -1,6 +1,7 @@
 import { Plus, RefreshCw, SlidersHorizontal, X } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ArticleKind, FeedItem, Interest } from "@shared/types";
+import { t } from "@shared/i18n";
 import { api } from "../api";
 import { useApp } from "../App";
 import { ArticleCard, CardSkeleton } from "../components/ArticleCard";
@@ -14,10 +15,10 @@ const PAGE = 30;
 
 function greeting() {
   const h = new Date().getHours();
-  if (h < 5) return "Encore debout ? Voici";
-  if (h < 12) return "Bonjour, voici";
-  if (h < 18) return "Bon après-midi, voici";
-  return "Bonsoir, voici";
+  if (h < 5) return t("Encore debout ? Voici ce que la recherche a publié pour toi.");
+  if (h < 12) return t("Bonjour, voici ce que la recherche a publié pour toi.");
+  if (h < 18) return t("Bon après-midi, voici ce que la recherche a publié pour toi.");
+  return t("Bonsoir, voici ce que la recherche a publié pour toi.");
 }
 
 export function Feed({ kind }: { kind: ArticleKind }) {
@@ -168,14 +169,14 @@ export function Feed({ kind }: { kind: ArticleKind }) {
     void api.interact({ id, type: "dismiss" });
     hidden.current.add(id);
     setItems((xs) => xs?.filter((x) => x.article.id !== id) ?? null);
-    toast("Compris : l'algorithme t'en montrera moins comme ça.");
+    toast(t("Compris : l'algorithme t'en montrera moins comme ça."));
   };
 
   const adopt = async (i: Interest) => {
     setSuggested(null);
     await api.setInterests([...(settings?.interests ?? []), i], settings?.languages ?? {});
     await reloadSettings();
-    toast(`« ${i.label} » ajouté à tes centres d'intérêt.`);
+    toast(t("« {label} » ajouté à tes centres d'intérêt.", { label: t(i.label) }));
   };
   const decline = (i: Interest) => {
     setSuggested(null);
@@ -191,21 +192,21 @@ export function Feed({ kind }: { kind: ArticleKind }) {
     <div className="page">
       <div className="feed-head">
         <div className="stack" style={{ gap: 10 }}>
-          <span className="label">{kind === "news" ? "Actus" : "Ton fil scientifique"}</span>
-          <h1 className="display">
-            {kind === "news"
-              ? "Les actualités officielles liées à ce qui t'intéresse."
-              : `${greeting()} ce que la recherche a publié pour toi.`}
-          </h1>
+          <span className="label">{kind === "news" ? t("Actus") : t("Ton fil scientifique")}</span>
+          <h1 className="display">{kind === "news" ? t("Les actualités officielles liées à ce qui t'intéresse.") : greeting()}</h1>
         </div>
         <div className="stack" style={{ alignItems: "flex-end", gap: 8 }}>
           <button className="btn" onClick={refreshNow} disabled={running} data-tour={kind === "paper" ? "refresh" : undefined}>
             {running ? <div className="spinner" /> : <RefreshCw size={15} />}
-            Actualiser
+            {t("Actualiser")}
           </button>
           {refresh && (
             <span className="refresh-status">
-              {refresh.running ? `${refresh.step}…` : refresh.newArticles ? `${refresh.newArticles} nouveaux articles` : "Fil à jour"}
+              {refresh.running
+                ? `${refresh.step}…`
+                : refresh.newArticles
+                  ? t("{n} nouveaux articles", { n: refresh.newArticles })
+                  : t("Fil à jour")}
             </span>
           )}
         </div>
@@ -213,13 +214,11 @@ export function Feed({ kind }: { kind: ArticleKind }) {
 
       {suggested && (
         <div className="suggest-banner">
-          <span>
-            Tu lis souvent des articles proches de <strong>{suggested.label}</strong>. L'ajouter à tes centres d'intérêt ?
-          </span>
+          <span>{t("Tu lis souvent des articles proches de « {label} ». L'ajouter à tes centres d'intérêt ?", { label: t(suggested.label) })}</span>
           <button className="btn sm primary" onClick={() => void adopt(suggested)}>
-            <Plus size={14} /> Ajouter
+            <Plus size={14} /> {t("Ajouter")}
           </button>
-          <button className="btn sm ghost icon" aria-label="Non merci" title="Non merci" onClick={() => decline(suggested)}>
+          <button className="btn sm ghost icon" aria-label={t("Non merci")} title={t("Non merci")} onClick={() => decline(suggested)}>
             <X size={14} />
           </button>
         </div>
@@ -227,15 +226,15 @@ export function Feed({ kind }: { kind: ArticleKind }) {
 
       <div className="feed-filters" data-tour={kind === "paper" ? "filters" : undefined}>
         <button className={`chip ${domain === "all" ? "active" : ""}`} onClick={() => setDomain("all")}>
-          Tout
+          {t("Tout")}
         </button>
         {chips.map((i) => (
           <button key={i.id} className={`chip ${domain === `i:${i.id}` ? "active" : ""}`} onClick={() => setDomain(`i:${i.id}`)}>
-            {i.label}
+            {t(i.label)}
           </button>
         ))}
-        <button className="chip ghost-chip" onClick={() => go({ view: "settings" })} title="Modifier mes centres d'intérêt">
-          <SlidersHorizontal size={13} /> Modifier
+        <button className="chip ghost-chip" onClick={() => go({ view: "settings" })} title={t("Modifier mes centres d'intérêt")}>
+          <SlidersHorizontal size={13} /> {t("Modifier")}
         </button>
       </div>
 
@@ -249,17 +248,17 @@ export function Feed({ kind }: { kind: ArticleKind }) {
         <div className="card empty">
           {running ? (
             <div className="row" style={{ justifyContent: "center" }}>
-              <div className="spinner" /> Récupération des premiers articles auprès des sources scientifiques…
+              <div className="spinner" /> {t("Récupération des premiers articles auprès des sources scientifiques…")}
             </div>
           ) : (
             <>
               <p>
                 {kind === "news" && !chips.length
-                  ? "Aucune source d'actualité officielle ne couvre encore tes centres d'intérêt : les articles de recherche sont dans l'onglet Articles."
-                  : "Aucun article à afficher pour l'instant."}
+                  ? t("Aucune source d'actualité officielle ne couvre encore tes centres d'intérêt : les articles de recherche sont dans l'onglet Articles.")
+                  : t("Aucun article à afficher pour l'instant.")}
               </p>
               <button className="btn" onClick={refreshNow}>
-                <RefreshCw size={15} /> Chercher de nouveaux articles
+                <RefreshCw size={15} /> {t("Chercher de nouveaux articles")}
               </button>
             </>
           )}
@@ -283,14 +282,14 @@ export function Feed({ kind }: { kind: ArticleKind }) {
         <div className="feed-end" ref={sentinel}>
           {end ? (
             <>
-              <p className="muted">Tu as tout parcouru pour cette sélection.</p>
+              <p className="muted">{t("Tu as tout parcouru pour cette sélection.")}</p>
               <button className="btn" onClick={refreshNow} disabled={running}>
-                {running ? <div className="spinner" /> : <RefreshCw size={15} />} Chercher de nouveaux articles
+                {running ? <div className="spinner" /> : <RefreshCw size={15} />} {t("Chercher de nouveaux articles")}
               </button>
             </>
           ) : (
             <button className="btn" onClick={() => void loadMore()} disabled={loadingMore}>
-              {loadingMore ? <div className="spinner" /> : null} Charger plus
+              {loadingMore ? <div className="spinner" /> : null} {t("Charger plus")}
             </button>
           )}
         </div>

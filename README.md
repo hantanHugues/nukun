@@ -16,6 +16,12 @@ Lance `release/Nukun-Setup-1.0.0.exe`. L'installateur crée un raccourci « Nùk
 
 Si l'ancienne version « Veille Scientifique » est installée, désinstalle-la : Nùkún reprend automatiquement ses articles, traductions et préférences au premier lancement.
 
+## Français et anglais
+
+L'app existe en français et en anglais : au premier lancement elle prend la langue de Windows, et l'écran d'accueil comme les Réglages permettent d'en changer. Cette langue est aussi celle des traductions, des explications et de la discussion : un lecteur anglophone lit les articles anglais tels quels, et les autres (français, espagnol, japonais…) traduits en anglais. Les mémoires de traduction sont séparées par langue, et les titres des cartes sont gardés dans chaque langue, si bien qu'un aller-retour ne coûte rien. L'installateur suit aussi la langue de Windows.
+
+Les textes de l'interface sont écrits en français dans le code et traduits par un dictionnaire (`src/shared/i18n-en.ts`) ; `npm run i18n:check` liste ceux qui n'ont pas encore leur version anglaise.
+
 ## Mises à jour
 
 L'app vérifie au lancement, puis toutes les 6 heures, si une nouvelle version est publiée dans les *Releases* GitHub du dépôt. Elle la télécharge en arrière-plan (seulement ce qui a changé), puis une fenêtre propose « Mettre à jour » : rien ne s'installe sans ce clic, et la proposition revient à chaque lancement. Avec l'économie de données, le téléchargement attend aussi un clic. Le dépôt doit être public pour que les apps installées voient les versions.

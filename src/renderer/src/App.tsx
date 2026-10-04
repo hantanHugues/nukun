@@ -2,6 +2,7 @@ import type React from "react";
 import { BookMarked, Moon, Newspaper, PenLine, Settings2, Sparkles, Sun, UserRound } from "lucide-react";
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useState } from "react";
 import type { RefreshProgress, Settings } from "@shared/types";
+import { locale, setLang, t } from "@shared/i18n";
 import { api } from "./api";
 import iconUrl from "./assets/icon.png";
 import { Welcome } from "./components/Interests";
@@ -39,8 +40,8 @@ export const useApp = () => useContext(AppCtx);
 function useClock() {
   const [now, setNow] = useState(new Date());
   useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 30000);
-    return () => clearInterval(t);
+    const timer = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(timer);
   }, []);
   return now;
 }
@@ -65,6 +66,13 @@ export function App() {
       off();
     };
   }, [reloadSettings]);
+
+  // The app's language, set before anything is drawn (texts are read while drawing).
+  const uiLang = settings?.uiLang ?? "fr";
+  setLang(uiLang);
+  useEffect(() => {
+    document.documentElement.lang = uiLang;
+  }, [uiLang]);
 
   const theme = settings?.theme ?? "system";
   const dark = theme === "dark" || (theme === "system" && systemDark);
@@ -108,11 +116,11 @@ export function App() {
   };
 
   const nav: { id: Route["view"]; label: string; icon: React.ReactNode }[] = [
-    { id: "feed", label: "Articles", icon: <Sparkles size={16} /> },
-    { id: "news", label: "Actus", icon: <Newspaper size={16} /> },
-    { id: "library", label: "Bibliothèque", icon: <BookMarked size={16} /> },
-    { id: "writing", label: "Mes articles", icon: <PenLine size={16} /> },
-    { id: "profile", label: "Mes goûts", icon: <UserRound size={16} /> },
+    { id: "feed", label: t("Articles"), icon: <Sparkles size={16} /> },
+    { id: "news", label: t("Actus"), icon: <Newspaper size={16} /> },
+    { id: "library", label: t("Bibliothèque"), icon: <BookMarked size={16} /> },
+    { id: "writing", label: t("Mes articles"), icon: <PenLine size={16} /> },
+    { id: "profile", label: t("Mes goûts"), icon: <UserRound size={16} /> },
   ];
   const active = route.view === "reader" ? route.from.view : route.view;
 
@@ -120,7 +128,7 @@ export function App() {
   if (settings && !settings.interestsChosen) {
     return (
       <AppCtx.Provider value={{ go, view: route.view, toast, settings, reloadSettings, refresh }}>
-        <div className="app">
+        <div className="app" key={uiLang}>
           <div className="dots" />
           <header className="titlebar">
             <div className="brand">
@@ -138,15 +146,16 @@ export function App() {
 
   return (
     <AppCtx.Provider value={{ go, view: route.view, toast, settings, reloadSettings, refresh }}>
-      <div className="app">
+      {/* A change of language draws every screen again, in the new language. */}
+      <div className="app" key={uiLang}>
         <div className="dots" />
         <header className="titlebar">
           <div className="brand">
             <img src={iconUrl} alt="" />
             <strong>Nùkún</strong>
-            <span>· {now.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}</span>
+            <span>· {now.toLocaleDateString(locale(), { weekday: "long", day: "numeric", month: "long" })}</span>
           </div>
-          <nav className="nav" aria-label="Navigation principale" data-tour="nav">
+          <nav className="nav" aria-label={t("Navigation principale")} data-tour="nav">
             {nav.map((n) => (
               <button
                 key={n.id}
@@ -163,16 +172,16 @@ export function App() {
               data-tour="nav-settings"
               className={`toggle icon ${active === "settings" ? "active" : ""}`}
               onClick={() => go({ view: "settings" })}
-              title="Réglages"
-              aria-label="Réglages"
+              title={t("Réglages")}
+              aria-label={t("Réglages")}
             >
               <Settings2 size={16} />
             </button>
-            <button className="toggle icon" onClick={toggleTheme} title="Changer de thème" aria-label="Changer de thème">
+            <button className="toggle icon" onClick={toggleTheme} title={t("Changer de thème")} aria-label={t("Changer de thème")}>
               {dark ? <Sun size={16} /> : <Moon size={16} />}
             </button>
           </nav>
-          <div className="right">{now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</div>
+          <div className="right">{now.toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" })}</div>
         </header>
         <main className="main" id="main-scroll">
           {route.view === "feed" && <Feed key="paper" kind="paper" />}

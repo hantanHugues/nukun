@@ -3,7 +3,9 @@ import { useEffect, useRef, useState } from "react";
 import type { Interest, TopicHit } from "@shared/types";
 import { fieldLabel, LANGUAGES } from "@shared/types";
 import { INTEREST_CATALOG, INTEREST_GROUPS } from "@shared/interests";
+import { lang, t } from "@shared/i18n";
 import { api } from "../api";
+import { useApp } from "../App";
 
 /** Minimum number of interests before the feed can start. */
 export const MIN_INTERESTS = 3;
@@ -46,7 +48,7 @@ export function InterestsEditor({
     const text = q.trim();
     if (!text) return;
     // A catalogue interest with that name: just pick it.
-    const known = INTEREST_CATALOG.find((i) => strip(i.label).includes(strip(text)));
+    const known = INTEREST_CATALOG.find((i) => strip(t(i.label)).includes(strip(text)) || strip(i.label).includes(strip(text)));
     latest.current = text;
     setSearching(true);
     setError(null);
@@ -60,7 +62,7 @@ export function InterestsEditor({
       setPicked(new Set(found.slice(0, 1).map((h) => h.id)));
       if (known && !chosen.has(known.id)) toggle(known);
     } catch {
-      if (latest.current === text) setError("Recherche impossible pour l'instant (connexion ?).");
+      if (latest.current === text) setError(t("Recherche impossible pour l'instant (connexion ?)."));
     } finally {
       if (latest.current === text) setSearching(false);
     }
@@ -73,9 +75,9 @@ export function InterestsEditor({
     const interest: Interest = {
       id: `c:${strip(label).replace(/[^a-z0-9]+/g, "-")}`,
       label,
-      fields: [...new Set(topics.map((t) => t.field))],
-      topics: topics.map((t) => t.id),
-      keywords: [label, ...topics.map((t) => t.name)],
+      fields: [...new Set(topics.map((tp) => tp.field))],
+      topics: topics.map((tp) => tp.id),
+      keywords: [label, ...topics.map((tp) => tp.name)],
       news: [],
       custom: true,
     };
@@ -91,13 +93,13 @@ export function InterestsEditor({
     <div className="interests">
       {INTEREST_GROUPS.map((g) => (
         <div key={g.id} className="field">
-          <label>{g.label}</label>
+          <label>{t(g.label)}</label>
           <div className="row wrap" style={{ gap: 8 }}>
             {INTEREST_CATALOG.filter((i) => i.group === g.id).map(({ group: _g, ...i }) => {
               const on = chosen.has(i.id);
               return (
                 <button key={i.id} className={`chip bubble ${on ? "active" : ""}`} aria-pressed={on} onClick={() => toggle(i)}>
-                  {on && <Check size={13} />} {i.label}
+                  {on && <Check size={13} />} {t(i.label)}
                 </button>
               );
             })}
@@ -106,7 +108,7 @@ export function InterestsEditor({
       ))}
 
       <div className="field">
-        <label htmlFor="interest-search">Autre chose ?</label>
+        <label htmlFor="interest-search">{t("Autre chose ?")}</label>
         <form
           className="row"
           style={{ gap: 8 }}
@@ -118,23 +120,23 @@ export function InterestsEditor({
           <input
             id="interest-search"
             className="input grow"
-            placeholder="Couture, football, cuisine, MQTT… dans n'importe quelle langue"
+            placeholder={t("Couture, football, cuisine, MQTT… dans n'importe quelle langue")}
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
           <button className="btn" type="submit" disabled={!q.trim()}>
-            {searching ? <div className="spinner" /> : <Search size={15} />} Chercher
+            {searching ? <div className="spinner" /> : <Search size={15} />} {t("Chercher")}
           </button>
         </form>
         {error && <span className="small muted">{error}</span>}
         {hits && (
           <div className="topic-hits">
             {hits.length === 0 ? (
-              <span className="small muted">Aucun sujet de recherche trouvé pour « {hitsFor} ».</span>
+              <span className="small muted">{t("Aucun sujet de recherche trouvé pour « {q} ».", { q: hitsFor })}</span>
             ) : (
               <>
                 <span className="small muted">
-                  Sujets de recherche trouvés pour « {hitsFor} » : coche ceux qui correspondent à ce que tu cherches.
+                  {t("Sujets de recherche trouvés pour « {q} » : coche ceux qui correspondent à ce que tu cherches.", { q: hitsFor })}
                 </span>
                 <div className="row wrap" style={{ gap: 6 }}>
                   {hits.map((h) => {
@@ -144,7 +146,7 @@ export function InterestsEditor({
                         key={h.id}
                         className={`chip ${on ? "active" : ""}`}
                         aria-pressed={on}
-                        title={`${h.name} · ${fieldLabel(h.field)} · ${h.count} articles récents`}
+                        title={`${h.name} · ${fieldLabel(h.field)} · ${t("{n} articles récents", { n: h.count })}`}
                         onClick={() => {
                           const next = new Set(picked);
                           if (on) next.delete(h.id);
@@ -159,7 +161,7 @@ export function InterestsEditor({
                 </div>
                 <div>
                   <button className="btn primary sm" onClick={addCustom} disabled={!picked.size}>
-                    <Plus size={14} /> Ajouter « {hitsFor} »
+                    <Plus size={14} /> {t("Ajouter « {q} »", { q: hitsFor })}
                   </button>
                 </div>
               </>
@@ -171,7 +173,7 @@ export function InterestsEditor({
             {custom.map((i) => (
               <span key={i.id} className="chip active">
                 {i.label}
-                <button className="chip-x" aria-label={`Retirer ${i.label}`} onClick={() => toggle(i)}>
+                <button className="chip-x" aria-label={t("Retirer {label}", { label: i.label })} onClick={() => toggle(i)}>
                   <X size={12} />
                 </button>
               </span>
@@ -181,10 +183,9 @@ export function InterestsEditor({
       </div>
 
       <div className="field">
-        <label>Langues des articles</label>
+        <label>{t("Langues des articles")}</label>
         <span className="small muted">
-          Les articles écrits dans les langues cochées apparaissent dans ton fil, tous traduits en français. Clique pour cocher ou
-          décocher.
+          {t("Les articles écrits dans les langues cochées apparaissent dans ton fil, tous traduits en français. Clique pour cocher ou décocher.")}
         </span>
         <div className="row wrap" style={{ gap: 6 }}>
           {LANGUAGES.map((l) => {
@@ -196,14 +197,14 @@ export function InterestsEditor({
                 aria-pressed={on}
                 onClick={() => onChange(interests, { ...languages, [l.id]: !on })}
               >
-                {on && <Check size={13} />} {l.label}
+                {on && <Check size={13} />} {t(l.label)}
               </button>
             );
           })}
         </div>
         {languages.en === false && (
           <span className="small lang-warning">
-            Sans l'anglais, la grande majorité des articles scientifiques disparaît de ton fil.
+            {t("Sans l'anglais, la grande majorité des articles scientifiques disparaît de ton fil.")}
           </span>
         )}
       </div>
@@ -213,6 +214,7 @@ export function InterestsEditor({
 
 /** First launch: nothing is fetched before the reader has said what they like. */
 export function Welcome({ onDone }: { onDone: () => void }) {
+  const { reloadSettings } = useApp();
   const [interests, setInterests] = useState<Interest[]>([]);
   // English (most research) and French to start; the other languages are added on demand.
   const [languages, setLanguages] = useState<Record<string, boolean>>(
@@ -244,11 +246,27 @@ export function Welcome({ onDone }: { onDone: () => void }) {
   return (
     <div className="welcome">
       <div className="welcome-inner">
-        <span className="label">Bienvenue sur Nùkún</span>
-        <h1 className="display">Qu'est-ce qui t'intéresse ?</h1>
+        <div className="row" style={{ justifyContent: "space-between" }}>
+          <span className="label">{t("Bienvenue sur Nùkún")}</span>
+          {/* The app's language, before anything else: it is also the reading language. */}
+          <div className="seg" role="group" aria-label={t("Langue de l'app")}>
+            {(["fr", "en"] as const).map((l) => (
+              <button
+                key={l}
+                className={lang() === l ? "active" : ""}
+                onClick={async () => {
+                  await api.saveSettings({ uiLang: l });
+                  await reloadSettings();
+                }}
+              >
+                {l === "fr" ? "Français" : "English"}
+              </button>
+            ))}
+          </div>
+        </div>
+        <h1 className="display">{t("Qu'est-ce qui t'intéresse ?")}</h1>
         <p className="muted">
-          Choisis au moins {MIN_INTERESTS} sujets. Ton fil partira de là, puis apprendra de ce que tu lis et te proposera peu à peu
-          des sujets voisins. Tu pourras tout changer dans les réglages.
+          {t("Choisis au moins {n} sujets. Ton fil partira de là, puis apprendra de ce que tu lis et te proposera peu à peu des sujets voisins. Tu pourras tout changer dans les réglages.", { n: MIN_INTERESTS })}
         </p>
         <InterestsEditor
           interests={interests}
@@ -262,13 +280,15 @@ export function Welcome({ onDone }: { onDone: () => void }) {
       <div className="welcome-bar">
         <span className="muted small">
           {missing > 0
-            ? `Encore ${missing} sujet${missing > 1 ? "s" : ""} à choisir`
+            ? missing > 1
+              ? t("Encore {n} sujets à choisir", { n: missing })
+              : t("Encore 1 sujet à choisir")
             : noLanguage
-              ? "Coche au moins une langue"
-              : `${interests.length} sujets choisis`}
+              ? t("Coche au moins une langue")
+              : t("{n} sujets choisis", { n: interests.length })}
         </span>
         <button className="btn primary" disabled={missing > 0 || noLanguage || saving} onClick={() => void start()}>
-          {saving ? <div className="spinner" /> : null} Commencer
+          {saving ? <div className="spinner" /> : null} {t("Commencer")}
         </button>
       </div>
     </div>

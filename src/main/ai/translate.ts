@@ -1,11 +1,12 @@
 import type { Article, ArticleContent, GlossaryTerm } from "@shared/types";
 import { languageLabel } from "@shared/types";
+import { lang, t } from "@shared/i18n";
 import { claudeKey, geminiKey, getSettings } from "../settings";
 import { claudeCodeAvailable } from "./claudeCode";
 import { recall, recallGlossary, remember, rememberGlossary } from "./memory";
 import { llmJson, OutputTooLongError } from "./llm";
 
-const RULES = `Tu es un traducteur scientifique professionnel. Tu traduis vers le français des articles écrits en anglais ou dans une autre langue (indiquée avec l'article).
+const RULES_FR = `Tu es un traducteur scientifique professionnel. Tu traduis vers le français des articles écrits en anglais ou dans une autre langue (indiquée avec l'article).
 
 Règles de traduction :
 1. Traduis fidèlement et intégralement, phrase par phrase. Ne résume jamais, n'ajoute rien, ne supprime rien. Le sens, les nuances, les chiffres, les unités, les noms propres et le niveau de certitude des auteurs (« suggère », « démontre », « pourrait ») doivent être conservés exactement.
@@ -15,6 +16,22 @@ Règles de traduction :
 5. Les marqueurs ⟦1⟧, ⟦2⟧… représentent des formules ou des références : recopie-les exactement, à la place qui convient dans la phrase française.
 6. Conserve les balises HTML <em>, <strong>, <sup>, <sub>, <br> autour des mêmes mots.
 7. Le français doit être fluide et correct (accords, typographie française : espaces avant « : ; ? ! », guillemets « »), sans être une reformulation libre.`;
+
+const RULES_EN = `You are a professional scientific translator. You translate into English papers written in another language (given with the paper).
+
+Translation rules:
+1. Translate faithfully and completely, sentence by sentence. Never summarise, add or drop anything. Meaning, nuances, figures, units, proper names and the authors' level of certainty ("suggests", "shows", "may") must be kept exactly.
+2. Use the standard English terminology of the field, as specialists write it (e.g. "machine learning", "western blot", "reinforcement learning"). Everyday words and phrasing become natural English.
+3. Follow the glossary given: a term marked "keep" stays as it is; otherwise use the translation given, always the same one in the whole paper.
+4. Never translate: names of genes, proteins, molecules, Latin species names, software, datasets, models, acronyms, equations, bibliographic citations.
+5. The markers ⟦1⟧, ⟦2⟧… stand for formulas or references: copy them exactly, at the right place in the English sentence.
+6. Keep the HTML tags <em>, <strong>, <sup>, <sub>, <br> around the same words.
+7. The English must be fluent and correct, without being a free rewording.`;
+
+/** The translation rules, towards the reading language (French or English). */
+const rules = () => (lang() === "en" ? RULES_EN : RULES_FR);
+/** Glossary and translation memories are kept apart per reading language (French: as before). */
+const memLang = (src: string) => (lang() === "en" ? `en<${src}` : src);
 
 const GLOSSARY_SCHEMA = {
   type: "object",
@@ -26,10 +43,10 @@ const GLOSSARY_SCHEMA = {
         properties: {
           term: { type: "string" },
           keep: { type: "boolean" },
-          fr: { type: "string" },
+          translation: { type: "string" },
           definition: { type: "string" },
         },
-        required: ["term", "keep", "fr", "definition"],
+        required: ["term", "keep", "translation", "definition"],
         additionalProperties: false,
       },
     },
@@ -45,8 +62,8 @@ const TRANSLATION_SCHEMA = {
       type: "array",
       items: {
         type: "object",
-        properties: { i: { type: "integer" }, fr: { type: "string" } },
-        required: ["i", "fr"],
+        properties: { i: { type: "integer" }, text: { type: "string" } },
+        required: ["i", "text"],
         additionalProperties: false,
       },
     },
@@ -65,25 +82,30 @@ export async function buildGlossary(a: Article, c: ArticleContent): Promise<Glos
     sample += plain(b.segs[0]) + "\n";
     if (sample.length > 6000) break;
   }
-  const lang = a.lang ?? "en";
+  const src = memLang(a.lang ?? "en");
   // Terms already decided in other articles: reused as they are.
-  const known = recallGlossary(`${a.title}\n${headings.join("\n")}\n${sample}`, lang).slice(0, 40);
+  const known = recallGlossary(`${a.title}\n${headings.join("\n")}\n${sample}`, src).slice(0, 40);
   // Well covered already: no AI call at all.
   if (known.length >= 20) return known;
   const knownList = known.length
     ? `\n\nTermes déjà connus (ne les répète pas, ils sont déjà dans le glossaire) : ${known.map((t) => t.term).join(", ")}.`
     : "";
-  const { data } = await llmJson<{ terms: GlossaryTerm[] }>({
-    system: `${RULES}\n\nTa tâche ici : préparer le glossaire technique d'un article avant sa traduction.`,
-    user: `Article : « ${a.title} »\nLangue de l'article : ${languageLabel(a.lang)}\nDomaine :${a.categories.join(", ") || a.venue || ""}\n\nTitres des sections :\n${headings.join("\n")}\n\nExtrait :\n${sample}${knownList}\n\nListe ${known.length ? "0 à 20 autres" : "10 à 30"} termes techniques importants de cet article. Pour chacun : "term" (tel qu'écrit dans l'article, dans sa langue), "keep" (true si les spécialistes francophones emploient ce terme en anglais), "fr" (la forme à utiliser dans la traduction : la traduction française de référence, ou le terme anglais d'usage si keep=true), "definition" (une explication très simple en français, une phrase, pour quelqu'un qui découvre le domaine).${getSettings().keepTermsHint ? `\n\nPréférences de l'utilisateur : ${getSettings().keepTermsHint}` : ""}`,
+  const { data } = await llmJson<{ terms: (Omit<GlossaryTerm, "fr"> & { translation: string })[] }>({
+    system: `${rules()}\n\nTa tâche ici : préparer le glossaire technique d'un article avant sa traduction.`,
+    user:
+      lang() === "en"
+        ? `Paper: "${a.title}"\nLanguage of the paper: ${a.lang ?? "en"}\nField: ${a.categories.join(", ") || a.venue || ""}\n\nSection headings:\n${headings.join("\n")}\n\nExcerpt:\n${sample}${known.length ? `\n\nTerms already known (do not repeat them): ${known.map((x) => x.term).join(", ")}.` : ""}\n\nList ${known.length ? "0 to 20 other" : "10 to 30"} important technical terms of this paper. For each: "term" (as written in the paper, in its language), "keep" (true if English-speaking specialists use the term as it is), "translation" (the form to use in the English translation), "definition" (a very simple explanation in English, one sentence, for someone new to the field).${getSettings().keepTermsHint ? `\n\nThe user's preferences: ${getSettings().keepTermsHint}` : ""}`
+        : `Article : « ${a.title} »\nLangue de l'article : ${languageLabel(a.lang)}\nDomaine :${a.categories.join(", ") || a.venue || ""}\n\nTitres des sections :\n${headings.join("\n")}\n\nExtrait :\n${sample}${knownList}\n\nListe ${known.length ? "0 à 20 autres" : "10 à 30"} termes techniques importants de cet article. Pour chacun : "term" (tel qu'écrit dans l'article, dans sa langue), "keep" (true si les spécialistes francophones emploient ce terme en anglais), "translation" (la forme à utiliser dans la traduction : la traduction française de référence, ou le terme anglais d'usage si keep=true), "definition" (une explication très simple en français, une phrase, pour quelqu'un qui découvre le domaine).${getSettings().keepTermsHint ? `\n\nPréférences de l'utilisateur : ${getSettings().keepTermsHint}` : ""}`,
     schema: GLOSSARY_SCHEMA,
     maxTokens: 8000,
     tier: "heavy",
   });
-  const fresh = data.terms.filter((t) => t.term?.trim() && !known.some((k) => k.term.toLowerCase() === t.term.toLowerCase()));
-  rememberGlossary(fresh, lang);
+  const fresh: GlossaryTerm[] = data.terms
+    .filter((x) => x.term?.trim() && !known.some((k) => k.term.toLowerCase() === x.term.toLowerCase()))
+    .map(({ translation, ...x }) => ({ ...x, fr: translation }));
+  rememberGlossary(fresh, src);
   // Known terms were used again: they count as more common.
-  rememberGlossary(known, lang);
+  rememberGlossary(known, src);
   return [...known, ...fresh];
 }
 
@@ -146,10 +168,9 @@ function batches(segs: Segment[], maxChars: number): Segment[][] {
 }
 
 function glossaryText(g: GlossaryTerm[]) {
-  if (!g.length) return "(aucun)";
-  return g
-    .map((t) => (t.keep ? `- ${t.term} → « ${t.fr || t.term} » (terme anglais d'usage, à garder)` : `- ${t.term} → « ${t.fr} »`))
-    .join("\n");
+  if (!g.length) return lang() === "en" ? "(none)" : "(aucun)";
+  const keep = lang() === "en" ? "(keep as it is)" : "(terme anglais d'usage, à garder)";
+  return g.map((x) => (x.keep ? `- ${x.term} → « ${x.fr || x.term} » ${keep}` : `- ${x.term} → « ${x.fr} »`)).join("\n");
 }
 
 type Tier = "light" | "heavy";
@@ -166,29 +187,32 @@ interface BatchResult {
 const EN_WORDS = new Set("the of and to in is are was were that this with for which from by be as on these those has have it its their".split(" "));
 const FR_WORDS = new Set("le la les de des du un une et est en que qui dans pour par sur au aux ce cette ces se sont il elle ils on pas plus ou avec".split(" "));
 
-/** Cheap checks that catch the usual failures of small models, without any AI call. */
-function looksWrong(s: Segment, frRaw: string, glossary: GlossaryTerm[], lang = "en"): boolean {
-  const src = s.text.replace(/<[^>]+>/g, " ");
+/**
+ * Cheap checks that catch the usual failures of small models, without any AI call.
+ * `src` is the article's language; the target is the reading language.
+ */
+function looksWrong(s: Segment, frRaw: string, glossary: GlossaryTerm[], src = "en"): boolean {
+  const target = lang();
+  const srcText = s.text.replace(/<[^>]+>/g, " ");
   const out = frRaw.replace(/<[^>]+>/g, " ");
   // A formula or reference marker went missing.
   for (let i = 1; i <= s.tokens.length; i++) if (!frRaw.includes(`⟦${i}⟧`)) return true;
   const words = out.toLowerCase().match(/[\p{L}']+/gu) ?? [];
-  if (words.length >= 8 && lang === "en") {
-    // Still mostly English.
-    const en = words.filter((w) => EN_WORDS.has(w)).length / words.length;
-    if (en > 0.12) return true;
-  }
-  // Whatever the source language, real French has its small function words.
-  if (words.length >= 12 && words.filter((w) => FR_WORDS.has(w)).length / words.length < 0.06) return true;
+  const share = (set: Set<string>) => words.filter((w) => set.has(w)).length / Math.max(1, words.length);
+  // Still mostly in the source language (left untranslated).
+  if (words.length >= 8 && src === "en" && target === "fr" && share(EN_WORDS) > 0.12) return true;
+  if (words.length >= 8 && src === "fr" && target === "en" && share(FR_WORDS) > 0.12) return true;
+  // Whatever the source language, real French (or English) has its small function words.
+  if (words.length >= 12 && share(target === "en" ? EN_WORDS : FR_WORDS) < 0.06) return true;
   // Much shorter or longer than the source: something was dropped or invented.
   // (Chinese and Japanese are much denser than French: no length check for them.)
-  const ratio = out.trim().length / Math.max(1, src.trim().length);
-  if (src.length > 60 && !["zh", "ja"].includes(lang) && (ratio < 0.6 || ratio > 2.2)) return true;
+  const ratio = out.trim().length / Math.max(1, srcText.trim().length);
+  if (srcText.length > 60 && !["zh", "ja"].includes(src) && (ratio < 0.6 || ratio > 2.2)) return true;
   // A term that must stay in English was translated anyway.
   for (const g of glossary) {
     if (!g.keep || g.term.length < 3) continue;
     const expected = (g.fr || g.term).toLowerCase();
-    if (src.toLowerCase().includes(g.term.toLowerCase()) && !out.toLowerCase().includes(expected)) return true;
+    if (srcText.toLowerCase().includes(g.term.toLowerCase()) && !out.toLowerCase().includes(expected)) return true;
   }
   return false;
 }
@@ -204,9 +228,9 @@ function density(s: Segment, glossary: GlossaryTerm[]) {
 async function translateBatch(a: Article, glossary: GlossaryTerm[], batch: Segment[], tier: Tier): Promise<BatchResult> {
   const hint = getSettings().keepTermsHint;
   try {
-    const { data, provider } = await llmJson<{ translations: { i: number; fr: string }[] }>({
-      system: `${RULES}${hint ? `\n\nPréférences de l'utilisateur : ${hint}` : ""}\n\nArticle : « ${a.title} »\nLangue de l'article : ${languageLabel(a.lang)}\n\nGlossaire de cet article :\n${glossaryText(glossary)}`,
-      user: `Traduis chaque segment en français. Réponds avec un élément par segment, avec le même "i".\n\n${JSON.stringify(
+    const { data, provider } = await llmJson<{ translations: { i: number; text: string }[] }>({
+      system: `${rules()}${hint ? `\n\nPréférences de l'utilisateur : ${hint}` : ""}\n\nArticle : « ${a.title} »\nLangue de l'article : ${languageLabel(a.lang)}\n\nGlossaire de cet article :\n${glossaryText(glossary)}`,
+      user: `${lang() === "en" ? `Translate each segment into English. Answer with one item per segment, with the same "i".` : `Traduis chaque segment en français. Réponds avec un élément par segment, avec le même "i".`}\n\n${JSON.stringify(
         batch.map((s, i) => ({ i, text: s.text })),
       )}`,
       schema: TRANSLATION_SCHEMA,
@@ -216,10 +240,10 @@ async function translateBatch(a: Article, glossary: GlossaryTerm[], batch: Segme
     const res: BatchResult = { fr: new Map(), raw: new Map(), suspicious: new Set(), provider };
     for (const t of data.translations) {
       const s = batch[t.i];
-      if (!s || !t.fr?.trim()) continue;
-      res.fr.set(s.key, restore(t.fr, s.tokens));
-      res.raw.set(s.key, t.fr);
-      if (tier === "light" && looksWrong(s, t.fr, glossary, a.lang)) res.suspicious.add(s.key);
+      if (!s || !t.text?.trim()) continue;
+      res.fr.set(s.key, restore(t.text, s.tokens));
+      res.raw.set(s.key, t.text);
+      if (tier === "light" && looksWrong(s, t.text, glossary, a.lang)) res.suspicious.add(s.key);
     }
     for (const s of batch) if (tier === "light" && !res.fr.has(s.key)) res.suspicious.add(s.key);
     return res;
@@ -260,13 +284,14 @@ export async function translateContent(
   // Free first: everything the memory already knows (skipped when redoing a translation).
   const fromMemory = segs.filter((s) => {
     if (!useMemory) return false;
-    const raw = recall(s.text);
+    const raw = recall(s.text, lang());
     if (raw === undefined) return false;
     (c.tr[s.block] ??= [])[s.seg] = restore(raw, s.tokens);
     return true;
   });
   if (fromMemory.length) {
-    c.trBy = { ...c.trBy, "Mémoire de traduction": (c.trBy?.["Mémoire de traduction"] ?? 0) + fromMemory.length };
+    const mem = t("Mémoire de traduction");
+    c.trBy = { ...c.trBy, [mem]: (c.trBy?.[mem] ?? 0) + fromMemory.length };
     segs = segs.filter((s) => !fromMemory.includes(s));
   }
   const total = segs.length;
@@ -320,7 +345,7 @@ export async function translateContent(
       (c.tr[s.block] ??= [])[s.seg] = fr;
       // Only translations that passed the checks are worth remembering.
       const flagged = hybrid && r.suspicious.has(s.key);
-      if (!flagged) remember(s.text, r.raw.get(s.key)!);
+      if (!flagged) remember(s.text, r.raw.get(s.key)!, lang());
     }
     if (hybrid) for (const s of batch) if (r.suspicious.has(s.key)) repairs.push(s);
   };
@@ -365,10 +390,11 @@ export async function translateContent(
   // Running totals across every partial translation of this article.
   const by = { ...c.trBy };
   for (const [p, n] of used) by[p] = (by[p] ?? 0) + n;
-  if (repairs.length) by["Corrections par Claude"] = (by["Corrections par Claude"] ?? 0) + repairs.length;
+  const fixes = t("Corrections par Claude");
+  if (repairs.length) by[fixes] = (by[fixes] ?? 0) + repairs.length;
   c.trBy = by;
   c.translatedBy = Object.entries(by)
-    .map(([p, n]) => `${p} : ${n} passages`)
+    .map(([p, n]) => t("{qui} : {n} passages", { qui: p, n }))
     .join(" · ");
   if (failure) throw failure;
 }

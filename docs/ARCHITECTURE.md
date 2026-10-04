@@ -39,6 +39,14 @@ Every item has a `kind`: `paper` (research) or `news` (official organisations an
 - Diversification (no run of near-identical articles) uses meaning vectors and computes each pair once.
 - Known limit: interest filters (`matchesInterest`) still rely on the OpenAlex field, not on meaning, so a paper misfiled by OpenAlex can show under a filter.
 
+## Languages (French / English)
+
+- `shared/i18n.ts`: `t("texte français", { var })` returns the French text or its English version from `shared/i18n-en.ts`. Both processes set the language from `Settings.uiLang` (`setLang`); the renderer draws every screen again when it changes (`key={uiLang}`). `npm run i18n:check` lists texts without an English version (direct `t()` calls and the `label/title/text/note/description` of lists translated when shown).
+- The language is also the reading language. Prompts have a French and an English version (`inLang` in `ai/assist.ts`, `rules()` in `ai/translate.ts`); answer fields carry no language in their names (`title`, `teaser`, `text`, `translation`), since models follow field names. Quality checks look for French or English function words depending on the target.
+- Memories are kept apart per target: translation and explanation keys are prefixed for English (`en|…`), glossary keys use `en<lang`, topic names `en:id`; French keys stay as before.
+- Each `ArticleContent` records `trLang`; content translated into another language is translated again when opened. Card titles and summaries are kept per language (`Article.teasers`), and `Library.switchLanguage` swaps them when the language changes.
+- The installer (`build/installer.nsh`) has French and English texts and follows the language of Windows.
+
 ## Glossary memory
 
 `glossary-memory.json` (in `ai/memory.ts`) keeps every glossary term ever decided, keyed by language and term. `buildGlossary` first looks for known terms in the article (whole words), asks the AI only for new ones, and skips the AI when 20 known terms or more are found. It is filled once from the glossaries of articles already translated (`Library.seedGlossaryMemory`). Perspective: share it, and the translation memory, between users through a small free server.

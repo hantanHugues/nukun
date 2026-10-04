@@ -1,6 +1,7 @@
 import { marked } from "marked";
 import { Lightbulb, MessageCircle, SendHorizontal, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { t } from "@shared/i18n";
 import { sanitize } from "../util";
 
 /** One entry of the conversation: an explanation of a selected passage, or a question. */
@@ -55,14 +56,13 @@ export function Discussion({
             <div className="notice">
               <MessageCircle size={18} style={{ flex: "none" }} />
               <span>
-                Pose une question sur l'article : l'IA te répond à partir de son texte. Tu peux aussi sélectionner un passage et cliquer
-                sur « Expliquer ».
+                {t("Pose une question sur l'article : l'IA te répond à partir de son texte. Tu peux aussi sélectionner un passage et cliquer sur « Expliquer ».")}
               </span>
             </div>
             <div className="row wrap" style={{ gap: 6 }}>
               {SUGGESTIONS.map((s) => (
-                <button key={s} className="chip" onClick={() => send(s)}>
-                  {s}
+                <button key={s} className="chip" onClick={() => send(t(s))}>
+                  {t(s)}
                 </button>
               ))}
             </div>
@@ -72,7 +72,7 @@ export function Discussion({
           x.kind === "explain" ? (
             <div key={i} className="card" style={{ padding: 14 }}>
               <div className="row small muted" style={{ gap: 6, marginBottom: 8 }}>
-                <Lightbulb size={13} /> Explication du passage
+                <Lightbulb size={13} /> {t("Explication du passage")}
               </div>
               <div className="small muted" style={{ fontStyle: "italic", marginBottom: 8 }}>
                 « {x.q.length > 220 ? `${x.q.slice(0, 220)}…` : x.q} »
@@ -95,7 +95,7 @@ export function Discussion({
           className="textarea"
           rows={2}
           value={draft}
-          placeholder="Pose ta question sur l'article…"
+          placeholder={t("Pose ta question sur l'article…")}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
@@ -106,14 +106,14 @@ export function Discussion({
         />
         <div className="row" style={{ justifyContent: "space-between" }}>
           {items.some((x) => x.kind === "chat") ? (
-            <button className="btn sm ghost" onClick={onClear} title="Effacer la conversation (les explications restent)">
-              <Trash2 size={14} /> Effacer
+            <button className="btn sm ghost" onClick={onClear} title={t("Effacer la conversation (les explications restent)")}>
+              <Trash2 size={14} /> {t("Effacer")}
             </button>
           ) : (
-            <span className="small muted">Entrée pour envoyer</span>
+            <span className="small muted">{t("Entrée pour envoyer")}</span>
           )}
           <button className="btn sm primary" onClick={() => send(draft)} disabled={!draft.trim() || busy}>
-            <SendHorizontal size={14} /> Envoyer
+            <SendHorizontal size={14} /> {t("Envoyer")}
           </button>
         </div>
       </div>
@@ -126,7 +126,7 @@ function Answer({ item }: { item: ThreadItem }) {
   if (!item.a)
     return (
       <div className="row small muted">
-        <div className="spinner" /> Réflexion…
+        <div className="spinner" /> {t("Réflexion…")}
       </div>
     );
   return (
@@ -134,7 +134,7 @@ function Answer({ item }: { item: ThreadItem }) {
       <div className="explain md" dangerouslySetInnerHTML={{ __html: md(item.a) }} />
       {item.by && (
         <div className="small muted" style={{ marginTop: 8 }}>
-          Répondu par : {item.by}
+          {t("Répondu par : {qui}", { qui: item.by })}
         </div>
       )}
     </>

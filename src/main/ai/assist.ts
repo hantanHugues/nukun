@@ -1,5 +1,9 @@
 import type { Article, ArticleContent, ChatMessage } from "@shared/types";
+import { lang } from "@shared/i18n";
 import { llmJson } from "./llm";
+
+/** The French or the English version of an instruction, after the app's language. */
+const inLang = (fr: string, en: string) => (lang() === "en" ? en : fr);
 
 const TEASER_SCHEMA = {
   type: "object",
@@ -8,8 +12,8 @@ const TEASER_SCHEMA = {
       type: "array",
       items: {
         type: "object",
-        properties: { id: { type: "string" }, title_fr: { type: "string" }, teaser_fr: { type: "string" } },
-        required: ["id", "title_fr", "teaser_fr"],
+        properties: { id: { type: "string" }, title: { type: "string" }, teaser: { type: "string" } },
+        required: ["id", "title", "teaser"],
         additionalProperties: false,
       },
     },
@@ -18,25 +22,34 @@ const TEASER_SCHEMA = {
   additionalProperties: false,
 };
 
-/** French title and a two-sentence hook for feed cards. */
+/** Title and a two-sentence hook for feed cards, in the reading language. */
 export async function makeTeasers(articles: Article[]): Promise<Map<string, { title: string; teaser: string }>> {
-  const { data } = await llmJson<{ items: { id: string; title_fr: string; teaser_fr: string }[] }>({
-    system: `Tu présentes des articles scientifiques à un lecteur francophone curieux, qui ne lit pas l'anglais.
+  const { data } = await llmJson<{ items: { id: string; title: string; teaser: string }[] }>({
+    system: inLang(
+      `Tu présentes des articles scientifiques à un lecteur francophone curieux, qui ne lit pas l'anglais.
 Pour chaque article :
-- "title_fr" : traduction fidèle du titre en français. Les termes techniques que les spécialistes utilisent en anglais restent en anglais : machine learning, transformer, topic MQTT, spin, kick, burst, dataset… Ne traduis jamais un terme technique par son sens courant (« kick » d'un trou noir n'est pas un « coup de pied », « spin » n'est pas une « rotation » au sens courant). Dans le doute, garde le mot anglais.
-- "teaser_fr" : deux phrases simples et exactes qui disent ce que les chercheurs ont fait et ce qu'ils ont trouvé. Pas d'exagération, pas de « révolutionnaire », pas de promesse que l'article ne fait pas.`,
+- "title" : traduction fidèle du titre en français. Les termes techniques que les spécialistes utilisent en anglais restent en anglais : machine learning, transformer, topic MQTT, spin, kick, burst, dataset… Ne traduis jamais un terme technique par son sens courant (« kick » d'un trou noir n'est pas un « coup de pied », « spin » n'est pas une « rotation » au sens courant). Dans le doute, garde le mot anglais.
+- "teaser" : deux phrases simples et exactes qui disent ce que les chercheurs ont fait et ce qu'ils ont trouvé. Pas d'exagération, pas de « révolutionnaire », pas de promesse que l'article ne fait pas.`,
+      `You present scientific papers to a curious English-speaking reader.
+For each paper:
+- "title": the title in English: kept as it is if it is already in English, otherwise a faithful translation into English using the standard technical terms of the field.
+- "teaser": two plain and accurate sentences in English saying what the researchers did and what they found. No hype, no "revolutionary", no promise the paper does not make.`,
+    ),
     user: JSON.stringify(articles.map((a) => ({ id: a.id, title: a.title, abstract: a.abstract.slice(0, 1400) }))),
     schema: TEASER_SCHEMA,
     maxTokens: 16000,
     tier: "light",
   });
-  return new Map(data.items.map((i) => [i.id, { title: i.title_fr, teaser: i.teaser_fr }]));
+  return new Map(data.items.map((i) => [i.id, { title: i.title, teaser: i.teaser }]));
 }
 
-/** French names of OpenAlex research topics (short labels shown in the interests search). */
+/** Names of OpenAlex research topics in the reading language (labels of the interests search). */
 export async function translateTopicNames(topics: { id: string; name: string }[]): Promise<Map<string, string>> {
-  const { data } = await llmJson<{ items: { id: string; fr: string }[] }>({
-    system: `Traduis en français ces noms de thèmes de recherche, de façon courte et naturelle, comme un libellé de catégorie. Garde en anglais les termes techniques que les spécialistes utilisent en anglais (IoT, machine learning…).`,
+  const { data } = await llmJson<{ items: { id: string; label: string }[] }>({
+    system: inLang(
+      `Traduis en français ces noms de thèmes de recherche, de façon courte et naturelle, comme un libellé de catégorie. Garde en anglais les termes techniques que les spécialistes utilisent en anglais (IoT, machine learning…).`,
+      `Rewrite these research topic names as short, natural English category labels. Keep the technical terms specialists use.`,
+    ),
     user: JSON.stringify(topics),
     schema: {
       type: "object",
@@ -45,8 +58,8 @@ export async function translateTopicNames(topics: { id: string; name: string }[]
           type: "array",
           items: {
             type: "object",
-            properties: { id: { type: "string" }, fr: { type: "string" } },
-            required: ["id", "fr"],
+            properties: { id: { type: "string" }, label: { type: "string" } },
+            required: ["id", "label"],
             additionalProperties: false,
           },
         },
@@ -57,13 +70,17 @@ export async function translateTopicNames(topics: { id: string; name: string }[]
     maxTokens: 2000,
     tier: "light",
   });
-  return new Map(data.items.map((i) => [i.id, i.fr]));
+  return new Map(data.items.map((i) => [i.id, i.label]));
 }
 
 export async function explainPassage(a: Article, passage: string): Promise<{ text: string; provider: string }> {
   const { data, provider } = await llmJson<{ explanation: string }>({
-    system: `Tu aides un lecteur francophone à comprendre un article scientifique. Il a sélectionné un passage qu'il ne comprend pas.
+    system: inLang(
+      `Tu aides un lecteur francophone à comprendre un article scientifique. Il a sélectionné un passage qu'il ne comprend pas.
 Explique-le en français simple, comme à un étudiant motivé qui découvre le domaine : le sens du passage, les mots techniques qu'il contient (garde le terme anglais quand c'est l'usage et explique-le), et pourquoi c'est important dans l'article. Reste exact : ne déforme pas ce que disent les auteurs. 4 à 8 phrases, sans titre.`,
+      `You help an English-speaking reader understand a scientific paper. They selected a passage they do not understand.
+Explain it in plain English, as to a motivated student new to the field: what the passage means, the technical words it contains (explained), and why it matters in the paper. Stay accurate: do not distort what the authors say. 4 to 8 sentences, no title. Answer in English whatever the language of the paper.`,
+    ),
     user: `Article : « ${a.title} »\nRésumé : ${a.abstract.slice(0, 1500)}\n\nPassage sélectionné :\n${passage.slice(0, 4000)}`,
     schema: {
       type: "object",
@@ -84,8 +101,12 @@ export async function explainFigure(
   image: { data: Buffer; mime: string },
 ): Promise<{ text: string; provider: string }> {
   const ask = () => llmJson<{ explanation: string }>({
-    system: `Tu aides un lecteur francophone, pas forcément spécialiste, à lire une figure d'article scientifique.
+    system: inLang(
+      `Tu aides un lecteur francophone, pas forcément spécialiste, à lire une figure d'article scientifique.
 Explique en français simple : ce que représente la figure (type de graphique, axes, unités, panneaux A/B/C…), ce qu'on y voit concrètement (tendances, différences, valeurs marquantes), et ce que les auteurs veulent montrer avec. Appuie-toi sur l'image et sur la légende ; si un détail n'est pas lisible, dis-le plutôt que de l'inventer. Garde les termes techniques anglais d'usage en les expliquant. Écris des phrases complètes et naturelles (pas de style télégraphique) : 5 à 10 phrases, ou une courte liste.`,
+      `You help an English-speaking reader, not necessarily a specialist, read a figure from a scientific paper.
+Explain in plain English: what the figure shows (type of chart, axes, units, panels A/B/C…), what can concretely be seen (trends, differences, notable values), and what the authors want to show with it. Rely on the image and the caption; if a detail is not readable, say so rather than inventing it. Write full, natural sentences: 5 to 10 sentences, or a short list. Answer in English whatever the language of the paper.`,
+    ),
     user: `Article : « ${a.title} »
 Résumé : ${a.abstract.slice(0, 1200)}
 
@@ -96,7 +117,10 @@ ${caption.slice(0, 3000) || "(pas de légende)"}`,
       properties: {
         explanation: {
           type: "string",
-          description: "Le texte complet de l'explication, adressé au lecteur (pas un résumé de ce que tu as fait).",
+          description: inLang(
+            "Le texte complet de l'explication, adressé au lecteur (pas un résumé de ce que tu as fait).",
+            "The full text of the explanation, addressed to the reader (not a summary of what you did).",
+          ),
         },
       },
       required: ["explanation"],
@@ -123,7 +147,7 @@ export async function analyzeInterests(liked: Article[], disliked: Article[]): P
   const fmt = (a: Article) => `- ${a.title} :: ${a.abstract.slice(0, 300)}`;
   const { data } = await llmJson<{ interests: AiInterest[] }>({
     system: `Tu es le moteur de recommandation d'une application de veille scientifique. À partir des articles qu'un lecteur a lus avec intérêt (et de ceux qu'il a écartés), décris ses centres d'intérêt.
-Réponds avec 4 à 8 intérêts. Pour chacun : "label" (en français, précis, ex. « Régulation des émotions et instabilité de l'humeur ») et "keywords" (6 à 12 mots-clés EN ANGLAIS, tels qu'ils apparaissent dans les articles scientifiques, pour retrouver d'autres articles proches).`,
+Réponds avec 4 à 8 intérêts. Pour chacun : "label" (${inLang("en français", "EN ANGLAIS")}, précis, ex. « ${inLang("Régulation des émotions et instabilité de l'humeur", "Emotion regulation and mood instability")} ») et "keywords" (6 à 12 mots-clés EN ANGLAIS, tels qu'ils apparaissent dans les articles scientifiques, pour retrouver d'autres articles proches).`,
     user: `Articles appréciés :\n${liked.map(fmt).join("\n")}\n\nArticles écartés :\n${disliked.map(fmt).join("\n") || "(aucun)"}`,
     schema: {
       type: "object",
@@ -205,13 +229,22 @@ export async function chatAboutArticle(
   // Small local models have a short memory: send them less.
   const passages = relevantPassages(c, query, local ? 3500 : 14000);
   const { data, provider } = await llmJson<{ answer: string }>({
-    system: `Tu discutes avec un lecteur francophone d'un article scientifique qu'il est en train de lire. Il n'est pas forcément spécialiste du domaine.
+    system: inLang(
+      `Tu discutes avec un lecteur francophone d'un article scientifique qu'il est en train de lire. Il n'est pas forcément spécialiste du domaine.
 Règles :
 - Réponds en français clair et simple, comme un bon professeur. Garde les termes techniques anglais quand c'est l'usage, en les expliquant.
 - Appuie-toi sur les extraits de l'article fournis. Quand tu cites un résultat, dis de quelle section il vient.
 - Distingue bien ce que dit l'article de tes connaissances générales (« L'article dit… » / « De façon générale… »).
 - Si l'article ne répond pas à la question, dis-le honnêtement au lieu d'inventer.
 - Sois concis : 3 à 10 phrases, ou une courte liste si c'est plus clair. Tu peux utiliser du Markdown simple (gras, listes).`,
+      `You talk with an English-speaking reader about a scientific paper they are reading. They are not necessarily a specialist.
+Rules:
+- Answer in clear, plain English, like a good teacher, whatever the language of the paper. Explain technical terms.
+- Rely on the excerpts of the paper given. When you quote a result, say which section it comes from.
+- Keep apart what the paper says and your general knowledge ("The paper says…" / "In general…").
+- If the paper does not answer the question, say so honestly instead of inventing.
+- Be concise: 3 to 10 sentences, or a short list if clearer. You may use simple Markdown (bold, lists).`,
+    ),
     user: `Article : « ${a.title} » (${a.venue ?? a.source}${a.authors.length ? `, ${a.authors.slice(0, 3).join(", ")}${a.authors.length > 3 ? " et al." : ""}` : ""})
 
 Extraits de l'article utiles pour cette question :

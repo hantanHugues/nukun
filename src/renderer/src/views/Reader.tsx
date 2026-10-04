@@ -1,6 +1,8 @@
 import { AArrowDown, AArrowUp, ArrowLeft, Bookmark, BookmarkCheck, ExternalLink, Heart, Languages, Lightbulb, NotebookPen, PanelRight, PenLine, RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Article, ArticleContent, Block, TranslationProgress } from "@shared/types";
+import { lang, locale, t } from "@shared/i18n";
+import { languageLabel } from "@shared/types";
 import { api } from "../api";
 import { type Route, useApp } from "../App";
 import { Discussion, type ThreadItem } from "../components/Discussion";
@@ -43,7 +45,7 @@ export function Reader({ id, back }: { id: string; back: Route }) {
       const msg = e instanceof Error ? e.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, "") : String(e);
       // Protected by its site: the app removed it; back to the feed.
       if (/anti-robot/.test(msg)) {
-        toast("Cet article est protégé par son site : il a été retiré.");
+        toast(t("Cet article est protégé par son site : il a été retiré."));
         go(back);
         return;
       }
@@ -62,7 +64,7 @@ export function Reader({ id, back }: { id: string; back: Route }) {
       if (p.id !== id) return;
       setTr(p);
       void reloadContent();
-      if (p.error) toast(`Traduction interrompue : ${p.error}`);
+      if (p.error) toast(t("Traduction interrompue : {raison}", { raison: p.error }));
     });
     return off;
   }, [id, reloadContent, toast]);
@@ -78,7 +80,7 @@ export function Reader({ id, back }: { id: string; back: Route }) {
   // for their untranslated passages. Translated passages carry no key, so they are
   // never requested again.
   useEffect(() => {
-    if (!content || !settings?.autoTranslate || mode === "en" || mode === "pdf" || article?.lang === "fr") return;
+    if (!content || !settings?.autoTranslate || mode === "en" || mode === "pdf" || article?.lang === lang()) return;
     const root = document.getElementById("main-scroll");
     const wanted = new Set<string>();
     let timer: ReturnType<typeof setTimeout> | null = null;
@@ -200,7 +202,7 @@ export function Reader({ id, back }: { id: string; back: Route }) {
     for (let i = 0; i < chat.length; i++) {
       if (chat[i].role !== "user") continue;
       const answer = chat[i + 1]?.role === "assistant" ? chat[i + 1] : undefined;
-      items.push({ kind: "chat", q: chat[i].text, a: answer?.text, by: answer?.by, at: chat[i].at, err: answer ? undefined : "Pas de réponse." });
+      items.push({ kind: "chat", q: chat[i].text, a: answer?.text, by: answer?.by, at: chat[i].at, err: answer ? undefined : t("Pas de réponse.") });
     }
     setThread(items.sort((a, b) => a.at.localeCompare(b.at)));
   }, [content]);
@@ -247,7 +249,7 @@ export function Reader({ id, back }: { id: string; back: Route }) {
     const type = key === "liked" ? (on ? "like" : "unlike") : on ? "save" : "unsave";
     await api.interact({ id, type });
     setArticle({ ...article, state: { ...article.state, [key]: on } });
-    if (key === "liked" && on) toast("Noté : tu verras plus d'articles de ce genre.");
+    if (key === "liked" && on) toast(t("Noté : tu verras plus d'articles de ce genre."));
   };
 
   const setSize = async (d: number) => {
@@ -267,7 +269,7 @@ export function Reader({ id, back }: { id: string; back: Route }) {
     return (
       <div className="page" style={{ maxWidth: 720 }}>
         <button className="btn ghost" onClick={() => go(back)}>
-          <ArrowLeft size={16} /> {back.view === "writing" ? "Retour à mon texte" : "Retour"}
+          <ArrowLeft size={16} /> {back.view === "writing" ? t("Retour à mon texte") : t("Retour")}
         </button>
         <div className="card section" style={{ marginTop: 24 }}>
           <h2 className="h2">{article?.titleFr ?? article?.title}</h2>
@@ -276,11 +278,11 @@ export function Reader({ id, back }: { id: string; back: Route }) {
           </div>
           <div className="row" style={{ marginTop: 16 }}>
             <button className="btn" onClick={() => void reloadContent().then(() => setError(null))}>
-              <RotateCcw size={15} /> Réessayer
+              <RotateCcw size={15} /> {t("Réessayer")}
             </button>
             {article && (
               <button className="btn ghost" onClick={() => void api.openExternal(article.url)}>
-                <ExternalLink size={15} /> Ouvrir sur le site
+                <ExternalLink size={15} /> {t("Ouvrir sur le site")}
               </button>
             )}
           </div>
@@ -298,19 +300,20 @@ export function Reader({ id, back }: { id: string; back: Route }) {
 
   const renderSeg = (bi: number, si: number, orig: string, Tag: any, extra?: string) => {
     const key = `${bi}:${si}`;
-    if (mode === "en") return <Html as={Tag} html={orig} lang="en" className={extra} />;
+    const src = article?.lang ?? "en";
+    if (mode === "en") return <Html as={Tag} html={orig} lang={src} className={extra} />;
     const { html, done } = segFr(bi, si, orig);
     if (mode === "bi")
       return (
         <div className="bi-row">
-          <Html as={Tag} html={html} lang={done ? "fr" : "en"} className={extra} />
-          <Html as={Tag} html={orig} lang="en" className={extra} />
+          <Html as={Tag} html={html} lang={done ? lang() : src} className={extra} />
+          <Html as={Tag} html={orig} lang={src} className={extra} />
         </div>
       );
     return (
       <>
-        <Html as={Tag} html={html} lang={done ? "fr" : "en"} className={extra} />
-        {done && openOrig.has(key) && <Html className="orig" html={orig} lang="en" />}
+        <Html as={Tag} html={html} lang={done ? lang() : src} className={extra} />
+        {done && openOrig.has(key) && <Html className="orig" html={orig} lang={src} />}
       </>
     );
   };
@@ -321,7 +324,7 @@ export function Reader({ id, back }: { id: string; back: Route }) {
     return (
       <button
         className="btn sm icon ghost orig-toggle"
-        title="Voir le texte original"
+        title={t("Voir le texte original")}
         onClick={() =>
           setOpenOrig((s) => {
             const n = new Set(s);
@@ -397,10 +400,10 @@ export function Reader({ id, back }: { id: string; back: Route }) {
               onClick={() => {
                 const num = b.label?.replace(/^(fig(ure)?\.?\s*)/i, "") || String(content!.blocks.slice(0, bi + 1).filter((x) => x.t === "fig").length);
                 const cap = plain(content?.tr[bi]?.[0] || b.segs[0]).slice(0, 120);
-                void explainFig(bi, cap ? `Figure ${num} : ${cap}` : `Figure ${num}`);
+                void explainFig(bi, cap ? t("Figure {n} : {legende}", { n: num, legende: cap }) : t("Figure {n}", { n: num }));
               }}
             >
-              <Lightbulb size={14} /> Expliquer cette figure
+              <Lightbulb size={14} /> {t("Expliquer cette figure")}
             </button>
           </figure>
         );
@@ -422,7 +425,7 @@ export function Reader({ id, back }: { id: string; back: Route }) {
       case "refs":
         return (
           <div key={bi} className="blk refs">
-            <h3 style={{ fontSize: "1.3em", color: "var(--text)" }}>Références</h3>
+            <h3 style={{ fontSize: "1.3em", color: "var(--text)" }}>{t("Références")}</h3>
             <ol>
               {b.items.map((r, i) => (
                 <li key={i} lang="en">
@@ -441,26 +444,28 @@ export function Reader({ id, back }: { id: string; back: Route }) {
     <>
       <div className="reader-bar">
         <button className="btn ghost sm" onClick={() => go(back)}>
-          <ArrowLeft size={16} /> {back.view === "writing" ? "Retour à mon texte" : "Retour"}
+          <ArrowLeft size={16} /> {back.view === "writing" ? t("Retour à mon texte") : t("Retour")}
         </button>
         <div className="grow" />
         {translating && (
           <span className="refresh-status">
             <div className="spinner" />
-            Traduction {tr && tr.total ? `${Math.round((tr.done / tr.total) * 100)} %` : "…"}
+            {t("Traduction")} {tr && tr.total ? `${Math.round((tr.done / tr.total) * 100)} %` : "…"}
           </span>
         )}
-        <div className="seg" role="tablist" aria-label="Langue d'affichage" data-tour="lang-modes">
+        <div className="seg" role="tablist" aria-label={t("Langue d'affichage")} data-tour="lang-modes">
+          {/* "fr" is the reading language (French or English), "en" the original. */}
           <button className={mode === "fr" ? "active" : ""} onClick={() => setMode("fr")}>
-            Français
+            {languageLabel(lang())}
           </button>
-          {article?.lang !== "fr" && (
+          {article?.lang !== lang() && (
             <>
               <button className={mode === "bi" ? "active" : ""} onClick={() => setMode("bi")}>
-                Côte à côte
+                {t("Côte à côte")}
               </button>
               <button className={mode === "en" ? "active" : ""} onClick={() => setMode("en")}>
-                Original{article?.lang && article.lang !== "en" ? ` (${article.lang.toUpperCase()})` : ""}
+                {t("Original")}
+                {article?.lang ? ` (${article.lang.toUpperCase()})` : ""}
               </button>
             </>
           )}
@@ -470,43 +475,43 @@ export function Reader({ id, back }: { id: string; back: Route }) {
             </button>
           )}
         </div>
-        {!translating && pendingSegs > 0 && content && article?.lang !== "fr" && (
+        {!translating && pendingSegs > 0 && content && article?.lang !== lang() && (
           <button
             className="btn sm brand"
-            title="Traduit tout l'article d'un coup, pour le lire plus tard. Sinon, seul ce qui s'affiche est traduit."
+            title={t("Traduit tout l'article d'un coup, pour le lire plus tard. Sinon, seul ce qui s'affiche est traduit.")}
             onClick={() => {
               setTr({ id, done: 0, total: pendingSegs });
               void api.translate(id);
             }}
           >
-            <Languages size={14} /> Tout traduire
+            <Languages size={14} /> {t("Tout traduire")}
           </button>
         )}
-        <button className="btn sm icon ghost" onClick={() => void setSize(-1)} title="Texte plus petit">
+        <button className="btn sm icon ghost" onClick={() => void setSize(-1)} title={t("Texte plus petit")}>
           <AArrowDown size={16} />
         </button>
-        <button className="btn sm icon ghost" onClick={() => void setSize(1)} title="Texte plus grand">
+        <button className="btn sm icon ghost" onClick={() => void setSize(1)} title={t("Texte plus grand")}>
           <AArrowUp size={16} />
         </button>
-        <button className={`btn sm icon ghost ${article?.state.liked ? "on" : ""}`} onClick={() => void toggle("liked")} title="J'aime">
+        <button className={`btn sm icon ghost ${article?.state.liked ? "on" : ""}`} onClick={() => void toggle("liked")} title={t("J'aime")}>
           <Heart size={16} fill={article?.state.liked ? "currentColor" : "none"} />
         </button>
-        <button className="btn sm icon ghost" onClick={() => void toggle("saved")} title="Lire plus tard">
+        <button className="btn sm icon ghost" onClick={() => void toggle("saved")} title={t("Lire plus tard")}>
           {article?.state.saved ? <BookmarkCheck size={16} /> : <Bookmark size={16} />}
         </button>
         <button className="btn sm" onClick={() => go({ view: "writing", articleId: id })} data-tour="write">
-          <PenLine size={14} /> Écrire mon article
+          <PenLine size={14} /> {t("Écrire mon article")}
         </button>
-        <button className={`btn sm icon ghost`} onClick={() => setSide(side ? null : "lexique")} title="Panneau latéral">
+        <button className={`btn sm icon ghost`} onClick={() => setSide(side ? null : "lexique")} title={t("Panneau latéral")}>
           <PanelRight size={16} />
         </button>
         <div className="progress" style={{ width: `${progress * 100}%` }} />
       </div>
 
       <div className={`reader ${side ? "" : "no-side"}`}>
-        <nav className="toc" aria-label="Sommaire">
+        <nav className="toc" aria-label={t("Sommaire")}>
           <div className="label" style={{ padding: "0 8px 8px" }}>
-            Sommaire
+            {t("Sommaire")}
           </div>
           {headings.map(({ b, i }) => (
             <a
@@ -532,27 +537,27 @@ export function Reader({ id, back }: { id: string; back: Route }) {
                   <span className="muted">{sourceLabel(article)}</span>
                   <span className="muted">· {timeAgo(article.published)}</span>
                 </div>
-                <h1 lang={mode === "en" ? "en" : "fr"}>{mode === "en" ? article.title : tTitle}</h1>
-                {mode !== "en" && article.titleFr && <p className="orig-title" lang="en">{article.title}</p>}
+                <h1 lang={mode === "en" || !article.titleFr ? article.lang : lang()}>{mode === "en" ? article.title : tTitle}</h1>
+                {mode !== "en" && article.titleFr && <p className="orig-title" lang={article.lang}>{article.title}</p>}
                 <div className="authors">{article.authors.slice(0, 12).join(", ")}{article.authors.length > 12 ? "…" : ""}</div>
               </header>
             )}
             {content?.note && (
               <div className="notice" style={{ marginBottom: 28, fontSize: 14 }}>
-                {content.note}
+                {t(content.note)}
               </div>
             )}
             {!content ? (
               <div className="stack" style={{ gap: 14 }}>
                 <div className="row muted small">
-                  <div className="spinner" /> Récupération du texte intégral…
+                  <div className="spinner" /> {t("Récupération du texte intégral…")}
                 </div>
                 {Array.from({ length: 8 }, (_, i) => (
                   <div key={i} className="skeleton" style={{ height: 18, width: `${70 + ((i * 37) % 30)}%` }} />
                 ))}
               </div>
             ) : pdfMode ? (
-              <iframe className="pdf-frame" src={`nukun://pdf/${encodeURIComponent(content.pdfUrl!)}`} title="PDF original" />
+              <iframe className="pdf-frame" src={`nukun://pdf/${encodeURIComponent(content.pdfUrl!)}`} title={t("PDF original")} />
             ) : (
               content.blocks.map(renderBlock)
             )}
@@ -562,9 +567,9 @@ export function Reader({ id, back }: { id: string; back: Route }) {
         {side && (
           <aside className="side">
             <div className="seg" style={{ width: "100%", marginBottom: 16 }} data-tour="side-tabs">
-              {(["lexique", "discussion", "notes", "infos"] as SideTab[]).map((t) => (
-                <button key={t} className={side === t ? "active" : ""} style={{ flex: 1 }} onClick={() => setSide(t)}>
-                  {t === "lexique" ? "Lexique" : t === "discussion" ? "Discussion" : t === "notes" ? "Notes" : "Infos"}
+              {(["lexique", "discussion", "notes", "infos"] as SideTab[]).map((tab) => (
+                <button key={tab} className={side === tab ? "active" : ""} style={{ flex: 1 }} onClick={() => setSide(tab)}>
+                  {tab === "lexique" ? t("Lexique") : tab === "discussion" ? t("Discussion") : tab === "notes" ? t("Notes") : t("Infos")}
                 </button>
               ))}
             </div>
@@ -572,18 +577,18 @@ export function Reader({ id, back }: { id: string; back: Route }) {
               <div>
                 {!content?.glossary?.length ? (
                   <p className="small muted">
-                    {translating ? "Le lexique arrive avec la traduction…" : "Le lexique est créé au moment de la traduction."}
+                    {translating ? t("Le lexique arrive avec la traduction…") : t("Le lexique est créé au moment de la traduction.")}
                   </p>
                 ) : (
                   <>
                     <p className="small muted" style={{ marginTop: 0 }}>
-                      Les termes techniques de l'article. Ceux marqués « gardé » restent en anglais, comme les utilisent les spécialistes.
+                      {t("Les termes techniques de l'article. Ceux marqués « gardé » restent tels quels, comme les utilisent les spécialistes.")}
                     </p>
                     {content.glossary.map((g) => (
                       <div key={g.term} className="gloss">
                         <div className="row wrap" style={{ gap: 6 }}>
-                          <strong lang="en">{g.term}</strong>
-                          {g.keep ? <span className="tag brand">gardé</span> : <span className="muted">→ {g.fr}</span>}
+                          <strong lang={article?.lang}>{g.term}</strong>
+                          {g.keep ? <span className="tag brand">{t("gardé")}</span> : <span className="muted">→ {g.fr}</span>}
                         </div>
                         <div className="muted">{g.definition}</div>
                       </div>
@@ -606,13 +611,13 @@ export function Reader({ id, back }: { id: string; back: Route }) {
             {side === "infos" && article && (
               <div className="stack small" style={{ gap: 12 }}>
                 <div>
-                  <div className="label">Publication</div>
+                  <div className="label">{t("Publication")}</div>
                   <div>{article.venue ?? sourceLabel(article)}</div>
-                  <div className="muted">{new Date(article.published).toLocaleDateString("fr-FR", { dateStyle: "long" })}</div>
+                  <div className="muted">{new Date(article.published).toLocaleDateString(locale(), { dateStyle: "long" })}</div>
                 </div>
                 <div>
-                  <div className="label">Auteurs</div>
-                  <div>{authorsShort(article) || "Non précisé"}</div>
+                  <div className="label">{t("Auteurs")}</div>
+                  <div>{authorsShort(article) || t("Non précisé")}</div>
                 </div>
                 {article.doi && (
                   <div>
@@ -624,21 +629,21 @@ export function Reader({ id, back }: { id: string; back: Route }) {
                 )}
                 {article.license && (
                   <div>
-                    <div className="label">Licence</div>
+                    <div className="label">{t("Licence")}</div>
                     <div>{article.license}</div>
                     <div className="muted" style={{ marginTop: 4 }}>
-                      Pour tes posts, cite toujours la source. Ne réutilise les figures que si la licence est de type CC BY.
+                      {t("Pour tes posts, cite toujours la source. Ne réutilise les figures que si la licence est de type CC BY.")}
                     </div>
                   </div>
                 )}
                 {content?.translatedBy && (
                   <div>
-                    <div className="label">Traduction</div>
+                    <div className="label">{t("Traduction")}</div>
                     <div>{content.translatedBy}</div>
                   </div>
                 )}
                 <button className="btn" onClick={() => void api.openExternal(content?.originalUrl ?? article.url)}>
-                  <ExternalLink size={15} /> Ouvrir sur le site officiel
+                  <ExternalLink size={15} /> {t("Ouvrir sur le site officiel")}
                 </button>
                 {!translating && content && Object.keys(content.tr).length > 0 && (
                   <button
@@ -648,7 +653,7 @@ export function Reader({ id, back }: { id: string; back: Route }) {
                       void api.translate(id, true);
                     }}
                   >
-                    <RotateCcw size={15} /> Refaire la traduction
+                    <RotateCcw size={15} /> {t("Refaire la traduction")}
                   </button>
                 )}
               </div>
@@ -660,7 +665,7 @@ export function Reader({ id, back }: { id: string; back: Route }) {
       {pop && (
         <div className="pop" style={{ left: pop.x, top: pop.y }} onMouseDown={(e) => e.preventDefault()}>
           <button className="btn sm brand" onClick={() => void explain(pop.text)}>
-            <Lightbulb size={14} /> Expliquer
+            <Lightbulb size={14} /> {t("Expliquer")}
           </button>
           <button
             className="btn sm"
@@ -671,7 +676,7 @@ export function Reader({ id, back }: { id: string; back: Route }) {
               window.getSelection()?.removeAllRanges();
             }}
           >
-            <NotebookPen size={14} /> Noter
+            <NotebookPen size={14} /> {t("Noter")}
           </button>
         </div>
       )}

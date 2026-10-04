@@ -1,6 +1,7 @@
 import DOMPurify from "dompurify";
 import type { Article, DomainId } from "@shared/types";
 import { fieldGroup, fieldLabel, SOURCES } from "@shared/types";
+import { locale, t } from "@shared/i18n";
 
 export const domainLabel = (d: DomainId) => fieldLabel(d);
 export const sourceLabel = (a: Article) => a.venue || SOURCES.find((s) => s.id === a.source)?.label || a.source;
@@ -18,11 +19,11 @@ export const artFor = (d: DomainId) => GROUP_ART[fieldGroup(d) ?? "none"];
 export function timeAgo(iso: string) {
   const d = (Date.now() - Date.parse(iso)) / 1000;
   if (!Number.isFinite(d)) return "";
-  if (d < 60) return "à l'instant";
-  if (d < 3600) return `il y a ${Math.round(d / 60)} min`;
-  if (d < 86400) return `il y a ${Math.round(d / 3600)} h`;
-  if (d < 86400 * 30) return `il y a ${Math.round(d / 86400)} j`;
-  return new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
+  if (d < 60) return t("à l'instant");
+  if (d < 3600) return t("il y a {n} min", { n: Math.round(d / 60) });
+  if (d < 86400) return t("il y a {n} h", { n: Math.round(d / 3600) });
+  if (d < 86400 * 30) return t("il y a {n} j", { n: Math.round(d / 86400) });
+  return new Date(iso).toLocaleDateString(locale(), { day: "numeric", month: "short", year: "numeric" });
 }
 
 export function readingMinutes(a: Article, words?: number) {
@@ -44,5 +45,7 @@ export function plain(html: string) {
 export function authorsShort(a: Article) {
   if (!a.authors.length) return "";
   if (a.authors.length === 1) return a.authors[0];
-  return `${a.authors[0]} et ${a.authors.length - 1 > 1 ? `${a.authors.length - 1} autres` : a.authors[1]}`;
+  return a.authors.length - 1 > 1
+    ? t("{first} et {n} autres", { first: a.authors[0], n: a.authors.length - 1 })
+    : t("{first} et {second}", { first: a.authors[0], second: a.authors[1] });
 }

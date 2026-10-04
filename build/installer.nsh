@@ -1,4 +1,5 @@
-﻿; Nùkún installer: a "Shortcuts" page after the folder choice.
+﻿; Nùkún installer: a "Shortcuts" page after the folder choice, in French or English
+; (the installer follows the language of Windows).
 ; Windows does not let installers pin apps to the taskbar: the page says how to do it.
 
 ; Everything is declared where the page is added: the installer interface (MUI) and
@@ -10,16 +11,29 @@
 
   Function ShortcutsPage
     ; (Updates run silently: this page is not shown, and the icon already there stays.)
-    !insertmacro MUI_HEADER_TEXT "Raccourcis" "Où veux-tu retrouver Nùkún ?"
+    ${If} $LANGUAGE == 1036
+      !insertmacro MUI_HEADER_TEXT "Raccourcis" "Où veux-tu retrouver Nùkún ?"
+    ${Else}
+      !insertmacro MUI_HEADER_TEXT "Shortcuts" "Where do you want to find Nùkún?"
+    ${EndIf}
     nsDialogs::Create 1018
     Pop $0
-    ${NSD_CreateCheckbox} 0 0 100% 12u "Créer une icône sur le Bureau"
-    Pop $DesktopBox
+    ${If} $LANGUAGE == 1036
+      ${NSD_CreateCheckbox} 0 0 100% 12u "Créer une icône sur le Bureau"
+      Pop $DesktopBox
+      ${NSD_CreateLabel} 0 22u 100% 12u "Nùkún sera aussi dans le menu Démarrer."
+      Pop $0
+      ${NSD_CreateLabel} 0 44u 100% 40u "Barre des tâches : Windows ne permet pas à un installateur d'y ajouter une application. Pour l'y épingler : ouvre le menu Démarrer, fais un clic droit sur Nùkún, puis « Épingler à la barre des tâches »."
+      Pop $0
+    ${Else}
+      ${NSD_CreateCheckbox} 0 0 100% 12u "Create a desktop icon"
+      Pop $DesktopBox
+      ${NSD_CreateLabel} 0 22u 100% 12u "Nùkún will also be in the Start menu."
+      Pop $0
+      ${NSD_CreateLabel} 0 44u 100% 40u "Taskbar: Windows does not let an installer add an app there. To pin it: open the Start menu, right-click Nùkún, then choose “Pin to taskbar”."
+      Pop $0
+    ${EndIf}
     ${NSD_Check} $DesktopBox
-    ${NSD_CreateLabel} 0 22u 100% 12u "Nùkún sera aussi dans le menu Démarrer."
-    Pop $0
-    ${NSD_CreateLabel} 0 44u 100% 40u "Barre des tâches : Windows ne permet pas à un installateur d'y ajouter une application. Pour l'y épingler : ouvre le menu Démarrer, fais un clic droit sur Nùkún, puis « Épingler à la barre des tâches »."
-    Pop $0
     nsDialogs::Show
   FunctionEnd
 

@@ -5,8 +5,10 @@ import { SOURCES } from "@shared/types";
 import type { Interest } from "@shared/types";
 import { InterestsEditor, MIN_INTERESTS } from "../components/Interests";
 import { SectionNav } from "../components/SectionNav";
+import { lang, t } from "@shared/i18n";
 
 const SECTIONS = [
+  { id: "s-lang", label: "Langue" },
   { id: "s-ai", label: "Intelligence artificielle" },
   { id: "s-interests", label: "Centres d'intérêt" },
   { id: "s-data", label: "Données mobiles" },
@@ -19,6 +21,7 @@ import { useApp } from "../App";
 import { timeAgo } from "../util";
 
 const MODELS = [
+  // Notes are written in French and shown in the app's language.
   { id: "claude-opus-5-5", label: "Claude Opus 5.5", note: "Meilleure qualité de traduction (recommandé)" },
   { id: "claude-sonnet-5-5", label: "Claude Sonnet 5.5", note: "Environ 2 fois moins cher, très bon" },
   { id: "claude-haiku-4-5", label: "Claude Haiku 4.5", note: "Le plus économique, un peu moins précis" },
@@ -63,35 +66,53 @@ export function SettingsView() {
   const providers: { id: AiProvider; title: string; text: string }[] = [
     {
       id: "hybrid",
-      title: "Hybride (recommandé)",
-      text: "Gemini (gratuit) traduit le gros du texte. Claude (ton abonnement) prépare le lexique, prend les passages très techniques et corrige les erreurs détectées. L'IA locale sert de relais.",
+      title: t("Hybride (recommandé)"),
+      text: t("Gemini (gratuit) traduit le gros du texte. Claude (ton abonnement) prépare le lexique, prend les passages très techniques et corrige les erreurs détectées. L'IA locale sert de relais."),
     },
-    { id: "gemini", title: "Gemini seul", text: "Gratuit avec ta clé Google. L'IA locale prend le relais si le quota du jour est atteint." },
-    { id: "ollama", title: "IA locale seule", text: "Gratuit et hors ligne, sur ta carte graphique. Plus lent, moins précis." },
+    { id: "gemini", title: t("Gemini seul"), text: t("Gratuit avec ta clé Google. L'IA locale prend le relais si le quota du jour est atteint.") },
+    { id: "ollama", title: t("IA locale seule"), text: t("Gratuit et hors ligne, sur ta carte graphique. Plus lent, moins précis.") },
     {
       id: "claude-code",
-      title: "Mon abonnement Claude",
-      text: "Passe par Claude Code, déjà connecté sur ce PC. Pas de coût en plus, mais utilise les limites de ton abonnement. Relais sur l'IA locale si la limite est atteinte.",
+      title: t("Mon abonnement Claude"),
+      text: t("Passe par Claude Code, déjà connecté sur ce PC. Pas de coût en plus, mais utilise les limites de ton abonnement. Relais sur l'IA locale si la limite est atteinte."),
     },
-    { id: "claude", title: "Clé API Claude", text: "Payant à l'usage, sur platform.claude.com." },
-    { id: "auto", title: "Automatique", text: "Claude d'abord (clé API, sinon abonnement), puis l'IA locale." },
+    { id: "claude", title: t("Clé API Claude"), text: t("Payant à l'usage, sur platform.claude.com.") },
+    { id: "auto", title: t("Automatique"), text: t("Claude d'abord (clé API, sinon abonnement), puis l'IA locale.") },
   ];
 
   return (
     <div className="page">
       <div className="stack" style={{ gap: 10, marginBottom: 28 }}>
-        <span className="label">Réglages</span>
-        <h1 className="display">Configuration</h1>
+        <span className="label">{t("Réglages")}</span>
+        <h1 className="display">{t("Configuration")}</h1>
       </div>
       <div className="settings-layout">
       <SectionNav items={SECTIONS} />
       <div className="settings">
+        {/* ---------------------------------------------------------------- language */}
+        <section className="card section" id="s-lang" data-tour="lang">
+          <div className="row">
+            <div className="grow">
+              <h2 className="h2">{t("Langue")}</h2>
+              <p className="small muted" style={{ margin: "6px 0 0" }}>
+                {t("La langue de l'app, et celle dans laquelle les articles sont traduits, expliqués et discutés. Ce qui a déjà été traduit dans l'autre langue reste en mémoire.")}
+              </p>
+            </div>
+            <div className="seg" role="group" aria-label={t("Langue")}>
+              {(["fr", "en"] as const).map((l) => (
+                <button key={l} className={lang() === l ? "active" : ""} onClick={() => void save({ uiLang: l })}>
+                  {l === "fr" ? "Français" : "English"}
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* ---------------------------------------------------------------- AI */}
         <section className="card section" id="s-ai">
-          <h2 className="h2">Intelligence artificielle</h2>
+          <h2 className="h2">{t("Intelligence artificielle")}</h2>
           <p className="small muted" style={{ margin: 0 }}>
-            Elle traduit les articles, prépare les titres en français, explique les passages difficiles et affine tes
-            recommandations.
+            {t("Elle traduit les articles, prépare les titres en français, explique les passages difficiles et affine tes recommandations.")}
           </p>
           <div className="radio-cards" data-tour="ai-modes">
             {providers.map((p) => (
@@ -104,13 +125,13 @@ export function SettingsView() {
 
           <div className="field" data-tour="gemini-key">
             <label>
-              Clé API Gemini (gratuite) {settings.hasGeminiKey && <span className="tag brand" style={{ marginLeft: 6 }}>enregistrée</span>}
+              {t("Clé API Gemini (gratuite)")} {settings.hasGeminiKey && <span className="tag brand" style={{ marginLeft: 6 }}>{t("enregistrée")}</span>}
             </label>
             <div className="row">
               <input
                 className="input grow"
                 type="password"
-                placeholder={settings.hasGeminiKey ? "Une clé est enregistrée (chiffrée sur ce PC)" : "Clé créée sur aistudio.google.com"}
+                placeholder={settings.hasGeminiKey ? t("Une clé est enregistrée (chiffrée sur ce PC)") : t("Clé créée sur aistudio.google.com")}
                 value={gem}
                 onChange={(e) => setGem(e.target.value)}
               />
@@ -120,21 +141,19 @@ export function SettingsView() {
                 onClick={async () => {
                   await save({ geminiKey: gem });
                   setGem("");
-                  toast("Clé Gemini enregistrée.");
+                  toast(t("Clé Gemini enregistrée."));
                 }}
               >
-                <KeyRound size={15} /> Enregistrer
+                <KeyRound size={15} /> {t("Enregistrer")}
               </button>
               {settings.hasGeminiKey && (
                 <button className="btn ghost" onClick={() => void save({ geminiKey: "" })}>
-                  Supprimer
+                  {t("Supprimer")}
                 </button>
               )}
             </div>
             <span className="small muted">
-              Le quota gratuit de Google est compté par modèle et par jour (parfois seulement 20 requêtes). L'app alterne donc entre
-              plusieurs modèles gratuits (Gemini Flash, Gemma 4, Flash-Lite) et passe au suivant quand l'un est épuisé. Tes quotas
-              réels sont visibles sur{" "}
+              {t("Le quota gratuit de Google est compté par modèle et par jour (parfois seulement 20 requêtes). L'app alterne donc entre plusieurs modèles gratuits (Gemini Flash, Gemma 4, Flash-Lite) et passe au suivant quand l'un est épuisé. Tes quotas réels sont visibles sur")}{" "}
               <a href="#" onClick={(e) => (e.preventDefault(), void api.openExternal("https://aistudio.google.com/rate-limit"))}>
                 aistudio.google.com/rate-limit
               </a>
@@ -143,12 +162,15 @@ export function SettingsView() {
           </div>
 
           <div className="field">
-            <label>Clé API Claude, facultative et payante {settings.hasClaudeKey && <span className="tag brand" style={{ marginLeft: 6 }}>enregistrée</span>}</label>
+            <label>
+              {t("Clé API Claude, facultative et payante")}{" "}
+              {settings.hasClaudeKey && <span className="tag brand" style={{ marginLeft: 6 }}>{t("enregistrée")}</span>}
+            </label>
             <div className="row">
               <input
                 className="input grow"
                 type="password"
-                placeholder={settings.hasClaudeKey ? "Une clé est enregistrée (chiffrée sur ce PC)" : "sk-ant-…"}
+                placeholder={settings.hasClaudeKey ? t("Une clé est enregistrée (chiffrée sur ce PC)") : "sk-ant-…"}
                 value={key}
                 onChange={(e) => setKey(e.target.value)}
               />
@@ -158,61 +180,61 @@ export function SettingsView() {
                 onClick={async () => {
                   await save({ claudeKey: key });
                   setKey("");
-                  toast("Clé enregistrée.");
+                  toast(t("Clé enregistrée."));
                 }}
               >
-                <KeyRound size={15} /> Enregistrer
+                <KeyRound size={15} /> {t("Enregistrer")}
               </button>
               {settings.hasClaudeKey && (
                 <button className="btn ghost" onClick={() => void save({ claudeKey: "" })}>
-                  Supprimer
+                  {t("Supprimer")}
                 </button>
               )}
             </div>
             <span className="small muted">
-              À créer sur{" "}
+              {t("À créer sur")}{" "}
               <a href="#" onClick={(e) => (e.preventDefault(), void api.openExternal("https://platform.claude.com/settings/keys"))}>
                 platform.claude.com
               </a>
-              . Elle est chiffrée avec le coffre de Windows et ne quitte pas ton ordinateur, sauf pour appeler l'API.
+              {t(". Elle est chiffrée avec le coffre de Windows et ne quitte pas ton ordinateur, sauf pour appeler l'API.")}
             </span>
           </div>
 
           <div className="field">
-            <label>Modèle utilisé avec ton abonnement Claude</label>
+            <label>{t("Modèle utilisé avec ton abonnement Claude")}</label>
             <select
               className="select"
               value={settings.claudeCodeModel}
               onChange={(e) => void save({ claudeCodeModel: e.target.value as Settings["claudeCodeModel"] })}
             >
-              <option value="opus">Opus : meilleure qualité, consomme plus vite tes limites</option>
-              <option value="sonnet">Sonnet : très bon, plus économe</option>
-              <option value="haiku">Haiku : le plus économe</option>
+              <option value="opus">{t("Opus : meilleure qualité, consomme plus vite tes limites")}</option>
+              <option value="sonnet">{t("Sonnet : très bon, plus économe")}</option>
+              <option value="haiku">{t("Haiku : le plus économe")}</option>
             </select>
           </div>
 
           <div className="field">
-            <label>Modèle Claude (clé API)</label>
+            <label>{t("Modèle Claude (clé API)")}</label>
             <select className="select" value={settings.claudeModel} onChange={(e) => void save({ claudeModel: e.target.value })}>
               {MODELS.map((m) => (
                 <option key={m.id} value={m.id}>
-                  {m.label} : {m.note}
+                  {m.label} : {t(m.note)}
                 </option>
               ))}
             </select>
           </div>
 
           <div className="field" data-tour="ollama">
-            <label>IA locale (Ollama)</label>
+            <label>{t("IA locale (Ollama)")}</label>
             {hw && (
               <span className="small muted">
-                Ton PC : {hw.gpu}
-                {hw.vramGb ? ` (${hw.vramGb} Go)` : ""}. Modèle conseillé : <code>{hw.advice.model}</code>. {hw.advice.why}
+                {t("Ton PC : {gpu}", { gpu: hw.gpu })}
+                {hw.vramGb ? ` (${t("{n} Go", { n: hw.vramGb })})` : ""}. {t("Modèle conseillé :")} <code>{hw.advice.model}</code>. {hw.advice.why}
               </span>
             )}
             {models.length ? (
               <select className="select" value={settings.ollamaModel} onChange={(e) => void save({ ollamaModel: e.target.value })}>
-                <option value="">Premier modèle disponible</option>
+                <option value="">{t("Premier modèle disponible")}</option>
                 {models.map((m) => (
                   <option key={m} value={m}>
                     {m}
@@ -222,24 +244,24 @@ export function SettingsView() {
             ) : (
               <div className="notice">
                 <span>
-                  Ollama n'est pas détecté. Pour une IA gratuite sur ton PC : installe Ollama depuis{" "}
+                  {t("Ollama n'est pas détecté. Pour une IA gratuite sur ton PC : installe Ollama depuis")}{" "}
                   <a href="#" onClick={(e) => (e.preventDefault(), void api.openExternal("https://ollama.com/download"))}>
                     ollama.com
                   </a>
-                  , puis télécharge un modèle qui parle bien français, par exemple <code>ollama pull qwen2.5:7b</code> (tient dans les
-                  8 Go de ta RTX 5050). Reviens ensuite sur cette page.
+                  {t(", puis télécharge le modèle conseillé pour ton PC :")} <code>ollama pull {hw?.advice.model ?? "aya-expanse:8b"}</code>.{" "}
+                  {t("Reviens ensuite sur cette page.")}
                 </span>
               </div>
             )}
           </div>
 
           <div className="field">
-            <label>Termes à toujours garder en anglais (facultatif)</label>
+            <label>{t("Termes à toujours garder en anglais (facultatif)")}</label>
             <textarea
               className="textarea"
               rows={2}
               value={hint}
-              placeholder="Ex. : garde « dataset », « framework », « edge computing » en anglais ; traduis « deep learning » par « apprentissage profond »."
+              placeholder={t("Ex. : garde « dataset », « framework », « edge computing » en anglais ; traduis « deep learning » par « apprentissage profond ».")}
               onChange={(e) => setHint(e.target.value)}
               onBlur={() => hint !== settings.keepTermsHint && void save({ keepTermsHint: hint })}
             />
@@ -247,15 +269,15 @@ export function SettingsView() {
 
           <div className="setting-row" style={{ marginTop: 8 }}>
             <div className="grow">
-              <div>Traduire automatiquement à l'ouverture</div>
-              <div className="small muted">Sinon, un bouton « Traduire » apparaît dans le lecteur.</div>
+              <div>{t("Traduire automatiquement à l'ouverture")}</div>
+              <div className="small muted">{t("Sinon, un bouton « Traduire » apparaît dans le lecteur.")}</div>
             </div>
-            <button className={`switch ${settings.autoTranslate ? "on" : ""}`} onClick={() => void save({ autoTranslate: !settings.autoTranslate })} aria-label="Traduction automatique" />
+            <button className={`switch ${settings.autoTranslate ? "on" : ""}`} onClick={() => void save({ autoTranslate: !settings.autoTranslate })} aria-label={t("Traduction automatique")} />
           </div>
 
           <div className="row" style={{ marginTop: 12 }}>
             <button className="btn" onClick={() => void runTest()} disabled={testing} data-tour="ai-test">
-              {testing ? <div className="spinner" /> : <RefreshCw size={15} />} Tester l'IA
+              {testing ? <div className="spinner" /> : <RefreshCw size={15} />} {t("Tester l'IA")}
             </button>
             {test && (
               <span className="row small" style={{ color: test.ok ? "var(--success)" : "var(--accent)" }}>
@@ -267,15 +289,15 @@ export function SettingsView() {
           {usage && (
             <div className="stats">
               <div className="stat">
-                <div className="small muted">Coût Claude ce mois-ci</div>
+                <div className="small muted">{t("Coût Claude ce mois-ci")}</div>
                 <div className="v">{usage.monthCostUsd.toFixed(2)} $</div>
               </div>
               <div className="stat">
-                <div className="small muted">Coût Claude total</div>
+                <div className="small muted">{t("Coût Claude total")}</div>
                 <div className="v">{usage.claudeCostUsd.toFixed(2)} $</div>
               </div>
               <div className="stat">
-                <div className="small muted">Appels Gemini / local / abonnement</div>
+                <div className="small muted">{t("Appels Gemini / local / abonnement")}</div>
                 <div className="v">
                   {usage.geminiCalls ?? 0} / {usage.ollamaCalls} / {usage.claudeCodeCalls ?? 0}
                 </div>
@@ -286,10 +308,9 @@ export function SettingsView() {
 
         {/* ---------------------------------------------------------------- interests */}
         <section className="card section" id="s-interests" data-tour="domains">
-          <h2 className="h2">Centres d'intérêt</h2>
+          <h2 className="h2">{t("Centres d'intérêt")}</h2>
           <p className="small muted" style={{ marginTop: 6 }}>
-            Les sources ne sont interrogées que pour ces sujets, et les filtres du fil en découlent. L'algorithme part de là et
-            te propose peu à peu des sujets voisins.
+            {t("Les sources ne sont interrogées que pour ces sujets, et les filtres du fil en découlent. L'algorithme part de là et te propose peu à peu des sujets voisins.")}
           </p>
           <InterestsEditor
             interests={draft?.interests ?? settings.interests}
@@ -305,16 +326,16 @@ export function SettingsView() {
                   await api.setInterests(draft.interests, draft.languages);
                   setDraft(null);
                   await reloadSettings();
-                  toast("Centres d'intérêt enregistrés : le fil se met à jour.");
+                  toast(t("Centres d'intérêt enregistrés : le fil se met à jour."));
                 }}
               >
-                Enregistrer
+                {t("Enregistrer")}
               </button>
               <button className="btn ghost" onClick={() => setDraft(null)}>
-                Annuler
+                {t("Annuler")}
               </button>
               {draft.interests.length < MIN_INTERESTS && (
-                <span className="small muted">Garde au moins {MIN_INTERESTS} sujets.</span>
+                <span className="small muted">{t("Garde au moins {n} sujets.", { n: MIN_INTERESTS })}</span>
               )}
             </div>
           )}
@@ -324,16 +345,14 @@ export function SettingsView() {
         <section className="card section" id="s-data" data-tour="data">
           <div className="setting-row" style={{ borderTop: "none", paddingTop: 0 }}>
             <div className="grow">
-              <h2 className="h2">Économiser les données</h2>
+              <h2 className="h2">{t("Économiser les données")}</h2>
               <p className="small muted" style={{ margin: "6px 0 0" }}>
-                Pour une connexion mobile ou limitée. Un article n'est téléchargé que quand tu l'ouvres : les cartes restent sans
-                image jusque-là, et l'ouverture prend quelques secondes de plus. Le modèle de recommandations par le sens (130 Mo)
-                n'est pas téléchargé ; s'il est déjà là, il continue de servir.
+                {t("Pour une connexion mobile ou limitée. Un article n'est téléchargé que quand tu l'ouvres : les cartes restent sans image jusque-là, et l'ouverture prend quelques secondes de plus. Le modèle de recommandations par le sens (130 Mo) n'est pas téléchargé ; s'il est déjà là, il continue de servir.")}
               </p>
             </div>
             <button
               className={`switch ${settings.dataSaver ? "on" : ""}`}
-              aria-label="Économiser les données"
+              aria-label={t("Économiser les données")}
               onClick={() => void save({ dataSaver: !settings.dataSaver })}
             />
           </div>
@@ -342,29 +361,29 @@ export function SettingsView() {
         {/* ---------------------------------------------------------------- sources */}
         <section className="card section" id="s-sources" data-tour="sources">
           <div className="row">
-            <h2 className="h2 grow">Sources scientifiques</h2>
+            <h2 className="h2 grow">{t("Sources scientifiques")}</h2>
             <select className="select" style={{ width: "auto" }} value={settings.refreshHours} onChange={(e) => void save({ refreshHours: Number(e.target.value) })}>
               {[1, 3, 6, 12, 24].map((h) => (
                 <option key={h} value={h}>
-                  Actualiser toutes les {h} h
+                  {t("Actualiser toutes les {n} h", { n: h })}
                 </option>
               ))}
             </select>
           </div>
           <p className="small muted" style={{ marginTop: 6 }}>
-            Uniquement des éditeurs et archives officiels, et uniquement des articles lisibles gratuitement en entier.
+            {t("Uniquement des éditeurs et archives officiels, et uniquement des articles lisibles gratuitement en entier.")}
           </p>
           {SOURCES.map((src) => {
             const st = status.find((x) => x.source === src.id);
             return (
               <div key={src.id} className="setting-row">
                 <div className="grow">
-                  <div>{src.label}</div>
-                  <div className="small muted">{src.description}</div>
+                  <div>{t(src.label)}</div>
+                  <div className="small muted">{t(src.description)}</div>
                   {st?.lastRun && (
                     <div className="small" style={{ color: st.error ? "var(--accent)" : "var(--text-weak)", marginTop: 2 }}>
-                      {st.error ? `Indisponible : ${st.error}` : `${st.lastCount ?? 0} articles`} · {timeAgo(st.lastRun)}
-                      {st.error && src.id === "semanticscholar" && !settings.hasSemanticScholarKey && " · une clé gratuite (plus bas) règle ce problème"}
+                      {st.error ? t("Indisponible : {raison}", { raison: st.error }) : t("{n} articles", { n: st.lastCount ?? 0 })} · {timeAgo(st.lastRun)}
+                      {st.error && src.id === "semanticscholar" && !settings.hasSemanticScholarKey && ` · ${t("une clé gratuite (plus bas) règle ce problème")}`}
                     </div>
                   )}
                 </div>
@@ -378,16 +397,16 @@ export function SettingsView() {
           })}
           <div className="field">
             <label>
-              Clé API Semantic Scholar (facultative, gratuite){" "}
-              {settings.hasSemanticScholarKey && <span className="tag brand" style={{ marginLeft: 6 }}>enregistrée</span>}
+              {t("Clé API Semantic Scholar (facultative, gratuite)")}{" "}
+              {settings.hasSemanticScholarKey && <span className="tag brand" style={{ marginLeft: 6 }}>{t("enregistrée")}</span>}
             </label>
             <div className="row">
-              <input className="input grow" type="password" value={s2} onChange={(e) => setS2(e.target.value)} placeholder="Sans clé, Semantic Scholar limite souvent les requêtes" />
-              <button className="btn" disabled={!s2.trim()} onClick={async () => (await save({ semanticScholarKey: s2 }), setS2(""), toast("Clé enregistrée."))}>
-                Enregistrer
+              <input className="input grow" type="password" value={s2} onChange={(e) => setS2(e.target.value)} placeholder={t("Sans clé, Semantic Scholar limite souvent les requêtes")} />
+              <button className="btn" disabled={!s2.trim()} onClick={async () => (await save({ semanticScholarKey: s2 }), setS2(""), toast(t("Clé enregistrée.")))}>
+                {t("Enregistrer")}
               </button>
               <button className="btn ghost" onClick={() => void api.openExternal("https://www.semanticscholar.org/product/api#api-key-form")}>
-                <ExternalLink size={15} /> Demander une clé
+                <ExternalLink size={15} /> {t("Demander une clé")}
               </button>
             </div>
           </div>
@@ -397,22 +416,22 @@ export function SettingsView() {
         <section className="card section" id="s-tour" data-tour="tour">
           <div className="row">
             <div className="grow">
-              <h2 className="h2">Tutoriel</h2>
+              <h2 className="h2">{t("Tutoriel")}</h2>
               <p className="small muted" style={{ margin: "6px 0 0" }}>
-                Refaire la visite guidée de l'app.
+                {t("Refaire la visite guidée de l'app.")}
               </p>
             </div>
             <button className="btn" onClick={() => void save({ onboarded: false })}>
-              Relancer la visite
+              {t("Relancer la visite")}
             </button>
           </div>
         </section>
 
         {/* ---------------------------------------------------------------- export */}
         <section className="card section" id="s-export" data-tour="export">
-          <h2 className="h2">Export vers le portfolio</h2>
+          <h2 className="h2">{t("Export")}</h2>
           <p className="small muted" style={{ marginTop: 6 }}>
-            Tes articles sont exportés en .mdx, au même format que les pages de ton portfolio (titre, date, résumé, image).
+            {t("Tes articles sont exportés en .mdx (Markdown avec titre, date, résumé et image), un format que lisent la plupart des sites et portfolios.")}
           </p>
           <div className="row">
             <input className="input grow" readOnly value={settings.exportDir} />
@@ -423,7 +442,7 @@ export function SettingsView() {
                 if (dir) await save({ exportDir: dir });
               }}
             >
-              <FolderOpen size={15} /> Choisir
+              <FolderOpen size={15} /> {t("Choisir")}
             </button>
           </div>
         </section>

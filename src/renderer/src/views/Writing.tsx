@@ -3,11 +3,14 @@ import { BookOpen, Copy, FileDown, FolderOpen } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Article, Draft, Note } from "@shared/types";
 import { Notes } from "../components/Notes";
+import { lang, t } from "@shared/i18n";
 import { api } from "../api";
 import { useApp } from "../App";
 import { sanitize, timeAgo } from "../util";
 
-const TEMPLATE = `## De quoi parle cet article ?
+/** The outline a new draft starts from, in the app's language. */
+const TEMPLATE: Record<"fr" | "en", string> = {
+  fr: `## De quoi parle cet article ?
 
 Explique en 2 ou 3 phrases, avec tes mots, la question que se posent les chercheurs.
 
@@ -20,7 +23,22 @@ Explique en 2 ou 3 phrases, avec tes mots, la question que se posent les cherche
 Ce qui m'a surpris, ce que j'en retiens, les limites que je vois.
 
 ## Pourquoi c'est important
-`;
+`,
+  en: `## What is this paper about?
+
+Explain in 2 or 3 sentences, in your own words, the question the researchers ask.
+
+## What they did
+
+## What they found
+
+## My take
+
+What surprised me, what I keep from it, the limits I see.
+
+## Why it matters
+`,
+};
 
 export function Writing({ articleId }: { articleId?: string }) {
   const { go, toast, settings } = useApp();
@@ -86,7 +104,7 @@ export function Writing({ articleId }: { articleId?: string }) {
           title: a?.titleFr ?? a?.title ?? "",
           summary: "",
           tags: "",
-          body: TEMPLATE,
+          body: TEMPLATE[lang()],
           updatedAt: new Date().toISOString(),
         },
       );
@@ -112,7 +130,7 @@ export function Writing({ articleId }: { articleId?: string }) {
     await api.saveDraft(draft);
     try {
       const file = await api.exportDraft(draft.articleId);
-      toast(`Exporté : ${file}`);
+      toast(t("Exporté : {fichier}", { fichier: file }));
       void loadList();
     } catch (e) {
       toast(e instanceof Error ? e.message : String(e));
@@ -124,30 +142,30 @@ export function Writing({ articleId }: { articleId?: string }) {
     const text = `${draft.title}\n\n${draft.summary ? `${draft.summary}\n\n` : ""}${draft.body
       .replace(/^#+\s*/gm, "")
       .replace(/\*\*(.+?)\*\*/g, "$1")
-      .trim()}\n\nSource : ${a.title} (${a.venue ?? ""}) ${a.url}`;
+      .trim()}\n\n${t("Source :")} ${a.title} (${a.venue ?? ""}) ${a.url}`;
     await navigator.clipboard.writeText(text);
-    toast("Texte copié : prêt à coller sur LinkedIn ou ailleurs.");
+    toast(t("Texte copié : prêt à coller sur LinkedIn ou ailleurs."));
   };
 
   return (
     <div className="page">
       <div className="stack" style={{ gap: 10, marginBottom: 28 }}>
-        <span className="label">Mes articles</span>
-        <h1 className="display">Ta compréhension, avec tes mots.</h1>
+        <span className="label">{t("Mes articles")}</span>
+        <h1 className="display">{t("Ta compréhension, avec tes mots.")}</h1>
       </div>
       <div className="writer">
         <div className="card" style={{ padding: 8 }}>
           {drafts.length === 0 && !current && (
             <p className="small muted" style={{ padding: 12 }}>
-              Ouvre un article et clique sur « Écrire mon article » pour commencer un brouillon.
+              {t("Ouvre un article et clique sur « Écrire mon article » pour commencer un brouillon.")}
             </p>
           )}
           <div className="list">
             {current && !drafts.some((d) => d.articleId === current) && (
               <div className="list-item" style={{ background: "var(--surface-hover)" }}>
                 <div className="stack grow" style={{ gap: 4 }}>
-                  <div className="title small">{draft?.title || "Nouveau brouillon"}</div>
-                  <div className="small muted">Nouveau</div>
+                  <div className="title small">{draft?.title || t("Nouveau brouillon")}</div>
+                  <div className="small muted">{t("Nouveau")}</div>
                 </div>
               </div>
             )}
@@ -159,9 +177,10 @@ export function Writing({ articleId }: { articleId?: string }) {
                 onClick={() => setCurrent(d.articleId)}
               >
                 <div className="stack grow" style={{ gap: 4 }}>
-                  <div className="title small">{d.title || "Sans titre"}</div>
+                  <div className="title small">{d.title || t("Sans titre")}</div>
                   <div className="small muted">
-                    {d.exportedPath ? "Exporté · " : ""}modifié {timeAgo(d.updatedAt)}
+                    {d.exportedPath ? `${t("Exporté")} · ` : ""}
+                    {t("modifié {quand}", { quand: timeAgo(d.updatedAt) })}
                   </div>
                 </div>
               </div>
@@ -173,28 +192,29 @@ export function Writing({ articleId }: { articleId?: string }) {
           <div className="stack" style={{ gap: 16 }}>
             {a && (
               <div className="row small wrap" style={{ gap: 10 }}>
-                <span className="muted grow">D'après « {a.titleFr ?? a.title} »</span>
+                <span className="muted grow">{t("D'après « {titre} »", { titre: a.titleFr ?? a.title })}</span>
                 {/* Back to the article and back again: Escape or "Retour à mon texte". */}
                 <button className="btn sm" onClick={() => go({ view: "reader", articleId: a.id, from: { view: "writing", articleId: a.id } })}>
-                  <BookOpen size={14} /> Relire l'article
+                  <BookOpen size={14} /> {t("Relire l'article")}
                 </button>
               </div>
             )}
-            <input className="input" style={{ fontSize: 22, fontWeight: 600, letterSpacing: "-0.02em" }} value={draft.title} placeholder="Titre de ton article" onChange={(e) => update({ title: e.target.value })} />
+            <input className="input" style={{ fontSize: 22, fontWeight: 600, letterSpacing: "-0.02em" }} value={draft.title} placeholder={t("Titre de ton article")} onChange={(e) => update({ title: e.target.value })} />
             <div className="row" style={{ gap: 12 }}>
-              <input className="input grow" value={draft.summary} placeholder="Résumé en une phrase (affiché sur ton portfolio)" onChange={(e) => update({ summary: e.target.value })} />
-              <input className="input" style={{ maxWidth: 240 }} value={draft.tags} placeholder="Tags, séparés par des virgules" onChange={(e) => update({ tags: e.target.value })} />
+              <input className="input grow" value={draft.summary} placeholder={t("Résumé en une phrase")} onChange={(e) => update({ summary: e.target.value })} />
+              <input className="input" style={{ maxWidth: 240 }} value={draft.tags} placeholder={t("Tags, séparés par des virgules")} onChange={(e) => update({ tags: e.target.value })} />
             </div>
             <div className="editor-grid">
-              <textarea ref={editor} className="textarea" style={{ minHeight: 520, fontFamily: "var(--font-mono)", fontSize: 14 }} value={draft.body} onChange={(e) => update({ body: e.target.value })} spellCheck lang="fr" />
+              <textarea ref={editor} className="textarea" style={{ minHeight: 520, fontFamily: "var(--font-mono)", fontSize: 14 }} value={draft.body} onChange={(e) => update({ body: e.target.value })} spellCheck lang={lang()} />
               {/* Next to the text: the preview, or the notes taken while reading. */}
               <div className="stack" style={{ gap: 10 }}>
                 <div className="seg" style={{ alignSelf: "flex-start" }}>
                   <button className={rightPane === "notes" ? "active" : ""} onClick={() => setRightPane("notes")}>
-                    Mes notes{noteCount ? ` (${noteCount})` : ""}
+                    {t("Mes notes")}
+                    {noteCount ? ` (${noteCount})` : ""}
                   </button>
                   <button className={rightPane === "preview" ? "active" : ""} onClick={() => setRightPane("preview")}>
-                    Aperçu
+                    {t("Aperçu")}
                   </button>
                 </div>
                 {rightPane === "notes" ? (
@@ -208,10 +228,10 @@ export function Writing({ articleId }: { articleId?: string }) {
             </div>
             <div className="row wrap">
               <button className="btn primary" onClick={() => void exportMdx()}>
-                <FileDown size={15} /> Exporter pour le portfolio (.mdx)
+                <FileDown size={15} /> {t("Exporter (.mdx)")}
               </button>
               <button className="btn" onClick={() => void copyPost()}>
-                <Copy size={15} /> Copier pour un post
+                <Copy size={15} /> {t("Copier pour un post")}
               </button>
               <div className="grow" />
               <span className="small muted row">
@@ -220,7 +240,7 @@ export function Writing({ articleId }: { articleId?: string }) {
             </div>
           </div>
         ) : (
-          <div className="card empty">Choisis un brouillon à gauche, ou ouvre un article pour en commencer un.</div>
+          <div className="card empty">{t("Choisis un brouillon à gauche, ou ouvre un article pour en commencer un.")}</div>
         )}
       </div>
     </div>

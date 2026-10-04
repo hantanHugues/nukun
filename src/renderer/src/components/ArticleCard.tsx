@@ -2,6 +2,7 @@ import { Bookmark, BookmarkCheck, Compass, EyeOff, Sparkles } from "lucide-react
 import { useEffect, useRef, useState } from "react";
 import type { FeedItem } from "@shared/types";
 import { languageLabel } from "@shared/types";
+import { lang, t } from "@shared/i18n";
 import { api } from "../api";
 import { artFor, authorsShort, domainLabel, sourceLabel, timeAgo } from "../util";
 
@@ -79,12 +80,12 @@ export function ArticleCard({
           </div>
         )}
         <div className="actions">
-          <button className="btn sm icon" onClick={toggleSave} title={saved ? "Retirer des sauvegardes" : "Lire plus tard"}>
+          <button className="btn sm icon" onClick={toggleSave} title={saved ? t("Retirer des sauvegardes") : t("Lire plus tard")}>
             {saved ? <BookmarkCheck size={15} /> : <Bookmark size={15} />}
           </button>
           <button
             className="btn sm icon"
-            title="Pas intéressé : en montrer moins"
+            title={t("Pas intéressé : en montrer moins")}
             onClick={(e) => {
               e.stopPropagation();
               onDismiss();
@@ -98,25 +99,25 @@ export function ArticleCard({
         <div className="meta">
           {item.discovery ? (
             <span className="tag accent">
-              <Compass size={12} /> Découverte
+              <Compass size={12} /> {t("Découverte")}
             </span>
           ) : (
             <span className="tag brand">{domainLabel(a.domain)}</span>
           )}
           <span>{sourceLabel(a)}</span>
           {a.lang && a.lang !== "en" && (
-            <span className="tag" title={`Article en ${languageLabel(a.lang).toLowerCase()}`}>
+            <span className="tag" title={t("Article en {langue}", { langue: languageLabel(a.lang).toLowerCase() })}>
               {a.lang.toUpperCase()}
             </span>
           )}
           <span>·</span>
           <span>{timeAgo(a.published)}</span>
         </div>
-        <h3 lang={a.titleFr ? "fr" : "en"}>{title}</h3>
+        <h3 lang={a.titleFr ? lang() : a.lang}>{title}</h3>
         {a.teaserFr ? (
           <p className="teaser">{a.teaserFr}</p>
         ) : (
-          <p className="teaser" lang="en">
+          <p className="teaser" lang={a.lang}>
             {a.abstract.slice(0, hero ? 520 : 260)}
             {a.abstract.length > (hero ? 520 : 260) ? "…" : ""}
           </p>

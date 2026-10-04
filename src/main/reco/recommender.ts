@@ -4,6 +4,7 @@ import { LEGACY_DOMAINS } from "../sources/classify";
 import { JsonDoc } from "../store";
 import { cosine, DIM } from "./semantic";
 import type { AiInterest } from "../ai/assist";
+import { t } from "@shared/i18n";
 
 /**
  * Content-based recommender with implicit feedback, in the spirit of a social feed:
@@ -476,21 +477,25 @@ export class Recommender {
           const pickIdx = rest.findIndex((x) => x.a.lang === lang && (x.meaning === undefined || x.meaning > 0.2));
           if (pickIdx < 0) continue;
           const pick = rest.splice(pickIdx, 1)[0];
-          const why = pick.meaning !== undefined ? ", proche par le sens de ce que tu aimes" : "";
-          result.push({ article: pick.a, score: pick.score, reasons: [`Article en ${languageLabel(lang).toLowerCase()}${why}`] });
+          const langue = languageLabel(lang).toLowerCase();
+          const why =
+            pick.meaning !== undefined
+              ? t("Article en {langue}, proche par le sens de ce que tu aimes", { langue })
+              : t("Article en {langue}", { langue });
+          result.push({ article: pick.a, score: pick.score, reasons: [why] });
           break;
         }
       }
       if (i > 0 && i % 7 === 0 && discoveries.length) {
         // Nearby disciplines first: the feed widens step by step, like a social feed.
         const pick = discoveries.shift()!;
-        result.push({ article: pick.a, score: pick.score, reasons: ["Découverte : proche de ce que tu aimes"], discovery: true });
+        result.push({ article: pick.a, score: pick.score, reasons: [t("Découverte : proche de ce que tu aimes")], discovery: true });
       } else if (i > 0 && i % 7 === 0) {
         const dom = leastSeen[di++ % Math.max(1, leastSeen.length)];
         const pickIdx = rest.findIndex((x) => x.a.domain === dom && x.fresh > 0.3);
         if (pickIdx >= 0) {
           const pick = rest.splice(pickIdx, 1)[0];
-          result.push({ article: pick.a, score: pick.score, reasons: ["Découverte : un domaine que tu explores moins"], discovery: true });
+          result.push({ article: pick.a, score: pick.score, reasons: [t("Découverte : un domaine que tu explores moins")], discovery: true });
         }
       }
       const c = chosen[i];
@@ -503,7 +508,7 @@ export class Recommender {
     const r: string[] = [];
     // Close in meaning without shared words (often another language): say so.
     if ((c.meaning ?? 0) > 0.5 && c.contrib.length < 2) {
-      r.push(this.profile.signals < 5 ? "Proche par le sens de tes centres d'intérêt" : "Proche par le sens de tes lectures");
+      r.push(this.profile.signals < 5 ? t("Proche par le sens de tes centres d'intérêt") : t("Proche par le sens de tes lectures"));
     }
     const terms = c.contrib
       .sort((x, y) => y[1] - x[1])
@@ -511,10 +516,11 @@ export class Recommender {
       .filter((t, i, arr) => !arr.some((o, j) => j < i && (o.includes(t) || t.includes(o))))
       .slice(0, 3);
     // Before any reading, the profile only holds the interests chosen at first launch.
-    const what = this.profile.signals < 5 ? "Lié à tes centres d'intérêt" : "Proche de tes lectures";
-    if (terms.length && c.contrib.length) r.push(`${what} : ${terms.join(", ")}`);
-    if (c.ds.pos >= 3) r.push(`Tu lis souvent en ${fieldLabel(c.a.domain)}`);
-    if (c.fresh > 0.8) r.push("Publié il y a moins de 2 jours");
+    const mots = terms.join(", ");
+    if (terms.length && c.contrib.length)
+      r.push(this.profile.signals < 5 ? t("Lié à tes centres d'intérêt : {mots}", { mots }) : t("Proche de tes lectures : {mots}", { mots }));
+    if (c.ds.pos >= 3) r.push(t("Tu lis souvent en {domaine}", { domaine: fieldLabel(c.a.domain) }));
+    if (c.fresh > 0.8) r.push(t("Publié il y a moins de 2 jours"));
     return r;
   }
 

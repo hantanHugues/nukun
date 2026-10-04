@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { t } from "@shared/i18n";
 
 /**
  * Table of contents of a long page, in the style of the portfolio's About page:
@@ -36,7 +37,7 @@ export function SectionNav({ items }: { items: { id: string; label: string }[] }
   };
 
   return (
-    <nav className="section-nav" aria-label="Sections de la page" data-tour="settings-nav">
+    <nav className="section-nav" aria-label={t("Sections de la page")} data-tour="settings-nav">
       {items.map((it) => (
         <button
           key={it.id}
@@ -45,7 +46,7 @@ export function SectionNav({ items }: { items: { id: string; label: string }[] }
           onClick={() => go(it.id)}
         >
           <span className="dash" />
-          {it.label}
+          {t(it.label)}
         </button>
       ))}
     </nav>

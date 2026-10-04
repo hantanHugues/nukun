@@ -1,6 +1,7 @@
 import { CheckCircle2, Heart, NotebookPen, PenLine, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { Article } from "@shared/types";
+import { t } from "@shared/i18n";
 import { api } from "../api";
 import { useApp } from "../App";
 import { artFor, domainLabel, sourceLabel, timeAgo } from "../util";
@@ -26,23 +27,23 @@ export function Library() {
     void api.noteCounts().then(setNoteCounts);
   }, []);
 
-  const shown = items.filter(TABS.find((t) => t.id === tab)!.test);
+  const shown = items.filter(TABS.find((x) => x.id === tab)!.test);
 
   return (
     <div className="page" style={{ maxWidth: 960 }}>
       <div className="stack" style={{ gap: 10, marginBottom: 28 }}>
-        <span className="label">Bibliothèque</span>
-        <h1 className="display">Tes lectures</h1>
+        <span className="label">{t("Bibliothèque")}</span>
+        <h1 className="display">{t("Tes lectures")}</h1>
       </div>
       <div className="feed-filters">
-        {TABS.map((t) => (
-          <button key={t.id} className={`chip ${tab === t.id ? "active" : ""}`} onClick={() => setTab(t.id)}>
-            {t.label} <span style={{ opacity: 0.6 }}>{items.filter(t.test).length}</span>
+        {TABS.map((x) => (
+          <button key={x.id} className={`chip ${tab === x.id ? "active" : ""}`} onClick={() => setTab(x.id)}>
+            {t(x.label)} <span style={{ opacity: 0.6 }}>{items.filter(x.test).length}</span>
           </button>
         ))}
       </div>
       {shown.length === 0 ? (
-        <div className="card empty">Rien ici pour le moment.</div>
+        <div className="card empty">{t("Rien ici pour le moment.")}</div>
       ) : (
         <div className="list">
           {shown.map((a) => {
@@ -67,12 +68,12 @@ export function Library() {
                   <div className="row small muted wrap">
                     <span className="tag brand">{domainLabel(a.domain)}</span>
                     <span>{sourceLabel(a)}</span>
-                    <span>· ouvert {timeAgo(a.state.lastOpened ?? a.fetchedAt)}</span>
+                    <span>· {t("ouvert {quand}", { quand: timeAgo(a.state.lastOpened ?? a.fetchedAt) })}</span>
                     {a.state.liked && <Heart size={13} fill="currentColor" color="var(--accent)" />}
                     {a.state.finished && <CheckCircle2 size={13} color="var(--success)" />}
                     {noteCounts[a.id] > 0 && (
                       <span className="row" style={{ gap: 4 }}>
-                        <NotebookPen size={13} /> {noteCounts[a.id]} note{noteCounts[a.id] > 1 ? "s" : ""}
+                        <NotebookPen size={13} /> {noteCounts[a.id] > 1 ? t("{n} notes", { n: noteCounts[a.id] }) : t("1 note")}
                       </span>
                     )}
                   </div>
@@ -87,20 +88,20 @@ export function Library() {
                     go({ view: "writing", articleId: a.id });
                   }}
                 >
-                  <PenLine size={14} /> Écrire
+                  <PenLine size={14} /> {t("Écrire")}
                 </button>
                 <button
                   className="btn sm ghost icon"
-                  title="Retirer de la bibliothèque"
-                  aria-label="Retirer de la bibliothèque"
+                  title={t("Retirer de la bibliothèque")}
+                  aria-label={t("Retirer de la bibliothèque")}
                   onClick={(e) => {
                     e.stopPropagation();
                     const n = noteCounts[a.id] ?? 0;
-                    const notes = n ? ` Ses ${n} note${n > 1 ? "s" : ""} ${n > 1 ? "seront supprimées" : "sera supprimée"} aussi.` : "";
-                    if (!confirm(`Retirer « ${a.titleFr ?? a.title} » de la bibliothèque ?${notes}`)) return;
+                    const notes = !n ? "" : n > 1 ? ` ${t("Ses {n} notes seront supprimées aussi.", { n })}` : ` ${t("Sa note sera supprimée aussi.")}`;
+                    if (!confirm(t("Retirer « {titre} » de la bibliothèque ?", { titre: a.titleFr ?? a.title }) + notes)) return;
                     void api.interact({ id: a.id, type: "remove" });
                     setItems((xs) => xs.filter((x) => x.id !== a.id));
-                    toast("Retiré de la bibliothèque.");
+                    toast(t("Retiré de la bibliothèque."));
                   }}
                 >
                   <Trash2 size={14} />

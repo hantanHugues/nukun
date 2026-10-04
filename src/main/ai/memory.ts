@@ -15,13 +15,16 @@ const mem = () => (doc ??= new JsonDoc<Record<string, string>>("translation-memo
 
 const keyOf = (text: string) => createHash("sha1").update(text.replace(/\s+/g, " ").trim()).digest("base64url");
 
-export function recall(text: string): string | undefined {
-  return mem().data[keyOf(text)];
+/** French translations keep their original keys; other reading languages are prefixed. */
+const trKey = (text: string, target = "fr") => keyOf(target === "fr" ? text : `${target}|${text}`);
+
+export function recall(text: string, target = "fr"): string | undefined {
+  return mem().data[trKey(text, target)];
 }
 
-export function remember(text: string, fr: string) {
+export function remember(text: string, fr: string, target = "fr") {
   const d = mem();
-  d.data[keyOf(text)] = fr;
+  d.data[trKey(text, target)] = fr;
   const keys = Object.keys(d.data);
   // Oldest entries go first (object keys keep insertion order).
   if (keys.length > MAX_ENTRIES) for (const k of keys.slice(0, keys.length - MAX_ENTRIES)) delete d.data[k];
@@ -43,13 +46,13 @@ export function flushMemory() {
 let explDoc: JsonDoc<Record<string, { a: string; by: string }>> | null = null;
 const expl = () => (explDoc ??= new JsonDoc<Record<string, { a: string; by: string }>>("explanation-memory.json", {}));
 
-export function recallExplanation(passage: string) {
-  return expl().data[keyOf(passage.toLowerCase())];
+export function recallExplanation(passage: string, target = "fr") {
+  return expl().data[trKey(passage.toLowerCase(), target)];
 }
 
-export function rememberExplanation(passage: string, a: string, by: string) {
+export function rememberExplanation(passage: string, a: string, by: string, target = "fr") {
   const d = expl();
-  d.data[keyOf(passage.toLowerCase())] = { a, by };
+  d.data[trKey(passage.toLowerCase(), target)] = { a, by };
   d.save();
 }
 

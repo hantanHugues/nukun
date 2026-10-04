@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
 import os from "node:os";
+import { t } from "@shared/i18n";
 
 /**
  * Detects the graphics card and its memory, to suggest the best local model this PC
@@ -65,10 +66,10 @@ export async function detectHardware(): Promise<Hardware> {
  */
 export function adviseLocalModel(hw: Hardware): LocalModelAdvice {
   const v = hw.vramGb;
-  if (v >= 24) return { model: "aya-expanse:32b", sizeGb: 20, why: "Aya Expanse 32B : la version complète du modèle de traduction, bien plus précise." };
-  if (v >= 18) return { model: "gemma3:27b", sizeGb: 17, why: "Gemma 3 27B (Google) : très bon en français, tient dans ta carte." };
-  if (v >= 10) return { model: "gemma3:12b", sizeGb: 8.1, why: "Gemma 3 12B (Google) : bon en français, tient dans ta carte." };
-  if (v >= 6) return { model: "aya-expanse:8b", sizeGb: 5.1, why: "Aya Expanse 8B : spécialisé en traduction, testé dans l'app sur une carte de 8 Go." };
+  if (v >= 24) return { model: "aya-expanse:32b", sizeGb: 20, why: t("Aya Expanse 32B : la version complète du modèle de traduction, bien plus précise.") };
+  if (v >= 18) return { model: "gemma3:27b", sizeGb: 17, why: t("Gemma 3 27B (Google) : très bon en français, tient dans ta carte.") };
+  if (v >= 10) return { model: "gemma3:12b", sizeGb: 8.1, why: t("Gemma 3 12B (Google) : bon en français, tient dans ta carte.") };
+  if (v >= 6) return { model: "aya-expanse:8b", sizeGb: 5.1, why: t("Aya Expanse 8B : spécialisé en traduction, testé dans l'app sur une carte de 8 Go.") };
   return {
     model: "gemma3:4b",
     sizeGb: 3.3,

@@ -151,7 +151,9 @@ function registerIpc() {
   ipcMain.handle("saveSettings", (_e, s: Partial<Settings> & { claudeKey?: string }) => {
     // Data saving switched off: the meaning model can be fetched now.
     if (s.dataSaver === false) setTimeout(() => lib.indexMeaning(), 1000);
+    const before = getSettings().uiLang ?? "fr";
     const res = saveSettings(s);
+    if (s.uiLang && s.uiLang !== before) lib.switchLanguage(before);
     send("feed-updated");
     return res;
   });

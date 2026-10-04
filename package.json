@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "icon": "node scripts/make-icon.mjs",
     "dist": "npm run build && electron-builder --win --publish never",
-    "release": "npm run dist && node scripts/release.mjs"
+    "release": "npm run dist && node scripts/release.mjs",
+    "i18n:check": "node scripts/i18n-check.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",
@@ -95,10 +96,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": false,
       "include": "build/installer.nsh",
-      "installerLanguages": [
-        "fr_FR"
-      ],
-      "language": "1036",
+      "installerLanguages": ["fr_FR", "en_US"],
       "createStartMenuShortcut": true,
       "shortcutName": "Nùkún",
       "installerIcon": "build/icon.ico",

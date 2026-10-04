@@ -49,6 +49,7 @@ import { getSettings, saveSettings, semanticScholarKey } from "./settings";
 import { epmcFindByDoi, FETCHERS, openalexClassify, searchTopics, type RawArticle } from "./sources";
 import { classifyText, detectLanguage, LEGACY_DOMAINS } from "./sources/classify";
 import { JsonDoc, readJson, removeFile, safeName, writeJson } from "./store";
+import { lang, t } from "@shared/i18n";
 
 type Emit = {
   refresh: (p: RefreshProgress) => void;
@@ -210,6 +211,27 @@ export class Library {
     }
   }
 
+  /**
+   * The reading language changed: card titles and summaries switch to the ones made
+   * in that language (made again where there are none), and the feed is ranked again
+   * (its reasons are worded in the new language).
+   */
+  switchLanguage(previous: string) {
+    const now = lang();
+    for (const a of this.all()) {
+      if (a.titleFr && (a.teaserLang ?? "fr") === previous) {
+        (a.teasers ??= {})[previous] = { title: a.titleFr, teaser: a.teaserFr ?? "" };
+      }
+      const kept = a.teasers?.[now];
+      a.titleFr = kept?.title;
+      a.teaserFr = kept?.teaser || undefined;
+      a.teaserLang = now;
+    }
+    this.db.save();
+    this.feedCache.clear();
+    this.emit.feedUpdated();
+  }
+
   /** First launch with the glossary memory: fill it from the articles already translated. */
   seedGlossaryMemory() {
     if (glossarySize()) return;
@@ -238,11 +260,12 @@ export class Library {
 
   async searchTopics(q: string) {
     const hits = await searchTopics(q);
-    const missing = hits.filter((h) => !this.topicNames.data[h.id]);
+    const key = (id: string) => (lang() === "fr" ? id : `${lang()}:${id}`);
+    const missing = hits.filter((h) => !this.topicNames.data[key(h.id)]);
     if (missing.length) {
       const job = translateTopicNames(missing.map(({ id, name }) => ({ id, name })))
         .then((names) => {
-          for (const [id, fr] of names) this.topicNames.data[id] = fr;
+          for (const [id, fr] of names) this.topicNames.data[key(id)] = fr;
           this.topicNames.save();
         })
         .catch(() => {
@@ -251,7 +274,7 @@ export class Library {
       // Do not keep the reader waiting: English names if the AI is slow.
       await Promise.race([job, new Promise((r) => setTimeout(r, 12000))]);
     }
-    return hits.map((h) => ({ ...h, nameFr: this.topicNames.data[h.id] }));
+    return hits.map((h) => ({ ...h, nameFr: this.topicNames.data[key(h.id)] }));
   }
 
   /** A catalogue interest the reader keeps reading without having chosen it. */
@@ -417,7 +440,7 @@ export class Library {
     let added = 0;
     const progress = (step: string) =>
       this.emit.refresh({ running: true, step, done, total: enabled.length + 3, newArticles: added });
-    progress("Interrogation des sources scientifiques");
+    progress(t("Interrogation des sources scientifiques"));
 
     const run = async (id: SourceId) => {
       const st: SourceStatus = { source: id, lastRun: new Date().toISOString() };
@@ -445,7 +468,7 @@ export class Library {
       }
       this.status.data[id] = st;
       done++;
-      progress(`${SOURCES.find((x) => x.id === id)?.label} : terminé`);
+      progress(t("{source} : terminé", { source: t(SOURCES.find((x) => x.id === id)?.label ?? id) }));
     };
     // A few sources at a time: polite with the APIs, and quick enough.
     const queue = enabled.map((x) => x.id);
@@ -456,7 +479,7 @@ export class Library {
     );
     this.status.save();
 
-    progress("Classement des articles par discipline");
+    progress(t("Classement des articles par discipline"));
     await this.classifyNew();
 
     this.prune();
@@ -464,7 +487,7 @@ export class Library {
     this.meta.data.lastRefresh = new Date().toISOString();
     this.meta.save();
     this.db.save();
-    this.emit.refresh({ running: false, step: "Fil à jour", done, total: done, newArticles: added });
+    this.emit.refresh({ running: false, step: t("Fil à jour"), done, total: done, newArticles: added });
     this.emit.feedUpdated();
 
     // Not needed to read the feed: done in the background, without the spinner.
@@ -646,6 +669,16 @@ export class Library {
   // ------------------------------------------------------------ content
   async loadContent(id: string): Promise<ArticleContent> {
     const cached = readJson<ArticleContent | null>(contentFile(id), null);
+    // Translated into another language than the one read now: translated again
+    // (the translation memory keeps both, so going back costs nothing).
+    if (cached && (cached.trLang ?? "fr") !== lang()) {
+      cached.tr = {};
+      cached.trBy = undefined;
+      cached.translatedBy = undefined;
+      cached.glossary = undefined;
+      cached.trLang = lang();
+      writeJson(contentFile(id), cached);
+    }
     if (cached) {
       // Parsed before the arXiv figure fix: repair the addresses once.
       if (id.startsWith("arxiv:") && cached.blocks.some((b) => b.t === "fig" && b.src.some((s) => fixArxivUrl(s) !== s))) {
@@ -655,11 +688,11 @@ export class Library {
       return cached;
     }
     const a = this.get(id);
-    if (!a) throw new Error("Article introuvable.");
+    if (!a) throw new Error(t("Article introuvable."));
     try {
       const loaded = await loadFullText(a);
-      if (loaded.blocks.filter((b) => b.t === "p").length < 2) throw new PendingError("Texte intégral trop court.");
-      const content: ArticleContent = { id, ...loaded, tr: {} };
+      if (loaded.blocks.filter((b) => b.t === "p").length < 2) throw new PendingError(t("Texte intégral trop court."));
+      const content: ArticleContent = { id, ...loaded, tr: {}, trLang: lang() };
       writeJson(contentFile(id), content);
       const firstFig = content.blocks.find((b) => b.t === "fig");
       if (!a.image && firstFig?.t === "fig") a.image = firstFig.src[0];
@@ -692,7 +725,7 @@ export class Library {
    */
   translateVisible(id: string, keys: string[]) {
     if (this.translating.has(id)) return; // a full translation already covers it
-    if (this.get(id)?.lang === "fr") return; // already in French
+    if (this.get(id)?.lang === lang()) return; // already in the reading language
     const q = this.visibleQueue.get(id) ?? new Set<string>();
     for (const k of keys) {
       q.delete(k); // re-add so the latest request moves to the end (= served first)
@@ -764,7 +797,7 @@ export class Library {
   async explainFigure(id: string, blockIndex: number): Promise<Explanation> {
     const c = await this.loadContent(id);
     const b = c.blocks[blockIndex];
-    if (!b || b.t !== "fig") throw new Error("Figure introuvable.");
+    if (!b || b.t !== "fig") throw new Error(t("Figure introuvable."));
     const src = b.src[0];
     const caption = (c.tr[blockIndex]?.[0] || b.segs[0] || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
     const num = b.label?.replace(/^(fig(ure)?\.?\s*)/i, "") || String(c.blocks.slice(0, blockIndex + 1).filter((x) => x.t === "fig").length);
@@ -775,22 +808,22 @@ export class Library {
       return e;
     };
     const at = new Date().toISOString();
-    const known = recallExplanation(`figure:${src}`);
-    if (known) return save({ q: label, a: known.a, by: `Mémoire (${known.by})`, at });
+    const known = recallExplanation(`figure:${src}`, lang());
+    if (known) return save({ q: label, a: known.a, by: t("Mémoire ({qui})", { qui: known.by }), at });
 
     let image: { data: Buffer; mime: string };
     if (src.startsWith("data:")) {
       const m = src.match(/^data:([^;]+);base64,(.*)$/);
-      if (!m) throw new Error("Image illisible.");
+      if (!m) throw new Error(t("Image illisible."));
       image = { mime: m[1], data: Buffer.from(m[2], "base64") };
     } else {
       const res = await get(src, { browser: true, timeoutMs: 45000 });
       image = { mime: (res.headers.get("content-type") ?? "image/jpeg").split(";")[0], data: Buffer.from(await res.arrayBuffer()) };
     }
-    if (!/^image\/(png|jpe?g|gif|webp)$/.test(image.mime)) throw new Error(`Format d'image non pris en charge (${image.mime}).`);
-    if (image.data.length > 8 * 1024 * 1024) throw new Error("Image trop lourde pour être analysée.");
+    if (!/^image\/(png|jpe?g|gif|webp)$/.test(image.mime)) throw new Error(t("Format d'image non pris en charge ({format}).", { format: image.mime }));
+    if (image.data.length > 8 * 1024 * 1024) throw new Error(t("Image trop lourde pour être analysée."));
     const { text, provider } = await explainFigure(this.get(id), caption, image);
-    rememberExplanation(`figure:${src}`, text, provider);
+    rememberExplanation(`figure:${src}`, text, provider, lang());
     return save({ q: label, a: text, by: provider, at });
   }
 
@@ -832,15 +865,15 @@ export class Library {
 
     const term = c.glossary?.find((g) => g.term.toLowerCase() === passage.toLowerCase().replace(/[.,;:]$/, ""));
     if (term) {
-      const a = `${term.definition}${term.keep ? ` Les spécialistes francophones gardent le terme anglais « ${term.term} ».` : ` En français : « ${term.fr} ».`}`;
-      return save({ q: passage, a, by: "Lexique de l'article", at });
+      const a = `${term.definition} ${term.keep ? t("Les spécialistes gardent le terme « {terme} » tel quel.", { terme: term.term }) : t("Traduction : « {traduction} ».", { traduction: term.fr ?? "" })}`;
+      return save({ q: passage, a, by: t("Lexique de l'article"), at });
     }
 
-    const known = recallExplanation(passage);
-    if (known) return save({ q: passage, a: known.a, by: `Mémoire (${known.by})`, at });
+    const known = recallExplanation(passage, lang());
+    if (known) return save({ q: passage, a: known.a, by: t("Mémoire ({qui})", { qui: known.by }), at });
 
     const { text: a, provider } = await explainPassage(this.get(id), passage);
-    rememberExplanation(passage, a, provider);
+    rememberExplanation(passage, a, provider, lang());
     return save({ q: passage, a, by: provider, at });
   }
 
@@ -862,6 +895,8 @@ export class Library {
             if (t) {
               a.titleFr = t.title;
               a.teaserFr = t.teaser;
+              a.teaserLang = lang();
+              (a.teasers ??= {})[lang()] = { title: t.title, teaser: t.teaser };
             }
           }
           this.db.save();
@@ -1006,7 +1041,7 @@ export class Library {
   exportDraft(id: string): string {
     const d = this.drafts.data[id];
     const a = this.get(id);
-    if (!d || !a) throw new Error("Brouillon introuvable.");
+    if (!d || !a) throw new Error(t("Brouillon introuvable."));
     const dir = getSettings().exportDir;
     fs.mkdirSync(dir, { recursive: true });
     const slug =

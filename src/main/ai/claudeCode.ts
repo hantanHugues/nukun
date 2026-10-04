@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { getSettings, recordClaudeCodeCall } from "../settings";
 import type { JsonRequest } from "./llm";
+import { t } from "@shared/i18n";
 
 /**
  * Uses the Claude Code CLI installed on this PC, signed in with the user's own Claude
@@ -31,7 +32,7 @@ export function claudeCodeAvailable() {
 
 export async function claudeCodeJson<T>(req: JsonRequest): Promise<T> {
   const exe = findExecutable();
-  if (!exe) throw new Error("Claude Code n'est pas installé sur ce PC.");
+  if (!exe) throw new Error(t("Claude Code n'est pas installé sur ce PC."));
   // An empty working folder, no tools, no MCP servers, no settings: a plain text request.
   const cwd = path.join(os.tmpdir(), "nukun-claude-code");
   fs.mkdirSync(cwd, { recursive: true });
@@ -70,7 +71,7 @@ L'image de la figure est le fichier « ${file} » : ouvre-la avec l'outil Read a
     child.on("close", (code) => {
       clearTimeout(timer);
       if (stdout.trim()) resolve(stdout);
-      else reject(new Error(`Claude Code s'est arrêté (code ${code}) : ${stderr.slice(0, 300)}`));
+      else reject(new Error(t("Claude Code s'est arrêté (code {code}) : {texte}", { code: String(code), texte: stderr.slice(0, 300) })));
     });
     child.stdin.end(prompt);
   });
@@ -78,7 +79,7 @@ L'image de la figure est le fichier « ${file} » : ouvre-la avec l'outil Read a
   const j = JSON.parse(out);
   if (j.is_error) {
     const msg = String(j.result ?? j.subtype ?? "erreur inconnue");
-    if (j.api_error_status === 429) throw new Error(`Limite de ton abonnement Claude atteinte : ${msg}`);
+    if (j.api_error_status === 429) throw new Error(t("Limite de ton abonnement Claude atteinte : {texte}", { texte: msg }));
     throw new Error(`Claude Code : ${msg}`);
   }
   if (j.structured_output) return j.structured_output as T;

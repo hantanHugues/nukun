@@ -3,6 +3,7 @@ import type { Article, DomainId, Interest, SourceId } from "@shared/types";
 import { getJson, getText, isoDaysAgo, pdfReachable, stripTags } from "../http";
 import { classifyText } from "./classify";
 import { news } from "./news";
+import { t } from "@shared/i18n";
 
 export type RawArticle = Omit<Article, "state" | "fetchedAt">;
 
@@ -709,7 +710,7 @@ async function hal(o: FetchOptions): Promise<RawArticle[]> {
   // opened, so none is added (the source status says why).
   const probe = arr<string>(j.response?.docs?.find((d: any) => arr<string>(d.files_s)[0])?.files_s)[0];
   if (probe && !(await pdfReachable(probe))) {
-    throw new Error("HAL bloque pour l'instant les téléchargements automatiques (protection anti-robot) : ses articles ne sont pas ajoutés.");
+    throw new Error(t("HAL bloque pour l'instant les téléchargements automatiques (protection anti-robot) : ses articles ne sont pas ajoutés."));
   }
   const out: RawArticle[] = [];
   for (const d of j.response?.docs ?? []) {

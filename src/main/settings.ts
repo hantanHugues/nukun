@@ -2,6 +2,7 @@ import { app, safeStorage } from "electron";
 import path from "node:path";
 import type { DomainId, Settings, SourceId, UsageStats } from "@shared/types";
 import { FIELDS, LANGUAGES, SOURCES } from "@shared/types";
+import { setLang } from "@shared/i18n";
 import { JsonDoc } from "./store";
 
 interface StoredSettings extends Omit<Settings, "hasClaudeKey" | "hasSemanticScholarKey" | "semanticScholarKey" | "hasGeminiKey"> {
@@ -25,7 +26,9 @@ const defaults = (): StoredSettings => ({
   languages: Object.fromEntries(LANGUAGES.map((l) => [l.id, true])),
   interests: [],
   refreshHours: 3,
-  exportDir: path.join(app.getPath("documents"), "porfolio", "article", "mes-articles"),
+  // French for a French-speaking Windows, English otherwise.
+  uiLang: app.getLocale().toLowerCase().startsWith("fr") ? "fr" : "en",
+  exportDir: path.join(app.getPath("documents"), "Nukun"),
   theme: "system",
   readerSize: 19,
 });
@@ -47,6 +50,7 @@ function stored() {
       domains: legacy ? d.domains : { ...d.domains, ...saved },
       languages: { ...d.languages, ...doc.data.languages },
     };
+    setLang(doc.data.uiLang ?? "fr");
   }
   return doc;
 }
@@ -87,6 +91,7 @@ export function saveSettings(
   const d = stored();
   const { claudeKey: key, semanticScholarKey: s2, geminiKey: gk, hasClaudeKey, hasSemanticScholarKey, hasGeminiKey, ...rest } = patch;
   Object.assign(d.data, rest);
+  if (rest.uiLang) setLang(rest.uiLang);
   if (key !== undefined) d.data.claudeKeyEnc = key.trim() ? enc(key.trim()) : undefined;
   if (s2 !== undefined) d.data.s2KeyEnc = s2.trim() ? enc(s2.trim()) : undefined;
   if (gk !== undefined) d.data.geminiKeyEnc = gk.trim() ? enc(gk.trim()) : undefined;

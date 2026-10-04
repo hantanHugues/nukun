@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { claudeKey, geminiKey, getSettings, recordClaudeUsage, recordGeminiCall, recordOllamaCall } from "../settings";
 import { HttpError } from "../http";
 import { claudeCodeAvailable, claudeCodeJson } from "./claudeCode";
+import { t } from "@shared/i18n";
 
 export interface JsonRequest {
   system: string;
@@ -26,7 +27,7 @@ let fallbacksSupported = true;
 
 function claude(): Anthropic {
   const key = claudeKey();
-  if (!key) throw new LlmUnavailableError("Aucune clé API Claude n'est enregistrée.");
+  if (!key) throw new LlmUnavailableError(t("Aucune clé API Claude n'est enregistrée."));
   if (!client || key !== clientKey) {
     client = new Anthropic({ apiKey: key, maxRetries: 3, timeout: 10 * 60 * 1000 });
     clientKey = key;
@@ -61,8 +62,8 @@ async function claudeJson<T>(req: JsonRequest): Promise<T> {
     (res.usage.input_tokens ?? 0) + (res.usage.cache_read_input_tokens ?? 0) * 0.1 + (res.usage.cache_creation_input_tokens ?? 0) * 1.25,
     res.usage.output_tokens ?? 0,
   );
-  if (res.stop_reason === "refusal") throw new Error("Le modèle a refusé ce passage.");
-  if (res.stop_reason === "max_tokens") throw new OutputTooLongError("Réponse trop longue.");
+  if (res.stop_reason === "refusal") throw new Error(t("Le modèle a refusé ce passage."));
+  if (res.stop_reason === "max_tokens") throw new OutputTooLongError(t("Réponse trop longue."));
   const text = res.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("");
   return JSON.parse(text) as T;
 }
@@ -89,10 +90,10 @@ export async function ollamaModels(): Promise<string[]> {
 }
 
 async function ollamaJson<T>(req: JsonRequest): Promise<T> {
-  if (req.image) throw new LlmUnavailableError("Le modèle local ne lit pas les images.");
+  if (req.image) throw new LlmUnavailableError(t("Le modèle local ne lit pas les images."));
   const { ollamaUrl, ollamaModel } = getSettings();
   const model = ollamaModel || (await ollamaModels())[0];
-  if (!model) throw new LlmUnavailableError("Ollama ne tourne pas ou aucun modèle n'est installé (Réglages → IA locale).");
+  if (!model) throw new LlmUnavailableError(t("Ollama ne tourne pas ou aucun modèle n'est installé (Réglages → IA locale)."));
   const r = await fetch(`${ollamaUrl}/api/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -111,10 +112,10 @@ async function ollamaJson<T>(req: JsonRequest): Promise<T> {
     }),
     signal: AbortSignal.timeout(15 * 60 * 1000),
   });
-  if (!r.ok) throw new Error(`Ollama a répondu ${r.status} : ${await r.text()}`);
+  if (!r.ok) throw new Error(t("Ollama a répondu {code} : {texte}", { code: r.status, texte: await r.text() }));
   const j = (await r.json()) as { message?: { content?: string }; done_reason?: string };
   recordOllamaCall();
-  if (j.done_reason === "length") throw new OutputTooLongError("Réponse trop longue.");
+  if (j.done_reason === "length") throw new OutputTooLongError(t("Réponse trop longue."));
   return JSON.parse(j.message?.content ?? "{}") as T;
 }
 
@@ -151,7 +152,7 @@ function parseLooseJson<T>(text: string): T {
       else if (ch === "{") depth++;
       else if (ch === "}" && --depth === 0) return JSON.parse(text.slice(start, i + 1)) as T;
     }
-    throw new Error("Réponse JSON illisible.");
+    throw new Error(t("Réponse JSON illisible."));
   }
 }
 
@@ -204,9 +205,9 @@ async function geminiCall<T>(key: string, model: string, req: JsonRequest): Prom
     if (!r.ok) throw new Error(`Gemini : ${j.error?.message ?? r.status}`);
     recordGeminiCall();
     const cand = j.candidates?.[0];
-    if (cand?.finishReason === "MAX_TOKENS") throw new OutputTooLongError("Réponse trop longue.");
+    if (cand?.finishReason === "MAX_TOKENS") throw new OutputTooLongError(t("Réponse trop longue."));
     const text = (cand?.content?.parts ?? []).filter((p: any) => !p.thought).map((p: any) => p.text ?? "").join("");
-    if (!text) throw new Error(`Gemini n'a rien renvoyé (${cand?.finishReason ?? "raison inconnue"}).`);
+    if (!text) throw new Error(t("Gemini n'a rien renvoyé ({raison}).", { raison: cand?.finishReason ?? "?" }));
     return parseLooseJson<T>(text);
   }
   throw lastErr;
@@ -215,10 +216,10 @@ async function geminiCall<T>(key: string, model: string, req: JsonRequest): Prom
 /** Free Google models in rotation (or the one chosen in the settings). */
 async function geminiJson<T>(req: JsonRequest): Promise<T> {
   const key = geminiKey();
-  if (!key) throw new LlmUnavailableError("Aucune clé Gemini enregistrée.");
+  if (!key) throw new LlmUnavailableError(t("Aucune clé Gemini enregistrée."));
   const chosen = getSettings().geminiModel;
   const models = !chosen || chosen === "auto" ? GEMINI_ROTATION : [chosen];
-  let lastErr: unknown = new LlmUnavailableError("Quotas gratuits Google épuisés pour aujourd'hui.");
+  let lastErr: unknown = new LlmUnavailableError(t("Quotas gratuits Google épuisés pour aujourd'hui."));
   for (const model of models) {
     if ((exhaustedUntil.get(model) ?? 0) > Date.now()) continue;
     try {
@@ -244,8 +245,8 @@ export function geminiAvailableToday() {
 export async function llmJson<T>(req: JsonRequest): Promise<{ data: T; provider: string }> {
   const s = getSettings();
   const ollamaName = `Ollama (${s.ollamaModel || "auto"})`;
-  const ccName = `Abonnement Claude (${s.claudeCodeModel || "opus"})`;
-  const geminiName = () => `Google (${lastGeminiModel || "gratuit"})`;
+  const ccName = t("Abonnement Claude ({modele})", { modele: s.claudeCodeModel || "opus" });
+  const geminiName = () => `Google (${lastGeminiModel || t("gratuit")})`;
   if (s.provider === "ollama") return { data: await ollamaJson<T>(req), provider: ollamaName };
 
   type Step = { name: () => string; available: () => boolean | Promise<boolean>; run: () => Promise<T> };
@@ -262,12 +263,12 @@ export async function llmJson<T>(req: JsonRequest): Promise<{ data: T; provider:
         : req.tier === "heavy"
           ? [sub, gemini, local]
           : [gemini, local, sub];
-    let lastErr: unknown = new LlmUnavailableError("Aucune IA disponible : ajoute une clé Gemini, lance Ollama ou connecte Claude Code.");
+    let lastErr: unknown = new LlmUnavailableError(t("Aucune IA disponible : ajoute une clé Gemini, lance Ollama ou connecte Claude Code."));
     for (const [i, step] of chain.entries()) {
       if (!(await step.available())) continue;
       try {
         const data = await step.run();
-        return { data, provider: i === 0 ? step.name() : `${step.name()}, en relais` };
+        return { data, provider: i === 0 ? step.name() : t("{ia}, en relais", { ia: step.name() }) };
       } catch (e) {
         if (e instanceof OutputTooLongError) throw e;
         console.warn(`[IA] ${step.name()} indisponible, relais :`, describeError(e));
@@ -282,7 +283,7 @@ export async function llmJson<T>(req: JsonRequest): Promise<{ data: T; provider:
       return { data: await claudeCodeJson<T>(req), provider: ccName };
     } catch (e) {
       // Subscription limit reached or Claude Code unavailable: carry on locally when possible.
-      if (await ollamaReachable()) return { data: await ollamaJson<T>(req), provider: `${ollamaName}, en relais` };
+      if (await ollamaReachable()) return { data: await ollamaJson<T>(req), provider: t("{ia}, en relais", { ia: ollamaName }) };
       throw e;
     }
   }
@@ -304,32 +305,32 @@ export async function llmJson<T>(req: JsonRequest): Promise<{ data: T; provider:
     }
   }
   if (await ollamaReachable()) return { data: await ollamaJson<T>(req), provider: ollamaName };
-  if (claudeErr) throw new LlmUnavailableError(`Claude indisponible (${describeError(claudeErr)}) et Ollama ne tourne pas.`);
-  throw new LlmUnavailableError("Aucune IA disponible : installe Ollama, ou choisis ton abonnement Claude dans les réglages.");
+  if (claudeErr) throw new LlmUnavailableError(t("Claude indisponible ({raison}) et Ollama ne tourne pas.", { raison: describeError(claudeErr) }));
+  throw new LlmUnavailableError(t("Aucune IA disponible : installe Ollama, ou choisis ton abonnement Claude dans les réglages."));
 }
 
 export function describeError(e: unknown): string {
-  if (e instanceof Anthropic.AuthenticationError) return "clé API invalide";
-  if (e instanceof Anthropic.PermissionDeniedError) return "accès refusé";
-  if (e instanceof Anthropic.RateLimitError) return "trop de requêtes, réessaie dans un moment";
-  if (e instanceof Anthropic.BadRequestError) return `requête refusée : ${e.message}`;
-  if (e instanceof Anthropic.APIConnectionError) return "pas de connexion à l'API";
-  if (e instanceof Anthropic.APIError) return `erreur API ${e.status}`;
+  if (e instanceof Anthropic.AuthenticationError) return t("clé API invalide");
+  if (e instanceof Anthropic.PermissionDeniedError) return t("accès refusé");
+  if (e instanceof Anthropic.RateLimitError) return t("trop de requêtes, réessaie dans un moment");
+  if (e instanceof Anthropic.BadRequestError) return t("requête refusée : {raison}", { raison: e.message });
+  if (e instanceof Anthropic.APIConnectionError) return t("pas de connexion à l'API");
+  if (e instanceof Anthropic.APIError) return t("erreur API {code}", { code: e.status ?? "?" });
   if (e instanceof HttpError) {
-    if (e.status === 429) return "le service limite le nombre de requêtes, nouvel essai à la prochaine actualisation";
-    if (e.status >= 500) return `le service est momentanément indisponible (erreur ${e.status})`;
-    if (e.status === 403 || e.status === 401) return "accès refusé par le service";
-    return `le service a répondu avec l'erreur ${e.status}`;
+    if (e.status === 429) return t("le service limite le nombre de requêtes, nouvel essai à la prochaine actualisation");
+    if (e.status >= 500) return t("le service est momentanément indisponible (erreur {code})", { code: e.status });
+    if (e.status === 403 || e.status === 401) return t("accès refusé par le service");
+    return t("le service a répondu avec l'erreur {code}", { code: e.status });
   }
-  if (e instanceof Error && (e.name === "AbortError" || e.name === "TimeoutError")) return "le service n'a pas répondu à temps";
+  if (e instanceof Error && (e.name === "AbortError" || e.name === "TimeoutError")) return t("le service n'a pas répondu à temps");
   return e instanceof Error ? e.message : String(e);
 }
 
 export async function testAi(): Promise<{ ok: boolean; message: string }> {
   try {
     const { data, provider } = await llmJson<{ reply: string }>({
-      system: "Tu réponds en français, en une phrase courte.",
-      user: "Dis bonjour et confirme que tu es prêt à traduire des articles scientifiques.",
+      system: t("Tu réponds en français, en une phrase courte."),
+      user: t("Dis bonjour et confirme que tu es prêt à traduire des articles scientifiques."),
       schema: { type: "object", properties: { reply: { type: "string" } }, required: ["reply"], additionalProperties: false },
       maxTokens: 2000,
     });
