@@ -33,7 +33,7 @@ export async function claudeCodeJson<T>(req: JsonRequest): Promise<T> {
   const exe = findExecutable();
   if (!exe) throw new Error("Claude Code n'est pas installé sur ce PC.");
   // An empty working folder, no tools, no MCP servers, no settings: a plain text request.
-  const cwd = path.join(os.tmpdir(), "veille-claude-code");
+  const cwd = path.join(os.tmpdir(), "nukun-claude-code");
   fs.mkdirSync(cwd, { recursive: true });
   // A figure is handed over as a file Claude Code may read, and nothing else.
   let prompt = req.user;

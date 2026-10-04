@@ -1,7 +1,18 @@
 import { CheckCircle2, ExternalLink, FolderOpen, KeyRound, RefreshCw, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { AiProvider, AiStatus, Settings, SourceStatus, UsageStats } from "@shared/types";
-import { FIELD_GROUPS, FIELDS, LANGUAGES, SOURCES } from "@shared/types";
+import { SOURCES } from "@shared/types";
+import type { Interest } from "@shared/types";
+import { InterestsEditor, MIN_INTERESTS } from "../components/Interests";
+import { SectionNav } from "../components/SectionNav";
+
+const SECTIONS = [
+  { id: "s-ai", label: "Intelligence artificielle" },
+  { id: "s-interests", label: "Centres d'intérêt" },
+  { id: "s-sources", label: "Sources" },
+  { id: "s-tour", label: "Tutoriel" },
+  { id: "s-export", label: "Export" },
+];
 import { api } from "../api";
 import { useApp } from "../App";
 import { timeAgo } from "../util";
@@ -14,6 +25,7 @@ const MODELS = [
 
 export function SettingsView() {
   const { settings, reloadSettings, toast } = useApp();
+  const [draft, setDraft] = useState<{ interests: Interest[]; languages: Record<string, boolean> } | null>(null);
   const [key, setKey] = useState("");
   const [s2, setS2] = useState("");
   const [gem, setGem] = useState("");
@@ -70,9 +82,11 @@ export function SettingsView() {
         <span className="label">Réglages</span>
         <h1 className="display">Configuration</h1>
       </div>
+      <div className="settings-layout">
+      <SectionNav items={SECTIONS} />
       <div className="settings">
         {/* ---------------------------------------------------------------- AI */}
-        <section className="card section">
+        <section className="card section" id="s-ai">
           <h2 className="h2">Intelligence artificielle</h2>
           <p className="small muted" style={{ margin: 0 }}>
             Elle traduit les articles, prépare les titres en français, explique les passages difficiles et affine tes
@@ -269,73 +283,44 @@ export function SettingsView() {
           )}
         </section>
 
-        {/* ---------------------------------------------------------------- domains */}
-        <section className="card section" data-tour="domains">
-          <h2 className="h2">Disciplines et langues</h2>
+        {/* ---------------------------------------------------------------- interests */}
+        <section className="card section" id="s-interests" data-tour="domains">
+          <h2 className="h2">Centres d'intérêt</h2>
           <p className="small muted" style={{ marginTop: 6 }}>
-            Coche ce qui t'intéresse : chaque source n'est interrogée que pour les disciplines qu'elle couvre. Les 26 disciplines
-            sont celles d'OpenAlex.
+            Les sources ne sont interrogées que pour ces sujets, et les filtres du fil en découlent. L'algorithme part de là et
+            te propose peu à peu des sujets voisins.
           </p>
-          {FIELD_GROUPS.map((g) => {
-            const fields = FIELDS.filter((f) => f.group === g.id);
-            const allOn = fields.every((f) => settings.domains[f.id] !== false);
-            return (
-              <div key={g.id} className="field">
-                <div className="row" style={{ justifyContent: "space-between" }}>
-                  <label>{g.label}</label>
-                  <button
-                    className="btn sm ghost"
-                    onClick={() =>
-                      void save({ domains: { ...settings.domains, ...Object.fromEntries(fields.map((f) => [f.id, !allOn])) } })
-                    }
-                  >
-                    {allOn ? "Tout décocher" : "Tout cocher"}
-                  </button>
-                </div>
-                <div className="row wrap" style={{ gap: 6 }}>
-                  {fields.map((f) => {
-                    const on = settings.domains[f.id] !== false;
-                    return (
-                      <button
-                        key={f.id}
-                        className={`chip ${on ? "active" : ""}`}
-                        aria-pressed={on}
-                        onClick={() => void save({ domains: { ...settings.domains, [f.id]: !on } })}
-                      >
-                        {f.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-          <div className="field">
-            <label>Langues des articles</label>
-            <div className="row wrap" style={{ gap: 6 }}>
-              {LANGUAGES.map((l) => {
-                const on = settings.languages[l.id] !== false;
-                return (
-                  <button
-                    key={l.id}
-                    className={`chip ${on ? "active" : ""}`}
-                    aria-pressed={on}
-                    onClick={() => void save({ languages: { ...settings.languages, [l.id]: !on } })}
-                  >
-                    {l.label}
-                  </button>
-                );
-              })}
+          <InterestsEditor
+            interests={draft?.interests ?? settings.interests}
+            languages={draft?.languages ?? settings.languages}
+            onChange={(interests, languages) => setDraft({ interests, languages })}
+          />
+          {draft && (
+            <div className="row" style={{ gap: 8 }}>
+              <button
+                className="btn primary"
+                disabled={draft.interests.length < MIN_INTERESTS}
+                onClick={async () => {
+                  await api.setInterests(draft.interests, draft.languages);
+                  setDraft(null);
+                  await reloadSettings();
+                  toast("Centres d'intérêt enregistrés : le fil se met à jour.");
+                }}
+              >
+                Enregistrer
+              </button>
+              <button className="btn ghost" onClick={() => setDraft(null)}>
+                Annuler
+              </button>
+              {draft.interests.length < MIN_INTERESTS && (
+                <span className="small muted">Garde au moins {MIN_INTERESTS} sujets.</span>
+              )}
             </div>
-            <span className="small muted">
-              Tous les articles sont traduits en français ; ceux déjà en français sont lus tels quels. Sources par langue : HAL pour le
-              français, SciELO pour l'espagnol et le portugais, OpenAlex pour les autres.
-            </span>
-          </div>
+          )}
         </section>
 
         {/* ---------------------------------------------------------------- sources */}
-        <section className="card section" data-tour="sources">
+        <section className="card section" id="s-sources" data-tour="sources">
           <div className="row">
             <h2 className="h2 grow">Sources scientifiques</h2>
             <select className="select" style={{ width: "auto" }} value={settings.refreshHours} onChange={(e) => void save({ refreshHours: Number(e.target.value) })}>
@@ -389,7 +374,7 @@ export function SettingsView() {
         </section>
 
         {/* ---------------------------------------------------------------- tutorial */}
-        <section className="card section">
+        <section className="card section" id="s-tour">
           <div className="row">
             <div className="grow">
               <h2 className="h2">Tutoriel</h2>
@@ -404,7 +389,7 @@ export function SettingsView() {
         </section>
 
         {/* ---------------------------------------------------------------- export */}
-        <section className="card section">
+        <section className="card section" id="s-export">
           <h2 className="h2">Export vers le portfolio</h2>
           <p className="small muted" style={{ marginTop: 6 }}>
             Tes articles sont exportés en .mdx, au même format que les pages de ton portfolio (titre, date, résumé, image).
@@ -422,6 +407,7 @@ export function SettingsView() {
             </button>
           </div>
         </section>
+      </div>
       </div>
     </div>
   );

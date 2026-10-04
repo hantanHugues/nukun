@@ -3,6 +3,7 @@ import type { DomainId, NewsTopic } from "@shared/types";
 import { getText, stripTags } from "../http";
 import { classifyText, detectLanguage } from "./classify";
 import type { RawArticle } from "./index";
+import { NEWS_SOURCE_TAGS } from "@shared/interests";
 
 /**
  * News from official organisations and official developer blogs, read from their
@@ -100,7 +101,7 @@ export async function news(source: keyof typeof NEWS_FEEDS): Promise<RawArticle[
   const out: RawArticle[] = [];
   for (const f of NEWS_FEEDS[source]) {
     try {
-      for (const a of await readFeed(f)) out.push({ ...a, source });
+      for (const a of await readFeed(f)) out.push({ ...a, source, newsTags: NEWS_SOURCE_TAGS[source] });
     } catch {
       /* one blog down does not stop the others */
     }

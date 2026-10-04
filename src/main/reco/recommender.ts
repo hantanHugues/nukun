@@ -23,6 +23,8 @@ interface Profile {
   terms: Record<string, number>;
   domains: Record<DomainId, DomainStat>;
   aiInterests: AiInterest[];
+  /** Keywords of the interests chosen at first launch: the starting point of the feed. */
+  seeds?: string[];
   signals: number;
   signalsSinceAnalysis: number;
   lastDecay: string;
@@ -71,6 +73,12 @@ export function tokenize(text: string): string[] {
   const out = [...words];
   for (let i = 0; i + 1 < words.length; i++) out.push(`${words[i]} ${words[i + 1]}`);
   return out;
+}
+
+/** Which interest an article belongs to, and how much room each interest gets. */
+export interface Balance {
+  of: (a: Article) => string | undefined;
+  weights: Map<string, number>;
 }
 
 export class Recommender {
@@ -198,7 +206,41 @@ export class Recommender {
     this.doc.save();
   }
 
-  rank(candidates: Article[], limit: number, enabledDomains: Record<DomainId, boolean>): FeedItem[] {
+  /**
+   * Start from the interests the reader chose: their keywords weigh in the profile and
+   * their disciplines get a small head start. Reading then takes over (both fade).
+   */
+  seedInterests(keywords: string[], fields: DomainId[]) {
+    const p = this.profile;
+    for (const k of p.seeds ?? []) for (const t of tokenize(k)) p.terms[t] = (p.terms[t] ?? 0) - 1;
+    p.seeds = keywords;
+    for (const k of keywords) for (const t of tokenize(k)) p.terms[t] = (p.terms[t] ?? 0) + 1;
+    for (const f of fields) {
+      const d = (p.domains[f] ??= { w: 0, imp: 0, pos: 0 });
+      d.w = Math.max(d.w, 1);
+    }
+    this.doc.save();
+  }
+
+  /** Disciplines outside the chosen interests that the reader keeps reading. */
+  adopted(outside: Set<DomainId>): DomainId[] {
+    return Object.entries(this.profile.domains)
+      .filter(([id, d]) => outside.has(id) && d.pos >= 3 && d.w > 1)
+      .sort((a, b) => b[1].w - a[1].w)
+      .map(([id]) => id);
+  }
+
+  /**
+   * `explore`: disciplines next to the reader's interests. Their articles only come
+   * as discoveries (one slot in seven), until the reader shows they like them.
+   */
+  rank(
+    candidates: Article[],
+    limit: number,
+    enabledDomains: Record<DomainId, boolean>,
+    explore: Set<DomainId> = new Set(),
+    balance?: Balance,
+  ): FeedItem[] {
     const p = this.profile;
     const now = Date.now();
     const totalImp = Object.values(p.domains).reduce((s, d) => s + d.imp, 0) + 1;
@@ -234,9 +276,13 @@ export class Recommender {
       return { ...s, score };
     });
     items.sort((x, y) => y.score - x.score);
+    // Discoveries wait for their slot, unless the reader already likes that discipline.
+    const isDiscovery = (x: (typeof items)[number]) => explore.has(x.a.domain) && x.ds.pos < 3;
+    const discoveries = items.filter(isDiscovery);
+    const main = items.filter((x) => !isDiscovery(x));
 
     // Diversify (maximal marginal relevance) over the best candidates.
-    const pool = items.slice(0, Math.max(limit * 4, 80));
+    const pool = main.slice(0, Math.max(limit * 4, 80));
     const chosen: typeof pool = [];
     const cos = (x: Map<string, number>, y: Map<string, number>) => {
       let s = 0;
@@ -245,6 +291,17 @@ export class Recommender {
         if (w) s += v * w;
       }
       return s;
+    };
+    // Each interest gets its share of the feed (more for those read more), so an
+    // interest with many articles cannot hide the others.
+    const shown = new Map<string, number>();
+    const totalW = balance ? [...balance.weights.values()].reduce((s, w) => s + w, 0) || 1 : 1;
+    const overshare = (a: Article) => {
+      if (!balance) return 0;
+      const g = balance.of(a);
+      if (!g) return 0;
+      const target = (balance.weights.get(g) ?? 1) / totalW;
+      return Math.max(0, ((shown.get(g) ?? 0) + 1) / (chosen.length + 1) - target);
     };
     while (chosen.length < limit && pool.length) {
       let bestI = 0;
@@ -255,17 +312,20 @@ export class Recommender {
         const last2 = chosen.slice(-2);
         const sameSourceRun = last2.length === 2 && last2.every((x) => x.a.source === c.a.source) ? 0.15 : 0;
         const sameDomainRun = last2.length === 2 && last2.every((x) => x.a.domain === c.a.domain) ? 0.12 : 0;
-        const mmr = 0.75 * c.score - 0.25 * redundancy - sameSourceRun - sameDomainRun;
+        const mmr = 0.75 * c.score - 0.25 * redundancy - sameSourceRun - sameDomainRun - overshare(c.a);
         if (mmr > best) {
           best = mmr;
           bestI = i;
         }
       }
-      chosen.push(pool.splice(bestI, 1)[0]);
+      const pick = pool.splice(bestI, 1)[0];
+      const g = balance?.of(pick.a);
+      if (g) shown.set(g, (shown.get(g) ?? 0) + 1);
+      chosen.push(pick);
     }
 
     // One slot in seven goes to discovery: a fresh article from a domain read less often.
-    const rest = items.filter((x) => !chosen.includes(x));
+    const rest = main.filter((x) => !chosen.includes(x));
     const leastSeen = [...FIELDS]
       .filter((d) => enabledDomains[d.id] !== false)
       .sort((x, y) => (p.domains[x.id]?.pos ?? 0) - (p.domains[y.id]?.pos ?? 0))
@@ -288,7 +348,11 @@ export class Recommender {
           break;
         }
       }
-      if (i > 0 && i % 7 === 0) {
+      if (i > 0 && i % 7 === 0 && discoveries.length) {
+        // Nearby disciplines first: the feed widens step by step, like a social feed.
+        const pick = discoveries.shift()!;
+        result.push({ article: pick.a, score: pick.score, reasons: ["Découverte : proche de ce que tu aimes"], discovery: true });
+      } else if (i > 0 && i % 7 === 0) {
         const dom = leastSeen[di++ % Math.max(1, leastSeen.length)];
         const pickIdx = rest.findIndex((x) => x.a.domain === dom && x.fresh > 0.3);
         if (pickIdx >= 0) {
@@ -309,13 +373,15 @@ export class Recommender {
       .map(([t]) => t)
       .filter((t, i, arr) => !arr.some((o, j) => j < i && (o.includes(t) || t.includes(o))))
       .slice(0, 3);
-    if (terms.length && c.contrib.length) r.push(`Proche de tes lectures : ${terms.join(", ")}`);
+    // Before any reading, the profile only holds the interests chosen at first launch.
+    const what = this.profile.signals < 5 ? "Lié à tes centres d'intérêt" : "Proche de tes lectures";
+    if (terms.length && c.contrib.length) r.push(`${what} : ${terms.join(", ")}`);
     if (c.ds.pos >= 3) r.push(`Tu lis souvent en ${fieldLabel(c.a.domain)}`);
     if (c.fresh > 0.8) r.push("Publié il y a moins de 2 jours");
     return r;
   }
 
-  view(): InterestProfileView {
+  view(): Omit<InterestProfileView, "interests" | "explore"> {
     const p = this.profile;
     return {
       topTerms: Object.entries(p.terms)

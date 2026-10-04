@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useLayoutEffect, use
 import type { RefreshProgress, Settings } from "@shared/types";
 import { api } from "./api";
 import iconUrl from "./assets/icon.png";
+import { Welcome } from "./components/Interests";
 import { Tour } from "./components/Tour";
 import { Feed } from "./views/Feed";
 import { Library } from "./views/Library";
@@ -96,6 +97,26 @@ export function App() {
   ];
   const active = route.view === "reader" ? route.from.view : route.view;
 
+  // First launch: the interests come first, before any feed is fetched.
+  if (settings && !settings.interestsChosen) {
+    return (
+      <AppCtx.Provider value={{ go, view: route.view, toast, settings, reloadSettings, refresh }}>
+        <div className="app">
+          <div className="dots" />
+          <header className="titlebar">
+            <div className="brand">
+              <img src={iconUrl} alt="" />
+              <strong>Nùkún</strong>
+            </div>
+          </header>
+          <main className="main">
+            <Welcome onDone={() => void reloadSettings()} />
+          </main>
+        </div>
+      </AppCtx.Provider>
+    );
+  }
+
   return (
     <AppCtx.Provider value={{ go, view: route.view, toast, settings, reloadSettings, refresh }}>
       <div className="app">
@@ -103,7 +124,7 @@ export function App() {
         <header className="titlebar">
           <div className="brand">
             <img src={iconUrl} alt="" />
-            <strong>Veille</strong>
+            <strong>Nùkún</strong>
             <span>· {now.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}</span>
           </div>
           <nav className="nav" aria-label="Navigation principale" data-tour="nav">

@@ -1,6 +1,6 @@
 export const BROWSER_UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36";
-const API_UA = "VeilleScientifique/1.0 (application de lecture personnelle)";
+const API_UA = "Nukun/1.0 (application de lecture personnelle)";
 
 interface GetOpts {
   timeoutMs?: number;

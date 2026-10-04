@@ -37,16 +37,16 @@ for (const run of runs) {
         : { provider };
   const started = Date.now();
   const result = await evaluate(`(async () => {
-    await veille.saveSettings(${JSON.stringify(patch)});
+    await nukun.saveSettings(${JSON.stringify(patch)});
     const id = ${JSON.stringify(articleId)};
     const done = new Promise((resolve) => {
-      const off = veille.on("translation-progress", (p) => {
+      const off = nukun.on("translation-progress", (p) => {
         if (p.id === id && p.finished) { off(); resolve(p); }
       });
     });
-    await veille.translate(id, true);
+    await nukun.translate(id, true);
     const p = await done;
-    const c = await veille.loadContent(id);
+    const c = await nukun.loadContent(id);
     return { error: p.error ?? null, content: c };
   })()`);
   const seconds = Math.round((Date.now() - started) / 1000);

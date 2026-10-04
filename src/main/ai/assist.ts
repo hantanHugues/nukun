@@ -33,6 +33,33 @@ Pour chaque article :
   return new Map(data.items.map((i) => [i.id, { title: i.title_fr, teaser: i.teaser_fr }]));
 }
 
+/** French names of OpenAlex research topics (short labels shown in the interests search). */
+export async function translateTopicNames(topics: { id: string; name: string }[]): Promise<Map<string, string>> {
+  const { data } = await llmJson<{ items: { id: string; fr: string }[] }>({
+    system: `Traduis en français ces noms de thèmes de recherche, de façon courte et naturelle, comme un libellé de catégorie. Garde en anglais les termes techniques que les spécialistes utilisent en anglais (IoT, machine learning…).`,
+    user: JSON.stringify(topics),
+    schema: {
+      type: "object",
+      properties: {
+        items: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: { id: { type: "string" }, fr: { type: "string" } },
+            required: ["id", "fr"],
+            additionalProperties: false,
+          },
+        },
+      },
+      required: ["items"],
+      additionalProperties: false,
+    },
+    maxTokens: 2000,
+    tier: "light",
+  });
+  return new Map(data.items.map((i) => [i.id, i.fr]));
+}
+
 export async function explainPassage(a: Article, passage: string): Promise<{ text: string; provider: string }> {
   const { data, provider } = await llmJson<{ explanation: string }>({
     system: `Tu aides un lecteur francophone à comprendre un article scientifique. Il a sélectionné un passage qu'il ne comprend pas.

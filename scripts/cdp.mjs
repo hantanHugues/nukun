@@ -2,7 +2,7 @@
 import fs from "node:fs";
 import WebSocket from "ws";
 const [, , cmd, arg, out] = process.argv;
-const targets = await (await fetch("http://127.0.0.1:9333/json")).json();
+const targets = await (await fetch(`http://127.0.0.1:${process.env.CDP_PORT ?? 9555}/json`)).json();
 const page = targets.find((t) => t.type === "page");
 const ws = new WebSocket(page.webSocketDebuggerUrl, { perMessageDeflate: false });
 let id = 0;

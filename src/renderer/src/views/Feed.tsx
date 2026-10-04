@@ -1,20 +1,14 @@
-import { RefreshCw } from "lucide-react";
+import { Plus, RefreshCw, SlidersHorizontal, X } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { ArticleKind, DomainId, FeedItem } from "@shared/types";
-import { FIELD_GROUPS, FIELDS, fieldLabel } from "@shared/types";
+import type { ArticleKind, FeedItem, Interest } from "@shared/types";
 import { api } from "../api";
 import { useApp } from "../App";
 import { ArticleCard, CardSkeleton } from "../components/ArticleCard";
 
-/** Per feed: "all", a field id, "g:<group>" (big domain) or "t:<topic>" (news). */
+/** Per feed: "all" or "i:<interest>". */
 const lastDomain: Record<ArticleKind, string> = { paper: "all", news: "all" };
 /** Where the reader was in each feed, to come back to the same place after reading. */
 const savedPos: Record<ArticleKind, { domain: string; count: number; scroll: number } | null> = { paper: null, news: null };
-
-const NEWS_TOPICS = [
-  { id: "t:science", label: "Science" },
-  { id: "t:tech", label: "Outils de dev" },
-];
 
 const PAGE = 30;
 
@@ -27,9 +21,11 @@ function greeting() {
 }
 
 export function Feed({ kind }: { kind: ArticleKind }) {
-  const { go, refresh, settings, toast } = useApp();
-  const [domain, setDomain] = useState<string>(lastDomain[kind]);
-  const [counts, setCounts] = useState<Record<DomainId, number>>({});
+  const { go, refresh, settings, toast, reloadSettings } = useApp();
+  const [suggested, setSuggested] = useState<Interest | null>(null);
+  // Filters from before the interests ("g:physical"…) start again from "all".
+  const [domain, setDomain] = useState<string>(/^(all|i:)/.test(lastDomain[kind]) ? lastDomain[kind] : "all");
+  const [counts, setCounts] = useState<Record<string, number>>({});
   const [items, setItems] = useState<FeedItem[] | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [end, setEnd] = useState(false);
@@ -69,13 +65,14 @@ export function Feed({ kind }: { kind: ArticleKind }) {
       const saved = savedPos[kind];
       const back = restore && saved && saved.domain === domain && saved.count > 0 ? saved : null;
       const limit = back ? back.count : PAGE;
-      const [page, c] = await Promise.all([api.getFeed({ domain, offset: 0, limit, fresh: !back, kind }), api.fieldCounts()]);
+      const [page, c] = await Promise.all([api.getFeed({ domain, offset: 0, limit, fresh: !back, kind }), api.fieldCounts(kind)]);
       fetched.current = page.length;
       setCounts(c);
       setItems(visible(page));
       setEnd(page.length < limit);
       setNewCount(0);
       askTeasers(page.slice(0, PAGE));
+      if (kind === "paper") setSuggested(await api.suggestion());
       if (back) pendingScroll.current = back.scroll;
     },
     [domain],
@@ -98,8 +95,12 @@ export function Feed({ kind }: { kind: ArticleKind }) {
     // Titles translated or articles updated: refresh the cards in place, same order.
     const offUpdate = api.on("feed-updated", async () => {
       if (!fetched.current) return;
-      const page = await api.getFeed({ domain, offset: 0, limit: fetched.current, fresh: false, kind });
+      const [page, c] = await Promise.all([
+        api.getFeed({ domain, offset: 0, limit: fetched.current, fresh: false, kind }),
+        api.fieldCounts(kind),
+      ]);
       setItems(visible(page));
+      setCounts(c);
     });
     // A refresh found new articles: offer them without moving the reader.
     const offRefresh = api.on("refresh-progress", (p) => {
@@ -137,15 +138,21 @@ export function Feed({ kind }: { kind: ArticleKind }) {
     toast("Compris : l'algorithme t'en montrera moins comme ça.");
   };
 
+  const adopt = async (i: Interest) => {
+    setSuggested(null);
+    await api.setInterests([...(settings?.interests ?? []), i], settings?.languages ?? {});
+    await reloadSettings();
+    toast(`« ${i.label} » ajouté à tes centres d'intérêt.`);
+  };
+  const decline = (i: Interest) => {
+    setSuggested(null);
+    void api.dismissSuggestion(i.id);
+  };
+
   const open = (id: string) => go({ view: "reader", articleId: id, from: { view: kind === "news" ? "news" : "feed" } });
   const running = refresh?.running;
-  // The disciplines with the most articles get a chip; the others are in a list.
-  const ranked = FIELDS.filter((f) => settings?.domains[f.id] !== false && counts[f.id]).sort(
-    (a, b) => (counts[b.id] ?? 0) - (counts[a.id] ?? 0),
-  );
-  const topFields = ranked.slice(0, 6);
-  const otherFields = ranked.slice(6);
-  const groups = FIELD_GROUPS.filter((g) => ranked.some((f) => f.group === g.id));
+  // One chip per interest that has something to read in this feed.
+  const chips = (settings?.interests ?? []).filter((i) => counts[i.id] || domain === `i:${i.id}`);
 
   return (
     <div className="page">
@@ -154,7 +161,7 @@ export function Feed({ kind }: { kind: ArticleKind }) {
           <span className="label">{kind === "news" ? "Actus" : "Ton fil scientifique"}</span>
           <h1 className="display">
             {kind === "news"
-              ? "Les actualités des organismes scientifiques et des outils de développement."
+              ? "Les actualités officielles liées à ce qui t'intéresse."
               : `${greeting()} ce que la recherche a publié pour toi.`}
           </h1>
         </div>
@@ -177,42 +184,32 @@ export function Feed({ kind }: { kind: ArticleKind }) {
         </button>
       )}
 
+      {suggested && (
+        <div className="suggest-banner">
+          <span>
+            Tu lis souvent des articles proches de <strong>{suggested.label}</strong>. L'ajouter à tes centres d'intérêt ?
+          </span>
+          <button className="btn sm primary" onClick={() => void adopt(suggested)}>
+            <Plus size={14} /> Ajouter
+          </button>
+          <button className="btn sm ghost icon" aria-label="Non merci" title="Non merci" onClick={() => decline(suggested)}>
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
       <div className="feed-filters" data-tour={kind === "paper" ? "filters" : undefined}>
         <button className={`chip ${domain === "all" ? "active" : ""}`} onClick={() => setDomain("all")}>
           Tout
         </button>
-        {kind === "news" &&
-          NEWS_TOPICS.map((t) => (
-            <button key={t.id} className={`chip ${domain === t.id ? "active" : ""}`} onClick={() => setDomain(t.id)}>
-              {t.label}
-            </button>
-          ))}
-        {kind === "paper" && groups.map((g) => (
-          <button key={g.id} className={`chip ${domain === `g:${g.id}` ? "active" : ""}`} onClick={() => setDomain(`g:${g.id}`)}>
-            {g.label}
+        {chips.map((i) => (
+          <button key={i.id} className={`chip ${domain === `i:${i.id}` ? "active" : ""}`} onClick={() => setDomain(`i:${i.id}`)}>
+            {i.label}
           </button>
         ))}
-        {kind === "paper" && <span className="filters-sep" />}
-        {kind === "paper" && topFields.map((f) => (
-          <button key={f.id} className={`chip ${domain === f.id ? "active" : ""}`} onClick={() => setDomain(f.id)}>
-            {f.label}
-          </button>
-        ))}
-        {kind === "paper" && otherFields.length > 0 && (
-          <select
-            className={`chip select-chip ${otherFields.some((f) => f.id === domain) ? "active" : ""}`}
-            value={otherFields.some((f) => f.id === domain) ? domain : ""}
-            onChange={(e) => e.target.value && setDomain(e.target.value)}
-            aria-label="Autres disciplines"
-          >
-            <option value="">Autres disciplines…</option>
-            {otherFields.map((f) => (
-              <option key={f.id} value={f.id}>
-                {fieldLabel(f.id)} ({counts[f.id]})
-              </option>
-            ))}
-          </select>
-        )}
+        <button className="chip ghost-chip" onClick={() => go({ view: "settings" })} title="Modifier mes centres d'intérêt">
+          <SlidersHorizontal size={13} /> Modifier
+        </button>
       </div>
 
       {items === null ? (
@@ -229,7 +226,11 @@ export function Feed({ kind }: { kind: ArticleKind }) {
             </div>
           ) : (
             <>
-              <p>Aucun article à afficher pour l'instant.</p>
+              <p>
+                {kind === "news" && !chips.length
+                  ? "Aucune source d'actualité officielle ne couvre encore tes centres d'intérêt : les articles de recherche sont dans l'onglet Articles."
+                  : "Aucun article à afficher pour l'instant."}
+              </p>
               <button className="btn" onClick={() => void api.refresh()}>
                 <RefreshCw size={15} /> Chercher de nouveaux articles
               </button>

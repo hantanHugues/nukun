@@ -545,7 +545,7 @@ export function Reader({ id, back }: { id: string; back: Route }) {
                 ))}
               </div>
             ) : pdfMode ? (
-              <iframe className="pdf-frame" src={`veille://pdf/${encodeURIComponent(content.pdfUrl!)}`} title="PDF original" />
+              <iframe className="pdf-frame" src={`nukun://pdf/${encodeURIComponent(content.pdfUrl!)}`} title="PDF original" />
             ) : (
               content.blocks.map(renderBlock)
             )}

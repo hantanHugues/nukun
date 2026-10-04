@@ -1,5 +1,5 @@
 import { XMLParser } from "fast-xml-parser";
-import type { Article, DomainId, SourceId } from "@shared/types";
+import type { Article, DomainId, Interest, SourceId } from "@shared/types";
 import { getJson, getText, isoDaysAgo, stripTags } from "../http";
 import { classifyText } from "./classify";
 import { news } from "./news";
@@ -108,10 +108,25 @@ function epmcToArticle(r: any, domain: DomainId): RawArticle | null {
   };
 }
 
+/** Disciplines Europe PMC covers well: life sciences, health, psychology. */
+const EPMC_FIELDS = new Set(["11", "13", "24", "27", "28", "29", "30", "32", "34", "35", "36"]);
+
+/** One query per interest, from its keywords; the fixed list before interests existed. */
+function epmcQueries(o: FetchOptions): { domain: DomainId; q: string }[] {
+  if (!o.interests?.length) return EPMC_QUERIES.filter((x) => o.fields.has(x.domain));
+  return o.interests
+    .filter((i) => !i.custom)
+    .flatMap((i) => {
+      const domain = i.fields.find((f) => EPMC_FIELDS.has(f));
+      if (!domain) return [];
+      return [{ domain, q: `(${i.keywords.map((k) => `TITLE:"${k}"`).join(" OR ")})` }];
+    });
+}
+
 async function europepmc(o: FetchOptions): Promise<RawArticle[]> {
   const out: RawArticle[] = [];
   const from = isoDaysAgo(10);
-  for (const { domain, q } of EPMC_QUERIES.filter((x) => o.fields.has(x.domain))) {
+  for (const { domain, q } of epmcQueries(o)) {
     const query = encodeURIComponent(`${q} AND OPEN_ACCESS:y AND HAS_FT:y AND FIRST_PDATE:[${from} TO 2100-01-01]`);
     const j = await getJson(
       `https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=${query}&format=json&pageSize=40&sort=P_PDATE_D%20desc&resultType=core`,
@@ -323,6 +338,7 @@ async function nasa(): Promise<RawArticle[]> {
       id: `url:${link}`,
       source: "nasa" as const,
       kind: "news" as const,
+      newsTags: ["space"],
       topic: "science" as const,
       domain: "31",
       title: stripTags(text(it.title)),
@@ -435,7 +451,9 @@ function openalexToArticle(w: any, fallbackField: DomainId): RawArticle | null {
   else if (doi) fullText = { kind: "doi-lookup", doi };
   if (!fullText) return null;
   const field = String(w.primary_topic?.field?.id ?? "").split("/").pop() || fallbackField;
+  const topicId = String(w.primary_topic?.id ?? "").split("/").pop() || undefined;
   return {
+    topicId,
     id: doi ? `doi:${doi.toLowerCase()}` : `openalex:${w.id}`,
     source: "openalex",
     domain: field,
@@ -475,6 +493,26 @@ async function openalex(o: FetchOptions): Promise<RawArticle[]> {
       if (a && looksLikeTitle(a.title)) out.push(a);
     }
   }
+  // Topics followed directly (free search): the most recent open papers of each.
+  for (const topic of o.topics ?? []) {
+    const j = await getJson(
+      `https://api.openalex.org/works?filter=from_publication_date:${isoDaysAgo(90)},is_oa:true,has_abstract:true,primary_topic.id:${topic},type:article&sort=publication_date:desc&per-page=15&select=${OPENALEX_SELECT}`,
+    );
+    for (const w of j.results ?? []) {
+      const a = openalexToArticle(w, "0");
+      if (a && looksLikeTitle(a.title)) out.push(a);
+    }
+  }
+  // Discoveries: a handful of papers from disciplines next to the reader's interests.
+  for (const field of o.explore ?? []) {
+    const j = await getJson(
+      `https://api.openalex.org/works?filter=from_publication_date:${from},is_oa:true,has_abstract:true,primary_topic.field.id:fields/${field},type:article,language:en&sort=cited_by_count:desc&per-page=6&select=${OPENALEX_SELECT}`,
+    );
+    for (const w of j.results ?? []) {
+      const a = openalexToArticle(w, field);
+      if (a && looksLikeTitle(a.title)) out.push(a);
+    }
+  }
   // Other languages: only papers whose PDF is reachable, so they can be read in full.
   // French, Spanish and Portuguese come from HAL and SciELO, which are richer.
   const others = [...o.languages].filter((l) => !["en", "fr", "es", "pt"].includes(l));
@@ -498,9 +536,34 @@ async function openalex(o: FetchOptions): Promise<RawArticle[]> {
   return out;
 }
 
+/**
+ * Research topics matching free text in any language: the topics of the recent papers
+ * that match it (no AI needed: "couture" → Fashion and Cultural Textiles).
+ */
+export async function searchTopics(q: string): Promise<{ id: string; name: string; field: DomainId; count: number }[]> {
+  const j = await getJson(
+    `https://api.openalex.org/works?search=${encodeURIComponent(q)}&filter=from_publication_date:${isoDaysAgo(3 * 365)}&group_by=primary_topic.id&per-page=8`,
+  );
+  const groups: { key: string; key_display_name: string; count: number }[] = (j.group_by ?? []).slice(0, 6);
+  // The field of each topic, in one request.
+  const ids = groups.map((g) => g.key.split("/").pop()).filter(Boolean);
+  const t = ids.length
+    ? await getJson(`https://api.openalex.org/topics?filter=id:${ids.join("|")}&select=id,field&per-page=10`)
+    : { results: [] };
+  const fieldOf = new Map<string, string>(
+    (t.results ?? []).map((x: any) => [String(x.id).split("/").pop(), String(x.field?.id ?? "").split("/").pop()]),
+  );
+  return groups.map((g) => {
+    const id = g.key.split("/").pop()!;
+    return { id, name: g.key_display_name, field: fieldOf.get(id) ?? "0", count: g.count };
+  });
+}
+
 /** Field and language of known DOIs (50 per request), to classify articles from any source. */
-export async function openalexClassify(dois: string[]): Promise<Map<string, { field?: DomainId; lang?: string }>> {
-  const res = new Map<string, { field?: DomainId; lang?: string }>();
+export async function openalexClassify(
+  dois: string[],
+): Promise<Map<string, { field?: DomainId; lang?: string; topicId?: string }>> {
+  const res = new Map<string, { field?: DomainId; lang?: string; topicId?: string }>();
   for (let i = 0; i < dois.length; i += 50) {
     const chunk = dois.slice(i, i + 50);
     const j = await getJson(
@@ -509,7 +572,8 @@ export async function openalexClassify(dois: string[]): Promise<Map<string, { fi
     for (const w of j.results ?? []) {
       const doi = String(w.doi ?? "").replace("https://doi.org/", "").toLowerCase();
       const field = String(w.primary_topic?.field?.id ?? "").split("/").pop() || undefined;
-      res.set(doi, { field, lang: w.language ?? undefined });
+      const topicId = String(w.primary_topic?.id ?? "").split("/").pop() || undefined;
+      res.set(doi, { field, lang: w.language ?? undefined, topicId });
     }
   }
   return res;
@@ -756,6 +820,12 @@ export interface FetchOptions {
   languages: Set<string>;
   /** Ids already in the library, so sources can skip what was fetched before. */
   known: Set<string>;
+  /** The reader's interests (Europe PMC builds its queries from their keywords). */
+  interests?: Interest[];
+  /** OpenAlex topics followed directly (interests found with the free search). */
+  topics?: string[];
+  /** A few disciplines outside the reader's interests, for discoveries. */
+  explore?: Set<DomainId>;
 }
 
 export const FETCHERS: Record<SourceId, (o: FetchOptions) => Promise<RawArticle[]>> = {

@@ -1,22 +1,26 @@
-# Veille Scientifique
+# Nùkún
 
-Application de bureau (Windows) pour lire des articles scientifiques en libre accès, traduits en français, avec un fil de recommandations qui apprend de tes lectures.
+*Nùkún* veut dire « l'œil » en fongbè. Application de bureau (Windows) pour suivre la recherche et l'actualité officielle sur les sujets qui t'intéressent, quels qu'ils soient : articles en libre accès traduits en français, et un fil de recommandations qui part de tes centres d'intérêt puis apprend de tes lectures.
 
 ![Le fil d'articles recommandés](docs/screenshots/fil.png)
 
-| Lecture traduite et discussion avec l'IA | Réglages de l'IA |
+| Premier lancement : tes centres d'intérêt | Lecture traduite et discussion avec l'IA |
 |---|---|
-| ![Un article traduit en français, avec la discussion ouverte](docs/screenshots/lecteur.png) | ![Les modes d'IA et la clé Google gratuite](docs/screenshots/reglages.png) |
+| ![Le choix des centres d'intérêt, avec la recherche libre « couture »](docs/screenshots/accueil.png) | ![Un article traduit en français, avec la discussion ouverte](docs/screenshots/lecteur.png) |
+
+![Les réglages, avec la barre de navigation à gauche](docs/screenshots/reglages.png)
 
 ## Installer
 
-Lance `release/Veille-Scientifique-Setup-1.0.0.exe`. L'installateur crée un raccourci sur le Bureau et dans le menu Démarrer.
+Lance `release/Nukun-Setup-1.0.0.exe`. L'installateur crée un raccourci « Nùkún » sur le Bureau et dans le menu Démarrer (la recherche Windows le trouve aussi en tapant « nukun », sans accents).
+
+Si l'ancienne version « Veille Scientifique » est installée, désinstalle-la : Nùkún reprend automatiquement ses articles, traductions et préférences au premier lancement.
 
 ## Sources
 
 arXiv, Europe PMC (PubMed Central), bioRxiv, medRxiv, PLOS, eLife, NASA Science, Nature Communications et Scientific Reports, Science Advances, OpenAlex, Semantic Scholar, PsyArXiv, HAL et SciELO. Les articles sont trouvés par les API officielles ; le texte intégral (page web, XML ou PDF en libre accès) est ensuite téléchargé sur le site de l'éditeur. Seuls les articles lisibles gratuitement en entier apparaissent dans le fil.
 
-**26 disciplines** (classification OpenAlex : informatique, médecine, économie, histoire, chimie…) et **8 langues** (anglais, français, espagnol, portugais, allemand, russe, japonais, chinois), à cocher dans les Réglages. Chaque source n'est interrogée que pour les disciplines qu'elle couvre, et chaque article est classé par OpenAlex à partir de son DOI.
+**Centres d'intérêt.** Au premier lancement, avant tout chargement, tu choisis au moins 3 sujets parmi 27 (espace, IA, santé, économie, histoire, sport…) ou tu cherches n'importe quoi d'autre (« couture », « football », « MQTT », dans n'importe quelle langue) : l'app propose alors les sujets de recherche OpenAlex correspondants. Seules les sources et disciplines liées à tes choix sont interrogées, les filtres des deux fils sont tes centres d'intérêt, et les articles sont classés par OpenAlex à partir de leur DOI. Articles en **8 langues** (anglais, français, espagnol, portugais, allemand, russe, japonais, chinois).
 
 ## IA
 
@@ -31,10 +35,10 @@ Traduction « comme un navigateur » : seuls les passages affichés à l'écran 
 
 ## Utilisation
 
-Au premier lancement, une **visite guidée** met en lumière chaque zone de l'app (fil, lecteur, réglages de l'IA, domaines, sources). Elle se relance depuis les Réglages.
+Au premier lancement : le choix des centres d'intérêt, puis une **visite guidée** qui met en lumière chaque zone de l'app (fil, lecteur, réglages de l'IA, centres d'intérêt, sources). Elle se relance depuis les Réglages.
 
-- **Articles** : les publications de chercheurs. Le fil recommandé, qui se charge à l'infini en descendant. Filtres par grand domaine et par discipline. Ouvrir, lire jusqu'au bout, aimer, sauvegarder ou écarter un article ajuste les recommandations. Une place régulière revient aux articles des autres langues.
-- **Actus** : les actualités courtes, dans un fil séparé avec deux filtres. **Science** : NASA, ESA, CNRS, Inserm. **Outils de dev** : blogs officiels de GitHub, VS Code, TypeScript, Node.js, React, Rust, Kotlin, Android, Chrome, Docker et Mozilla. Quand un flux ne contient qu'un résumé, l'article est extrait de la page officielle avec Readability (le mode lecture de Firefox).
+- **Articles** : les publications de chercheurs. Le fil recommandé, qui se charge à l'infini en descendant. Un filtre par centre d'intérêt. Le fil part de tes choix, puis ouvrir, lire jusqu'au bout, aimer, sauvegarder ou écarter un article ajuste les recommandations. Régulièrement, une « découverte » vient d'un domaine voisin ; si tu en lis souvent, l'app te propose de l'ajouter à tes centres d'intérêt. Une place revient aussi aux articles des autres langues.
+- **Actus** : les actualités officielles liées à tes centres d'intérêt, dans un fil séparé. Espace : NASA, ESA. Santé : Inserm. Science et société : CNRS (trié par sujet). Programmation et IA : blogs officiels de GitHub, VS Code, TypeScript, Node.js, React, Rust, Kotlin, Android, Chrome, Docker et Mozilla. Quand un flux ne contient qu'un résumé, l'article est extrait de la page officielle avec Readability (le mode lecture de Firefox).
 - **Lecteur** : affichage en français, côte à côte ou en version originale (et PDF quand il existe). L'icône de langue sur un paragraphe affiche l'original. Le lexique liste les termes techniques gardés en anglais. L'onglet **Discussion** permet de poser des questions sur l'article : l'IA répond à partir de son texte. Sélectionne un passage puis « Expliquer » pour une explication simple, ou clique sur « Expliquer cette figure » sous une figure : l'IA lit l'image et sa légende. Explications et conversations sont gardées avec l'article.
 - **Mes articles** : rédige ton article à partir de ta lecture, puis exporte-le en `.mdx` (même format que le portfolio) ou copie-le pour un post.
 
@@ -56,7 +60,7 @@ L'architecture (sources, formats de texte intégral, traduction hybride, mémoir
 
 - `scripts/test-sources.mts` : interroge chaque source et affiche le nombre d'articles par domaine (`npx tsx scripts/test-sources.mts [source]`).
 - `scripts/test-loader.mts` : charge le texte intégral d'articles de référence pour chaque format.
-- `scripts/compare.mjs` : traduit un même article avec plusieurs IA via l'app lancée avec `--remote-debugging-port=9333`, pour les comparer.
+- `scripts/compare.mjs` : traduit un même article avec plusieurs IA via l'app lancée avec `--remoteDebuggingPort 9555`, pour les comparer.
 - `scripts/cdp.mjs` : capture d'écran ou évaluation dans l'app lancée en débogage.
 - `scripts/fake-ollama.mjs` : fausse IA locale pour tester la chaîne de traduction sans modèle.
 

@@ -11,13 +11,31 @@ import type {
   Explanation,
   FeedItem,
   Interaction,
+  InterestProfileView,
   RefreshProgress,
   SourceId,
   SourceStatus,
   TranslationProgress,
 } from "@shared/types";
-import { fieldGroup, SOURCES, UNCLASSIFIED } from "@shared/types";
-import { analyzeInterests, chatAboutArticle, explainFigure, explainPassage, makeTeasers } from "./ai/assist";
+import type { Interest } from "@shared/types";
+import { FIELDS, fieldGroup, SOURCES, UNCLASSIFIED } from "@shared/types";
+import {
+  fieldsOf,
+  INTEREST_CATALOG,
+  matchesInterest,
+  neighbourFields,
+  newsCoverage,
+  NEWS_SOURCE_TAGS,
+  newsTagsOf,
+} from "@shared/interests";
+import {
+  analyzeInterests,
+  chatAboutArticle,
+  explainFigure,
+  explainPassage,
+  makeTeasers,
+  translateTopicNames,
+} from "./ai/assist";
 import { get } from "./http";
 import { claudeCodeAvailable } from "./ai/claudeCode";
 import { describeError, geminiAvailableToday } from "./ai/llm";
@@ -25,8 +43,8 @@ import { recallExplanation, rememberExplanation } from "./ai/memory";
 import { translateContent } from "./ai/translate";
 import { loadFullText, PendingError } from "./content/loader";
 import { Recommender } from "./reco/recommender";
-import { getSettings, semanticScholarKey } from "./settings";
-import { epmcFindByDoi, FETCHERS, openalexClassify, type RawArticle } from "./sources";
+import { getSettings, saveSettings, semanticScholarKey } from "./settings";
+import { epmcFindByDoi, FETCHERS, openalexClassify, searchTopics, type RawArticle } from "./sources";
 import { classifyText, detectLanguage, LEGACY_DOMAINS } from "./sources/classify";
 import { JsonDoc, readJson, removeFile, safeName, writeJson } from "./store";
 
@@ -43,7 +61,8 @@ export class Library {
   private db = new JsonDoc<Record<string, Article>>("articles.json", {});
   private status = new JsonDoc<Partial<Record<SourceId, SourceStatus>>>("sources.json", {});
   private drafts = new JsonDoc<Record<string, Draft>>("drafts.json", {});
-  private meta = new JsonDoc<{ lastRefresh?: string }>("meta.json", {});
+  /** `explore`: disciplines next to the reader's interests, picked again at each refresh. */
+  private meta = new JsonDoc<{ lastRefresh?: string; explore?: DomainId[] }>("meta.json", {});
   readonly reco = new Recommender();
   private refreshing: Promise<void> | null = null;
   private translating = new Map<string, Promise<void>>();
@@ -109,15 +128,121 @@ export class Library {
   }
 
   flush() {
+    this.topicNames.flush();
     this.db.flush();
     this.status.flush();
     this.drafts.flush();
     this.meta.flush();
   }
 
+  // ------------------------------------------------------------ interests
+  private get explore() {
+    return new Set(this.meta.data.explore ?? []);
+  }
+
+  /** Does an article belong to what the reader follows (interests or discoveries)? */
+  private wanted(a: Article) {
+    const s = getSettings();
+    if (!s.interestsChosen) return true;
+    if (s.interests.some((i) => matchesInterest(i, a))) return true;
+    return a.kind !== "news" && this.explore.has(a.domain);
+  }
+
+  /** Two disciplines next to the reader's interests, different at each refresh. */
+  private pickExplore(interests: Interest[]): DomainId[] {
+    const mine = new Set(fieldsOf(interests));
+    const near = neighbourFields(interests);
+    const pool = near.length ? near : FIELDS.filter((f) => !mine.has(f.id)).map((f) => f.id);
+    return pool.sort(() => Math.random() - 0.5).slice(0, 2);
+  }
+
+  /** Save the interests chosen by the reader and rebuild the feeds from them. */
+  setInterests(interests: Interest[], languages: Record<string, boolean>) {
+    const fields = new Set(fieldsOf(interests));
+    saveSettings({
+      interests,
+      languages,
+      interestsChosen: true,
+      domains: Object.fromEntries(FIELDS.map((f) => [f.id, fields.has(f.id)])),
+    });
+    this.reco.seedInterests(
+      interests.flatMap((i) => i.keywords),
+      [...fields],
+    );
+    this.meta.data.explore = this.pickExplore(interests);
+    this.meta.save();
+    this.feedCache.clear();
+    this.emit.feedUpdated();
+    void this.refresh();
+  }
+
+  /** French names of research topics, translated once (shared by every search). */
+  private topicNames = new JsonDoc<Record<string, string>>("topic-names.json", {});
+
+  async searchTopics(q: string) {
+    const hits = await searchTopics(q);
+    const missing = hits.filter((h) => !this.topicNames.data[h.id]);
+    if (missing.length) {
+      const job = translateTopicNames(missing.map(({ id, name }) => ({ id, name })))
+        .then((names) => {
+          for (const [id, fr] of names) this.topicNames.data[id] = fr;
+          this.topicNames.save();
+        })
+        .catch(() => {
+          /* no AI right now: the English names stay */
+        });
+      // Do not keep the reader waiting: English names if the AI is slow.
+      await Promise.race([job, new Promise((r) => setTimeout(r, 12000))]);
+    }
+    return hits.map((h) => ({ ...h, nameFr: this.topicNames.data[h.id] }));
+  }
+
+  /** A catalogue interest the reader keeps reading without having chosen it. */
+  suggestion(): Interest | null {
+    const s = getSettings();
+    if (!s.interestsChosen) return null;
+    const chosen = new Set(s.interests.map((i) => i.id));
+    const mine = new Set(fieldsOf(s.interests));
+    const outside = new Set(FIELDS.map((f) => f.id).filter((f) => !mine.has(f)));
+    for (const field of this.reco.adopted(outside)) {
+      const hit = INTEREST_CATALOG.find(
+        (i) => i.fields.includes(field) && !chosen.has(i.id) && !s.dismissedSuggestions?.includes(i.id),
+      );
+      if (hit) {
+        const { group: _group, ...interest } = hit;
+        return interest;
+      }
+    }
+    return null;
+  }
+
+  /** The recommender's view, with the reader's interests and what is explored. */
+  profileView(): InterestProfileView {
+    const s = getSettings();
+    const weights = this.balance()?.weights;
+    const total = weights ? [...weights.values()].reduce((a, b) => a + b, 0) : 1;
+    const read = this.all().filter((a) => a.state.opened);
+    return {
+      ...this.reco.view(),
+      interests: s.interests.map((i) => ({
+        id: i.id,
+        label: i.label,
+        share: weights ? (weights.get(i.id) ?? 1) / total : 1,
+        read: read.filter((a) => matchesInterest(i, a)).length,
+        news: newsCoverage(i),
+        custom: i.custom,
+      })),
+      explore: [...this.explore],
+    };
+  }
+
+  dismissSuggestion(id: string) {
+    const s = getSettings();
+    saveSettings({ dismissedSuggestions: [...(s.dismissedSuggestions ?? []), id] });
+  }
+
   // ------------------------------------------------------------ feed
-  /** Articles that may appear in the feed: readable, not seen yet, in an enabled language. */
-  /** Articles that may appear in a feed: readable, not seen yet, in an enabled language. */
+  /** Articles that may appear in a feed: readable, not seen yet, in an enabled language, wanted. */
   private candidates(kind: ArticleKind = "paper") {
     const s = getSettings();
     return this.all().filter(
@@ -126,7 +251,8 @@ export class Library {
         a.availability === "ok" &&
         !a.state.dismissed &&
         !a.state.opened &&
-        s.languages[a.lang ?? "en"] !== false,
+        s.languages[a.lang ?? "en"] !== false &&
+        this.wanted(a),
     );
   }
 
@@ -134,20 +260,39 @@ export class Library {
   private feedCache = new Map<ArticleKind, { filter: string; items: FeedItem[] }>();
 
   /**
-   * `filter` is "all", a field id, "g:<group>" for one of the 4 big domains, or
-   * "t:<topic>" for news (science, tech).
+   * `filter` is "all", "i:<interest>" for one of the reader's interests, a field id,
+   * "g:<group>" for one of the 4 big domains, or "t:<topic>" for news (science, tech).
    */
   private rankFeed(filter: string, limit: number, kind: ArticleKind = "paper"): FeedItem[] {
     const s = getSettings();
+    const interest = filter.startsWith("i:") ? s.interests.find((i) => i.id === filter.slice(2)) : undefined;
     const match = (a: Article) =>
       filter === "all" ||
+      (interest ? matchesInterest(interest, a) : false) ||
       a.domain === filter ||
       (filter.startsWith("g:") && fieldGroup(a.domain) === filter.slice(2)) ||
       (filter.startsWith("t:") && a.topic === filter.slice(2));
     const candidates = this.candidates(kind).filter(match);
-    // News is not filtered by discipline: its sources are chosen in the settings.
-    const enabled = filter === "all" && kind === "paper" ? s.domains : ({} as Record<DomainId, boolean>);
-    return this.reco.rank(candidates, limit, enabled);
+    // Candidates are already limited to the reader's interests; before they are
+    // chosen (older profiles), the disciplines switched on in the settings apply.
+    const enabled =
+      filter === "all" && kind === "paper" && !s.interestsChosen ? s.domains : ({} as Record<DomainId, boolean>);
+    if (filter !== "all") return this.reco.rank(candidates, limit, enabled);
+    return this.reco.rank(candidates, limit, enabled, this.explore, this.balance());
+  }
+
+  /** Share of the feed for each interest: equal at first, then larger for what is read. */
+  private balance() {
+    const s = getSettings();
+    if (!s.interestsChosen || s.interests.length < 2) return undefined;
+    const domains = this.reco.profile.domains;
+    const weights = new Map(
+      s.interests.map((i) => {
+        const pos = i.fields.reduce((n, f) => n + (domains[f]?.pos ?? 0), 0);
+        return [i.id, 1 + Math.min(pos, 20) / 5];
+      }),
+    );
+    return { of: (a: Article) => s.interests.find((i) => matchesInterest(i, a))?.id, weights };
   }
 
   /**
@@ -170,11 +315,12 @@ export class Library {
     return c.items.slice(offset, offset + limit);
   }
 
-  /** How many readable articles each discipline has, for the feed filters. */
-  fieldCounts(): Record<DomainId, number> {
+  /** How many readable articles each interest has, for the feed filters. */
+  interestCounts(kind: ArticleKind = "paper"): Record<string, number> {
     const s = getSettings();
-    const counts: Record<DomainId, number> = {};
-    for (const a of this.candidates()) if (s.domains[a.domain] !== false) counts[a.domain] = (counts[a.domain] ?? 0) + 1;
+    const counts: Record<string, number> = {};
+    for (const a of this.candidates(kind))
+      for (const i of s.interests) if (matchesInterest(i, a)) counts[i.id] = (counts[i.id] ?? 0) + 1;
     return counts;
   }
 
@@ -194,7 +340,17 @@ export class Library {
 
   private async doRefresh() {
     const s = getSettings();
-    const enabled = SOURCES.filter((src) => s.sources[src.id]);
+    // News sources only when one of the reader's interests matches what they cover.
+    const tags = newsTagsOf(s.interests);
+    const enabled = SOURCES.filter(
+      (src) => s.sources[src.id] && (!NEWS_SOURCE_TAGS[src.id] || NEWS_SOURCE_TAGS[src.id].some((t) => tags.has(t))),
+    );
+    // New neighbours to explore at each refresh, so discoveries keep changing.
+    if (s.interestsChosen) {
+      this.meta.data.explore = this.pickExplore(s.interests);
+      this.meta.save();
+    }
+    const fields = new Set([...fieldsOf(s.interests), ...this.explore]);
     let done = 0;
     let added = 0;
     const progress = (step: string) =>
@@ -206,7 +362,10 @@ export class Library {
       try {
         const raws = await FETCHERS[id]({
           s2Key: semanticScholarKey(),
-          fields: new Set(Object.entries(s.domains).filter(([, on]) => on).map(([f]) => f)),
+          fields,
+          interests: s.interests,
+          topics: s.interests.flatMap((i) => i.topics ?? []),
+          explore: this.explore,
           languages: new Set(Object.entries(s.languages).filter(([, on]) => on).map(([l]) => l)),
           known: new Set(Object.keys(this.db.data)),
         });
@@ -294,15 +453,15 @@ export class Library {
     if (!todo.length) return;
     try {
       const found = await openalexClassify(todo.map((a) => a.doi!.toLowerCase()));
-      const s = getSettings();
       for (const a of todo) {
         a.classified = true;
         const hit = found.get(a.doi!.toLowerCase());
         if (hit?.field) a.domain = hit.field;
+        if (hit?.topicId) a.topicId = hit.topicId;
         else if (a.domain === UNCLASSIFIED) a.domain = classifyText(`${a.title} ${a.abstract}`);
         if (hit?.lang && !a.lang) a.lang = hit.lang;
-        // Now that its discipline is known, drop it if that discipline is switched off.
-        if (s.domains[a.domain] === false && !a.state.opened && !a.state.saved) delete this.db.data[a.id];
+        // Now that its discipline is known, drop it if the reader does not follow it.
+        if (!this.wanted(a) && !a.state.opened && !a.state.saved) delete this.db.data[a.id];
       }
       this.db.save();
     } catch {
@@ -555,11 +714,10 @@ export class Library {
     return save({ q: passage, a, by: provider, at });
   }
 
-  async queueTeasers(ids: string[]) {
-    for (const id of ids) {
-      const a = this.get(id);
-      if (a && !a.titleFr) this.teaserQueue.add(id);
-    }
+  /** `first`: cards on screen, translated before the ones queued by a refresh. */
+  async queueTeasers(ids: string[], first = false) {
+    const todo = ids.filter((id) => this.get(id) && !this.get(id).titleFr);
+    this.teaserQueue = first ? new Set([...todo, ...this.teaserQueue]) : new Set([...this.teaserQueue, ...todo]);
     if (this.teaserRunning) return;
     this.teaserRunning = true;
     try {

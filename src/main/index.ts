@@ -1,6 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain, nativeTheme, protocol, shell } from "electron";
+import fs from "node:fs";
 import path from "node:path";
-import type { DomainId, Draft, Interaction, Settings } from "@shared/types";
+import type { DomainId, Draft, Interaction, Interest, Settings } from "@shared/types";
 import { claudeCodeAvailable } from "./ai/claudeCode";
 import { adviseLocalModel, detectHardware } from "./ai/hardware";
 import { ollamaModels, ollamaReachable, testAi } from "./ai/llm";
@@ -9,12 +10,39 @@ import { BROWSER_UA, get } from "./http";
 import { Library } from "./library";
 import { geminiKey, getSettings, getUsage, saveSettings } from "./settings";
 
-app.setAppUserModelId("com.hantan.veille");
+app.setAppUserModelId("com.hantan.nukun");
 app.userAgentFallback = BROWSER_UA;
 
 protocol.registerSchemesAsPrivileged([
-  { scheme: "veille", privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } },
+  { scheme: "nukun", privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } },
 ]);
+
+// Test profiles: NUKUN_PROFILE=<name> keeps a separate data folder, to try the app
+// with other interests without touching the real one.
+if (process.env.NUKUN_PROFILE) {
+  app.setPath("userData", path.join(app.getPath("appData"), `Nukun-${process.env.NUKUN_PROFILE}`));
+}
+
+/**
+ * The app was called "Veille Scientifique": bring its data along on first launch.
+ * Runs before Chromium starts, so that its "Local State" (which holds the key that
+ * encrypts the saved API keys) is used instead of a new one.
+ */
+function migrateOldData() {
+  // Test profiles start empty, unless NUKUN_MIGRATE=1 (to test this migration).
+  if (process.env.NUKUN_PROFILE && process.env.NUKUN_MIGRATE !== "1") return;
+  const oldDir = path.join(app.getPath("appData"), "Veille Scientifique");
+  const newDir = app.getPath("userData");
+  if (fs.existsSync(path.join(newDir, "articles.json")) || !fs.existsSync(path.join(oldDir, "articles.json"))) return;
+  fs.mkdirSync(newDir, { recursive: true });
+  for (const f of fs.readdirSync(oldDir)) {
+    // Our own files only (JSON documents and parsed articles), not Chromium's caches.
+    if (f.endsWith(".json") || f === "Local State") fs.copyFileSync(path.join(oldDir, f), path.join(newDir, f));
+  }
+  const content = path.join(oldDir, "content");
+  if (fs.existsSync(content)) fs.cpSync(content, path.join(newDir, "content"), { recursive: true });
+}
+migrateOldData();
 
 let win: BrowserWindow | null = null;
 let lib: Library;
@@ -34,7 +62,7 @@ function createWindow() {
     minWidth: 900,
     minHeight: 600,
     show: false,
-    title: "Veille Scientifique",
+    title: "Nùkún",
     backgroundColor: dark ? "#0a0a0a" : "#f9f9f9",
     titleBarStyle: "hidden",
     titleBarOverlay: overlayColors(dark),
@@ -64,6 +92,8 @@ function createWindow() {
 
 function scheduleRefresh() {
   const check = () => {
+    // Nothing is fetched before the reader has chosen their interests.
+    if (!getSettings().interestsChosen) return;
     const hours = getSettings().refreshHours || 3;
     const last = lib.lastRefresh ? Date.parse(lib.lastRefresh) : 0;
     if (Date.now() - last > hours * 3600000) void lib.refresh();
@@ -78,7 +108,13 @@ function registerIpc() {
     (_e, o: { domain?: string; limit?: number; offset?: number; fresh?: boolean; kind?: "paper" | "news" }) =>
       lib.feed(o?.domain ?? "all", o?.limit ?? 30, o?.offset ?? 0, o?.fresh ?? (o?.offset ?? 0) === 0, o?.kind ?? "paper"),
   );
-  ipcMain.handle("fieldCounts", () => lib.fieldCounts());
+  ipcMain.handle("fieldCounts", (_e, kind?: "paper" | "news") => lib.interestCounts(kind));
+  ipcMain.handle("setInterests", (_e, interests: Interest[], languages: Record<string, boolean>) =>
+    lib.setInterests(interests, languages),
+  );
+  ipcMain.handle("searchTopics", (_e, q: string) => lib.searchTopics(q));
+  ipcMain.handle("suggestion", () => lib.suggestion());
+  ipcMain.handle("dismissSuggestion", (_e, id: string) => lib.dismissSuggestion(id));
   ipcMain.handle("getLibrary", () => lib.libraryList());
   ipcMain.handle("getArticle", (_e, id: string) => lib.get(id));
   ipcMain.handle("loadContent", (_e, id: string) => lib.loadContent(id));
@@ -110,7 +146,7 @@ function registerIpc() {
     void lib.refresh();
   });
   ipcMain.handle("translateTeasers", (_e, ids: string[]) => {
-    void lib.queueTeasers(ids);
+    void lib.queueTeasers(ids, true);
   });
   ipcMain.handle("getSettings", () => getSettings());
   ipcMain.handle("saveSettings", (_e, s: Partial<Settings> & { claudeKey?: string }) => {
@@ -122,7 +158,7 @@ function registerIpc() {
   ipcMain.handle("ollamaModels", () => ollamaModels());
   ipcMain.handle("getUsage", () => getUsage());
   ipcMain.handle("getSourceStatus", () => lib.sourceStatus());
-  ipcMain.handle("getProfile", () => lib.reco.view());
+  ipcMain.handle("getProfile", () => lib.profileView());
   ipcMain.handle("resetProfile", () => {
     lib.reco.reset();
     send("feed-updated");
@@ -145,9 +181,9 @@ function registerIpc() {
   });
 }
 
-/** veille://pdf/<url> streams a remote PDF inline so the built-in viewer can show it. */
+/** nukun://pdf/<url> streams a remote PDF inline so the built-in viewer can show it. */
 function registerProtocol() {
-  protocol.handle("veille", async (req) => {
+  protocol.handle("nukun", async (req) => {
     const u = new URL(req.url);
     if (u.hostname === "pdf") {
       const target = decodeURIComponent(u.pathname.slice(1));

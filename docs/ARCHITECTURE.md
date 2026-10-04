@@ -1,12 +1,12 @@
 # Architecture
 
-Veille Scientifique is an Electron desktop app: a Node.js **main process** does all the network, parsing, AI and storage work, and a React **renderer** displays it. They talk through a typed IPC bridge.
+Nùkún is an Electron desktop app: a Node.js **main process** does all the network, parsing, AI and storage work, and a React **renderer** displays it. They talk through a typed IPC bridge.
 
 ```
 src/
 ├── shared/types.ts        Types shared by both sides (Article, Block, Settings, the IPC API)
 ├── main/                  Main process (Node.js)
-│   ├── index.ts           Window, IPC handlers, veille:// protocol for PDFs, refresh scheduler
+│   ├── index.ts           Window, IPC handlers, nukun:// protocol for PDFs, refresh scheduler
 │   ├── library.ts         Orchestrator: article database, refresh, content cache, translation jobs, drafts, export
 │   ├── settings.ts        Settings and usage counters; API keys encrypted with Electron safeStorage
 │   ├── store.ts           Small JSON persistence helpers (atomic writes, debounced saves)
@@ -15,13 +15,21 @@ src/
 │   ├── content/           Full-text loaders → reading blocks
 │   ├── ai/                Model providers, translation, assistance, translation memory
 │   └── reco/              Recommendation engine
-├── preload/index.ts       Exposes the IPC API to the page as window.veille
+├── preload/index.ts       Exposes the IPC API to the page as window.nukun
 └── renderer/src/          React UI (feed, reader with discussion, library, writing, profile, settings, guided tour)
 ```
 
 ## Articles and news
 
 Every item has a `kind`: `paper` (research) or `news` (official organisations and developer blogs, `topic` science or tech). Each kind has its own ranked, paged feed (`Library.feed(..., kind)`). News comes from `sources/news.ts`: RSS or Atom feeds; a feed that carries the whole post is used as is, otherwise the official page is reduced to its article with Mozilla Readability (`content/loader.ts`, mode `readable`). News is kept 21 days, research 45 days, unless read or saved.
+
+## Interests
+
+- `shared/interests.ts` holds the catalogue of 27 interests. Each one lists OpenAlex fields (what research sources fetch), English and French keywords (the recommender's starting point, and matching of French news), and news tags (which official news sources are asked).
+- Anything else is found with the free search: `searchTopics` asks OpenAlex which research topics the recent papers matching the text belong to (`group_by=primary_topic.id`). A custom interest follows those topics only, not their whole field.
+- Nothing is fetched before the interests are chosen (`Settings.interestsChosen`, first-launch screen in `components/Interests.tsx`). `Library.setInterests` saves them, seeds the recommender (`seedInterests`) and refreshes.
+- `matchesInterest` decides what belongs to an interest: a followed topic, a field, or for news a source tag (a general source such as CNRS is sorted by field or by keywords in the text). Both feeds offer one filter per interest (`i:<id>`).
+- At each refresh two neighbouring fields are picked (`neighbourFields`: the other catalogue interests of the same family, and the fields of searched topics). Their papers only appear in discovery slots until the reader likes them; `Recommender.adopted` then lets `Library.suggestion` offer to add the matching interest.
 
 ## Disciplines and languages
 
@@ -104,7 +112,7 @@ Every answer, with who gave it, is stored in the article's content file and show
 
 ## Storage
 
-Everything lives in Electron's `userData` folder (`%APPDATA%\Veille Scientifique`):
+Everything lives in Electron's `userData` folder (`%APPDATA%\Nukun`; the data of the former `Veille Scientifique` folder is copied over on first launch). `NUKUN_PROFILE=<name>` uses `%APPDATA%\Nukun-<name>` instead, to test with separate profiles:
 
 | File | Content |
 |---|---|

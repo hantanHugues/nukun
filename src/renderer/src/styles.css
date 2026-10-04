@@ -1391,3 +1391,131 @@ figure.blk .fig-explain {
   margin-top: 8px;
   font-size: 13px;
 }
+
+/* ------------------------------------------------------------ interests */
+.welcome {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 40px 24px 0;
+}
+.welcome-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-bottom: 24px;
+}
+.welcome-bar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+  padding: 14px 0 20px;
+  background: linear-gradient(to bottom, transparent, var(--page) 35%);
+}
+.interests {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.chip.bubble {
+  padding: 8px 14px;
+  font-size: 14px;
+}
+.topic-hits {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+}
+.chip-x {
+  display: inline-flex;
+  margin-left: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+.ghost-chip {
+  border-style: dashed;
+}
+.suggest-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--brand-weak);
+}
+.suggest-banner > span {
+  flex: 1;
+}
+
+/* ------------------------------------------------------------ section nav (like the portfolio's About page) */
+.settings-layout {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 860px);
+  gap: 48px;
+  align-items: stretch;
+}
+.section-nav {
+  /* Centred vertically on screen, like the portfolio's table of contents. */
+  position: sticky;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  align-self: start;
+  margin-top: 30vh;
+}
+.section-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-weak);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.2s var(--ease);
+}
+.section-nav-item .dash {
+  flex: none;
+  width: 16px;
+  height: 1px;
+  background: currentColor;
+  transition: width 0.2s var(--ease);
+}
+.section-nav-item:hover {
+  color: var(--text);
+}
+.section-nav-item.active {
+  color: var(--text);
+}
+.section-nav-item.active .dash {
+  width: 28px;
+  background: var(--brand);
+}
+@media (max-width: 960px) {
+  .settings-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .section-nav {
+    display: none;
+  }
+}
+.coverage-note {
+  padding-left: 2px;
+  font-size: 12.5px;
+}

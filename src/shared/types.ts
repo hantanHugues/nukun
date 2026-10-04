@@ -4,6 +4,9 @@
  */
 export type DomainId = string;
 
+import type { Interest } from "./interests";
+export type { Interest } from "./interests";
+
 export type FieldGroup = "life" | "social" | "physical" | "health";
 
 export const FIELD_GROUPS: { id: FieldGroup; label: string }[] = [
@@ -133,6 +136,8 @@ export interface Article {
   url: string; // landing page
   kind?: ArticleKind; // "paper" when absent
   topic?: NewsTopic; // for news
+  newsTags?: string[]; // for news: what its source covers (space, health, dev…)
+  topicId?: string; // OpenAlex topic ("T10066"), when known
   lang?: string; // language of the article (ISO 639-1), "en" when unknown
   doi?: string;
   venue?: string;
@@ -228,6 +233,14 @@ export interface AiStatus {
   advice: { model: string; sizeGb: number; why: string };
 }
 
+export interface TopicHit {
+  id: string; // "T10066"
+  name: string; // English name from OpenAlex
+  nameFr?: string; // translated once, then kept
+  field: DomainId;
+  count: number; // recent papers found
+}
+
 export interface FeedItem {
   article: Article;
   score: number;
@@ -252,6 +265,12 @@ export interface Settings {
   domains: Record<DomainId, boolean>;
   /** Languages of articles to show. */
   languages: Record<string, boolean>;
+  /** What the reader follows; drives sources, filters and the algorithm. */
+  interests: Interest[];
+  /** The interests screen has been completed (shown before the very first refresh). */
+  interestsChosen?: boolean;
+  /** Interest suggestions the reader turned down. */
+  dismissedSuggestions?: string[];
   refreshHours: number;
   exportDir: string;
   theme: "system" | "dark" | "light";
@@ -291,6 +310,10 @@ export interface Draft {
 }
 
 export interface InterestProfileView {
+  /** The reader's interests: share of the feed, articles read, news coverage. */
+  interests: { id: string; label: string; share: number; read: number; news: "full" | "general" | "none"; custom?: boolean }[];
+  /** Disciplines explored next to the interests at the moment. */
+  explore: DomainId[];
   topTerms: { term: string; weight: number }[];
   domains: { id: DomainId; weight: number; impressions: number }[];
   aiInterests: { label: string; keywords: string[] }[];
@@ -332,11 +355,12 @@ export interface TranslationProgress {
   finished?: boolean;
 }
 
-export interface VeilleApi {
+export interface NukunApi {
   /** `domain`: "all", a field id, or "g:<group>". */
   /** One page of the feed; `fresh` ranks again instead of continuing the current ranking. */
   getFeed(opts: { domain?: string; limit?: number; offset?: number; fresh?: boolean; kind?: ArticleKind }): Promise<FeedItem[]>;
-  fieldCounts(): Promise<Record<DomainId, number>>;
+  /** How many readable articles each of the reader's interests has, per feed. */
+  fieldCounts(kind?: ArticleKind): Promise<Record<string, number>>;
   getLibrary(): Promise<Article[]>;
   getArticle(id: string): Promise<Article | undefined>;
   loadContent(id: string): Promise<ArticleContent>;
@@ -350,6 +374,13 @@ export interface VeilleApi {
   chat(id: string, question: string): Promise<ChatMessage>;
   clearChat(id: string): Promise<void>;
   aiStatus(): Promise<AiStatus>;
+  /** Save the reader's interests and languages, then fetch articles for them. */
+  setInterests(interests: Interest[], languages: Record<string, boolean>): Promise<void>;
+  /** Research topics matching free text (any language), from OpenAlex. */
+  searchTopics(q: string): Promise<TopicHit[]>;
+  /** An interest the reader seems to like without having chosen it, if any. */
+  suggestion(): Promise<Interest | null>;
+  dismissSuggestion(id: string): Promise<void>;
   interact(i: Interaction): Promise<void>;
   saveScroll(id: string, ratio: number): Promise<void>;
   refresh(): Promise<void>;

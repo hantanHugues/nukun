@@ -1,3 +1,3 @@
-import type { VeilleApi } from "@shared/types";
+import type { NukunApi } from "@shared/types";
 
-export const api = (window as unknown as { veille: VeilleApi }).veille;
+export const api = (window as unknown as { nukun: NukunApi }).nukun;

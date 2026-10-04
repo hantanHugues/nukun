@@ -1,16 +1,28 @@
-import { Brain, RotateCcw, Sparkles } from "lucide-react";
+import { Brain, Compass, Plus, RotateCcw, SlidersHorizontal, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { InterestProfileView } from "@shared/types";
+import type { Interest, InterestProfileView } from "@shared/types";
 import { fieldLabel } from "@shared/types";
 import { api } from "../api";
 import { useApp } from "../App";
 
 export function Profile() {
-  const { toast } = useApp();
+  const { toast, go, settings, reloadSettings } = useApp();
   const [p, setP] = useState<InterestProfileView | null>(null);
+  const [suggested, setSuggested] = useState<Interest | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const load = () => void api.getProfile().then(setP);
+  const load = () => {
+    void api.getProfile().then(setP);
+    void api.suggestion().then(setSuggested);
+  };
+
+  const adopt = async (i: Interest) => {
+    setSuggested(null);
+    await api.setInterests([...(settings?.interests ?? []), i], settings?.languages ?? {});
+    await reloadSettings();
+    load();
+    toast(`« ${i.label} » ajouté à tes centres d'intérêt.`);
+  };
   useEffect(() => {
     load();
     return api.on("feed-updated", load);
@@ -24,7 +36,7 @@ export function Profile() {
   };
 
   if (!p) return null;
-  const maxW = Math.max(1, ...p.domains.map((d) => Math.abs(d.weight)));
+  const maxShare = Math.max(1e-6, ...p.interests.map((i) => i.share));
   const maxT = Math.max(1e-6, ...p.topTerms.map((t) => t.weight));
 
   return (
@@ -40,9 +52,79 @@ export function Profile() {
 
       <div className="card section" style={{ marginBottom: 20 }}>
         <div className="row">
+          <h2 className="h2 grow" style={{ fontSize: 18 }}>
+            Tes centres d'intérêt
+          </h2>
+          <button className="btn sm ghost" onClick={() => go({ view: "settings" })}>
+            <SlidersHorizontal size={14} /> Modifier
+          </button>
+        </div>
+        <p className="small muted" style={{ margin: "6px 0 0" }}>
+          Leur part du fil : égale au départ, elle grandit pour les sujets que tu lis le plus.
+        </p>
+        <div className="stack" style={{ gap: 14, marginTop: 16 }}>
+          {p.interests.map((i) => (
+            <div key={i.id} className="stack" style={{ gap: 4 }}>
+              <div className="row" style={{ gap: 14 }}>
+                <span style={{ width: 240 }}>{i.label}</span>
+                <div className="bar grow">
+                  <div style={{ width: `${Math.max(2, (i.share / maxShare) * 100)}%` }} />
+                </div>
+                <span className="small muted" style={{ width: 150, textAlign: "right" }}>
+                  {Math.round(i.share * 100)} % du fil · {i.read} lu{i.read > 1 ? "s" : ""}
+                </span>
+              </div>
+              {i.news !== "full" && (
+                <span className="small muted coverage-note">
+                  {i.news === "none"
+                    ? "Pas encore d'actus officielles pour ce sujet : articles de recherche seulement."
+                    : "Actus limitées : seulement quand le journal du CNRS en parle."}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="card section" style={{ marginBottom: 20 }}>
+        <div className="row">
+          <Compass size={18} color="var(--brand)" />
+          <h2 className="h2 grow" style={{ fontSize: 18 }}>
+            En exploration
+          </h2>
+        </div>
+        <p className="small muted" style={{ margin: "6px 0 0" }}>
+          Des domaines voisins de tes centres d'intérêt, glissés dans le fil comme « Découverte ». Ils changent à chaque
+          actualisation ; si tu en lis souvent, l'app te proposera de les ajouter.
+        </p>
+        <div className="row wrap" style={{ gap: 6, marginTop: 12 }}>
+          {p.explore.length ? (
+            p.explore.map((f) => (
+              <span key={f} className="tag">
+                {fieldLabel(f)}
+              </span>
+            ))
+          ) : (
+            <span className="small muted">Rien pour l'instant : ils seront choisis à la prochaine actualisation.</span>
+          )}
+        </div>
+        {suggested && (
+          <div className="suggest-banner" style={{ marginTop: 14, marginBottom: 0 }}>
+            <span>
+              Tu lis souvent des articles proches de <strong>{suggested.label}</strong>. L'ajouter à tes centres d'intérêt ?
+            </span>
+            <button className="btn sm primary" onClick={() => void adopt(suggested)}>
+              <Plus size={14} /> Ajouter
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="card section" style={{ marginBottom: 20 }}>
+        <div className="row">
           <Brain size={18} color="var(--brand)" />
           <h2 className="h2 grow" style={{ fontSize: 18 }}>
-            Tes centres d'intérêt, selon l'IA
+            Ce que l'IA a remarqué dans tes lectures
           </h2>
           <button className="btn sm" onClick={() => void analyze()} disabled={busy}>
             {busy ? <div className="spinner" /> : <Sparkles size={14} />} Réanalyser
@@ -69,30 +151,6 @@ export function Profile() {
             l'analyse maintenant.
           </p>
         )}
-      </div>
-
-      <div className="card section" style={{ marginBottom: 20 }}>
-        <h2 className="h2" style={{ fontSize: 18 }}>
-          Affinité par discipline
-        </h2>
-        <div className="stack" style={{ gap: 12, marginTop: 16 }}>
-          {p.domains
-            // Only the disciplines the reader has met, most liked first.
-            .filter((d) => d.impressions > 0 || d.weight !== 0)
-            .sort((a, b) => b.weight - a.weight || b.impressions - a.impressions)
-            .slice(0, 12)
-            .map((d) => (
-              <div key={d.id} className="row" style={{ gap: 14 }}>
-                <span style={{ width: 220 }}>{fieldLabel(d.id)}</span>
-                <div className="bar grow">
-                  <div style={{ width: `${Math.max(2, (Math.max(0, d.weight) / maxW) * 100)}%`, background: d.weight < 0 ? "var(--accent)" : undefined }} />
-                </div>
-                <span className="small muted" style={{ width: 110, textAlign: "right" }}>
-                  {d.impressions} vus
-                </span>
-              </div>
-            ))}
-        </div>
       </div>
 
       <div className="card section">

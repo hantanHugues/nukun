@@ -1,8 +1,8 @@
 {
-  "name": "veille-scientifique",
-  "productName": "Veille Scientifique",
+  "name": "nukun",
+  "productName": "Nukun",
   "version": "1.0.0",
-  "description": "Veille scientifique personnelle : articles en libre accès, traduits en français, recommandés selon tes lectures.",
+  "description": "Nùkún : la science et l'actualité qui t'intéressent, en libre accès, traduites et expliquées simplement.",
   "author": "HANTAN Hugues",
   "main": "./out/main/index.js",
   "private": true,
@@ -46,8 +46,8 @@
     "ws": "^8.22.0"
   },
   "build": {
-    "appId": "com.hantan.veille",
-    "productName": "Veille Scientifique",
+    "appId": "com.hantan.nukun",
+    "productName": "Nukun",
     "directories": {
       "output": "release",
       "buildResources": "build"
@@ -67,7 +67,7 @@
         }
       ],
       "icon": "build/icon.ico",
-      "executableName": "VeilleScientifique"
+      "executableName": "Nukun"
     },
     "nsis": {
       "oneClick": false,
@@ -75,15 +75,16 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": "always",
       "createStartMenuShortcut": true,
-      "shortcutName": "Veille Scientifique",
+      "shortcutName": "Nùkún",
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico",
-      "artifactName": "Veille-Scientifique-Setup-${version}.${ext}"
+      "artifactName": "Nukun-Setup-${version}.${ext}",
+      "uninstallDisplayName": "Nùkún"
     }
   },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/hantanHugues/veille-scientifique.git"
+    "url": "https://github.com/hantanHugues/nukun.git"
   }
 }

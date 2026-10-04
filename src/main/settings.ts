@@ -23,6 +23,7 @@ const defaults = (): StoredSettings => ({
   // Every discipline and every language at first: the feed learns from what is read.
   domains: Object.fromEntries(FIELDS.map((f) => [f.id, true])) as Record<DomainId, boolean>,
   languages: Object.fromEntries(LANGUAGES.map((l) => [l.id, true])),
+  interests: [],
   refreshHours: 3,
   exportDir: path.join(app.getPath("documents"), "porfolio", "article", "mes-articles"),
   theme: "system",
