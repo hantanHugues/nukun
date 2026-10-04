@@ -45,7 +45,11 @@ some such than that the their theirs them themselves then there these they this 
 when where which while who whom why will with would you your yours yourself yourselves using use used based study studies results result
 show shows shown paper propose proposed approach method methods new two one three however across within among via may might well
 findings found data analysis effect effects model models significant significantly associated association role between high low higher
-lower present here our first second large small different including including whether research article review et al further`.split(/\s+/),
+lower present here our first second large small different including including whether research article review et al further
+le la les des de du un une et est en que qui dans pour par sur au aux ce cette ces se sont il elle ils elles on nous vous pas plus ou avec
+leur leurs son sa ses mais comme donc car ont été être fait faire peut peuvent entre chez lors ainsi aussi selon sans sous très tout tous
+toute toutes cet après avant deux trois nouvelle nouveau nouvelles nouveaux étude études résultats méthode méthodes approche article
+articles recherche analyse données modèle modèles permet permettent cela dont`.split(/\s+/),
 );
 
 const WEIGHTS: Record<string, number> = {

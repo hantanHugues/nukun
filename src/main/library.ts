@@ -34,6 +34,7 @@ import {
   chatAboutArticle,
   explainFigure,
   explainPassage,
+  inReadingLanguage,
   makeTeasers,
   translateTopicNames,
 } from "./ai/assist";
@@ -130,6 +131,17 @@ export class Library {
         a.image = fixed;
         migrated = true;
       }
+    }
+    // Card titles made in the wrong language (before the language was stated in the
+    // instruction): cleared, they are made again.
+    for (const a of this.all()) {
+      if (!a.titleFr) continue;
+      const target = a.teaserLang ?? "fr";
+      if (inReadingLanguage(`${a.titleFr} ${a.teaserFr ?? ""}`, target)) continue;
+      a.titleFr = undefined;
+      a.teaserFr = undefined;
+      if (a.teasers) delete a.teasers[target];
+      migrated = true;
     }
     if (migrated) this.db.save();
     this.reco.index(this.all());

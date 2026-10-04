@@ -2,6 +2,17 @@ import type { Article, ArticleContent, ChatMessage } from "@shared/types";
 import { lang } from "@shared/i18n";
 import { llmJson } from "./llm";
 
+const EN_SMALL = new Set("the of and to in is are was were that this with for which from by be as on these those has have it its their".split(" "));
+const FR_SMALL = new Set("le la les de des du un une et est en que qui dans pour par sur au aux ce cette ces se sont il elle ils on pas plus ou avec".split(" "));
+
+/** Does a short text look written in the reading language (its small function words)? */
+export function inReadingLanguage(text: string, target: string = lang()): boolean {
+  const words = text.toLowerCase().match(/[\p{L}']+/gu) ?? [];
+  if (words.length < 8) return true;
+  const share = (set: Set<string>) => words.filter((w) => set.has(w)).length / words.length;
+  return target === "en" ? share(EN_SMALL) >= share(FR_SMALL) : share(FR_SMALL) >= share(EN_SMALL);
+}
+
 /** The French or the English version of an instruction, after the app's language. */
 const inLang = (fr: string, en: string) => (lang() === "en" ? en : fr);
 
@@ -35,12 +46,19 @@ For each paper:
 - "title": the title in English: kept as it is if it is already in English, otherwise a faithful translation into English using the standard technical terms of the field.
 - "teaser": two plain and accurate sentences in English saying what the researchers did and what they found. No hype, no "revolutionary", no promise the paper does not make.`,
     ),
-    user: JSON.stringify(articles.map((a) => ({ id: a.id, title: a.title, abstract: a.abstract.slice(0, 1400) }))),
+    user: `${inLang("Écris chaque titre et chaque résumé EN FRANÇAIS.", "Write every title and summary IN ENGLISH.")}
+
+${JSON.stringify(
+      articles.map((a) => ({ id: a.id, title: a.title, abstract: a.abstract.slice(0, 1400) })),
+    )}`,
     schema: TEASER_SCHEMA,
     maxTokens: 16000,
     tier: "light",
   });
-  return new Map(data.items.map((i) => [i.id, { title: i.title, teaser: i.teaser }]));
+  // A summary written in the wrong language is left out: it will be asked again.
+  return new Map(
+    data.items.filter((i) => inReadingLanguage(`${i.title} ${i.teaser}`)).map((i) => [i.id, { title: i.title, teaser: i.teaser }]),
+  );
 }
 
 /** Names of OpenAlex research topics in the reading language (labels of the interests search). */
