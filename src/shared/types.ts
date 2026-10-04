@@ -167,6 +167,8 @@ export interface ArticleState {
   liked?: boolean;
   saved?: boolean;
   dismissed?: boolean;
+  /** Taken out of the library by the reader. */
+  removed?: boolean;
   finished?: boolean;
   posted?: boolean;
   lastOpened?: string;
@@ -333,7 +335,9 @@ export type InteractionType =
   | "unsave"
   | "dismiss"
   | "finish"
-  | "posted";
+  | "posted"
+  /** Taken out of the library: gone from the library and the feed, not a dislike. */
+  | "remove";
 
 export interface Interaction {
   id: string;

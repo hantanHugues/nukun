@@ -1,4 +1,4 @@
-import { CheckCircle2, Heart, PenLine } from "lucide-react";
+import { CheckCircle2, Heart, PenLine, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { Article } from "@shared/types";
 import { api } from "../api";
@@ -16,7 +16,7 @@ const TABS: { id: Tab; label: string; test: (a: Article) => boolean }[] = [
 ];
 
 export function Library() {
-  const { go } = useApp();
+  const { go, toast } = useApp();
   const [tab, setTab] = useState<Tab>("encours");
   const [items, setItems] = useState<Article[]>([]);
 
@@ -81,6 +81,19 @@ export function Library() {
                   }}
                 >
                   <PenLine size={14} /> Écrire
+                </button>
+                <button
+                  className="btn sm ghost icon"
+                  title="Retirer de la bibliothèque"
+                  aria-label="Retirer de la bibliothèque"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void api.interact({ id: a.id, type: "remove" });
+                    setItems((xs) => xs.filter((x) => x.id !== a.id));
+                    toast("Retiré de la bibliothèque.");
+                  }}
+                >
+                  <Trash2 size={14} />
                 </button>
               </div>
             );

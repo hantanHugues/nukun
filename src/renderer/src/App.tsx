@@ -84,6 +84,22 @@ export function App() {
     if (el) el.scrollTop = 0;
   }, [route]);
 
+  // Escape goes back: from an article to where it was opened, from any other page
+  // to the feed. Not while typing, nor during the tour (Escape closes it).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented || !settings?.onboarded) return;
+      const el = document.activeElement as HTMLElement | null;
+      if (el && (el.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName))) return;
+      // A selection in the article (explain bubble): Escape only clears it.
+      if (window.getSelection()?.toString()) return;
+      if (route.view === "reader") go(route.from);
+      else if (route.view !== "feed") go({ view: "feed" });
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [route, go, settings?.onboarded]);
+
   const toggleTheme = async () => {
     setSettings(await api.saveSettings({ theme: dark ? "light" : "dark" }));
   };

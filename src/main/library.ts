@@ -378,7 +378,7 @@ export class Library {
 
   libraryList() {
     return this.all()
-      .filter((a) => a.state.opened || a.state.saved || a.state.liked || a.state.posted)
+      .filter((a) => !a.state.removed && (a.state.opened || a.state.saved || a.state.liked || a.state.posted))
       .sort((a, b) => Date.parse(b.state.lastOpened ?? b.fetchedAt) - Date.parse(a.state.lastOpened ?? a.fetchedAt));
   }
 
@@ -902,6 +902,13 @@ export class Library {
         break;
       case "posted":
         st.posted = true;
+        break;
+      case "remove":
+        // Out of the library and the feed; its parsed text and translations go too.
+        st.removed = true;
+        st.dismissed = true;
+        st.saved = false;
+        removeFile(contentFile(a.id));
         break;
     }
     this.db.save();
