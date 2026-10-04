@@ -384,7 +384,8 @@ export interface NukunApi {
   interact(i: Interaction): Promise<void>;
   saveScroll(id: string, ratio: number): Promise<void>;
   refresh(): Promise<void>;
-  translateTeasers(ids: string[]): Promise<void>;
+  /** Cards on screen: French title, image and full text, prepared in the background. */
+  prepareCards(ids: string[]): Promise<void>;
   getSettings(): Promise<Settings>;
   saveSettings(s: Partial<Settings> & { claudeKey?: string; semanticScholarKey?: string; geminiKey?: string }): Promise<Settings>;
   testAi(): Promise<{ ok: boolean; message: string }>;

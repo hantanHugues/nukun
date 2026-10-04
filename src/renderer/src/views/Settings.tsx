@@ -299,7 +299,7 @@ export function SettingsView() {
             <div className="row" style={{ gap: 8 }}>
               <button
                 className="btn primary"
-                disabled={draft.interests.length < MIN_INTERESTS}
+                disabled={draft.interests.length < MIN_INTERESTS || !Object.values(draft.languages).some(Boolean)}
                 onClick={async () => {
                   await api.setInterests(draft.interests, draft.languages);
                   setDraft(null);

@@ -7,7 +7,7 @@ const invoke =
 
 const methods = [
   "getFeed", "fieldCounts", "getLibrary", "getArticle", "loadContent", "translate", "translateVisible", "chat", "explainFigure", "setInterests", "searchTopics", "suggestion", "dismissSuggestion", "clearChat", "aiStatus", "explain", "interact", "saveScroll", "refresh",
-  "translateTeasers", "getSettings", "saveSettings", "testAi", "ollamaModels", "getUsage", "getSourceStatus",
+  "prepareCards", "getSettings", "saveSettings", "testAi", "ollamaModels", "getUsage", "getSourceStatus",
   "getProfile", "resetProfile", "analyzeInterests", "getDraft", "listDrafts", "saveDraft", "exportDraft", "chooseDir",
   "openExternal", "setTitleBarTheme",
 ];

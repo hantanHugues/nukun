@@ -182,6 +182,10 @@ export function InterestsEditor({
 
       <div className="field">
         <label>Langues des articles</label>
+        <span className="small muted">
+          Les articles écrits dans les langues cochées apparaissent dans ton fil, tous traduits en français. Clique pour cocher ou
+          décocher.
+        </span>
         <div className="row wrap" style={{ gap: 6 }}>
           {LANGUAGES.map((l) => {
             const on = languages[l.id] !== false;
@@ -192,12 +196,16 @@ export function InterestsEditor({
                 aria-pressed={on}
                 onClick={() => onChange(interests, { ...languages, [l.id]: !on })}
               >
-                {l.label}
+                {on && <Check size={13} />} {l.label}
               </button>
             );
           })}
         </div>
-        <span className="small muted">Tout est traduit en français ; les articles déjà en français sont lus tels quels.</span>
+        {languages.en === false && (
+          <span className="small lang-warning">
+            Sans l'anglais, la grande majorité des articles scientifiques disparaît de ton fil.
+          </span>
+        )}
       </div>
     </div>
   );
@@ -206,9 +214,13 @@ export function InterestsEditor({
 /** First launch: nothing is fetched before the reader has said what they like. */
 export function Welcome({ onDone }: { onDone: () => void }) {
   const [interests, setInterests] = useState<Interest[]>([]);
-  const [languages, setLanguages] = useState<Record<string, boolean>>(Object.fromEntries(LANGUAGES.map((l) => [l.id, true])));
+  // English (most research) and French to start; the other languages are added on demand.
+  const [languages, setLanguages] = useState<Record<string, boolean>>(
+    Object.fromEntries(LANGUAGES.map((l) => [l.id, l.id === "en" || l.id === "fr"])),
+  );
   const [saving, setSaving] = useState(false);
   const missing = MIN_INTERESTS - interests.length;
+  const noLanguage = !Object.values(languages).some(Boolean);
 
   // Someone who used the app before this screen existed: start from what they read.
   useEffect(() => {
@@ -249,9 +261,13 @@ export function Welcome({ onDone }: { onDone: () => void }) {
       </div>
       <div className="welcome-bar">
         <span className="muted small">
-          {missing > 0 ? `Encore ${missing} sujet${missing > 1 ? "s" : ""} à choisir` : `${interests.length} sujets choisis`}
+          {missing > 0
+            ? `Encore ${missing} sujet${missing > 1 ? "s" : ""} à choisir`
+            : noLanguage
+              ? "Coche au moins une langue"
+              : `${interests.length} sujets choisis`}
         </span>
-        <button className="btn primary" disabled={missing > 0 || saving} onClick={() => void start()}>
+        <button className="btn primary" disabled={missing > 0 || noLanguage || saving} onClick={() => void start()}>
           {saving ? <div className="spinner" /> : null} Commencer
         </button>
       </div>

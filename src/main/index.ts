@@ -145,9 +145,7 @@ function registerIpc() {
   ipcMain.handle("refresh", () => {
     void lib.refresh();
   });
-  ipcMain.handle("translateTeasers", (_e, ids: string[]) => {
-    void lib.queueTeasers(ids, true);
-  });
+  ipcMain.handle("prepareCards", (_e, ids: string[]) => lib.prepareCards(ids));
   ipcMain.handle("getSettings", () => getSettings());
   ipcMain.handle("saveSettings", (_e, s: Partial<Settings> & { claudeKey?: string }) => {
     const res = saveSettings(s);

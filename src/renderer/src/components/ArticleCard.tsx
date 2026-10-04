@@ -63,6 +63,7 @@ export function ArticleCard({
     <div
       ref={ref}
       data-tour={tour}
+      data-card-id={a.id}
       role="button"
       tabIndex={0}
       className={`card acard ${hero ? "hero" : ""}`}

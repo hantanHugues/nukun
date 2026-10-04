@@ -53,10 +53,37 @@ export function Feed({ kind }: { kind: ArticleKind }) {
     pendingScroll.current = null;
   }, [items]);
 
-  const askTeasers = (page: FeedItem[]) => {
-    const missing = page.filter((f) => !f.article.titleFr).map((f) => f.article.id);
-    if (missing.length) void api.translateTeasers(missing);
-  };
+  // Cards that come on screen are prepared (French title, image), a few at a time.
+  const seen = useRef(new Set<string>());
+  const pending = useRef(new Set<string>());
+  const flush = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cardObserver = useRef<IntersectionObserver | null>(null);
+  useEffect(() => {
+    cardObserver.current = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          const id = (e.target as HTMLElement).dataset.cardId;
+          if (!e.isIntersecting || !id || seen.current.has(id)) continue;
+          seen.current.add(id);
+          pending.current.add(id);
+        }
+        if (pending.current.size && !flush.current)
+          flush.current = setTimeout(() => {
+            void api.prepareCards([...pending.current]);
+            pending.current.clear();
+            flush.current = null;
+          }, 300);
+      },
+      // One screen ahead, so cards are ready when they arrive.
+      { root: document.getElementById("main-scroll"), rootMargin: "0px 0px 100% 0px" },
+    );
+    return () => cardObserver.current?.disconnect();
+  }, []);
+  useEffect(() => {
+    const io = cardObserver.current;
+    if (!io) return;
+    document.querySelectorAll<HTMLElement>("[data-card-id]").forEach((el) => io.observe(el));
+  }, [items]);
   const visible = (list: FeedItem[]) => list.filter((x) => !hidden.current.has(x.article.id));
 
   /** First page: a fresh ranking, or the same list as before when coming back. */
@@ -71,7 +98,6 @@ export function Feed({ kind }: { kind: ArticleKind }) {
       setItems(visible(page));
       setEnd(page.length < limit);
       setNewCount(0);
-      askTeasers(page.slice(0, PAGE));
       if (kind === "paper") setSuggested(await api.suggestion());
       if (back) pendingScroll.current = back.scroll;
     },
@@ -86,7 +112,6 @@ export function Feed({ kind }: { kind: ArticleKind }) {
     setItems((xs) => [...(xs ?? []), ...visible(page)]);
     setEnd(page.length < PAGE);
     setLoadingMore(false);
-    askTeasers(page);
   }, [domain, loadingMore, end, items]);
 
   useEffect(() => {
@@ -94,7 +119,8 @@ export function Feed({ kind }: { kind: ArticleKind }) {
     void loadFirst(true);
     // Titles translated or articles updated: refresh the cards in place, same order.
     const offUpdate = api.on("feed-updated", async () => {
-      if (!fetched.current) return;
+      // Empty feed during the first refresh: show the first articles as they arrive.
+      if (!fetched.current) return void loadFirst(false);
       const [page, c] = await Promise.all([
         api.getFeed({ domain, offset: 0, limit: fetched.current, fresh: false, kind }),
         api.fieldCounts(kind),

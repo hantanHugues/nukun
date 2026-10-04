@@ -370,7 +370,13 @@ export class Library {
           known: new Set(Object.keys(this.db.data)),
         });
         st.lastCount = raws.length;
-        added += this.merge(raws);
+        const n = this.merge(raws);
+        added += n;
+        // The feed fills source by source instead of waiting for all of them.
+        if (n) {
+          this.reco.index(this.all());
+          this.emit.feedUpdated();
+        }
       } catch (e) {
         st.error = describeError(e);
       }
@@ -390,28 +396,22 @@ export class Library {
     progress("Classement des articles par discipline");
     await this.classifyNew();
 
-    progress("Recherche des textes intégraux en attente");
-    await this.resolvePending();
-    done++;
-
     this.prune();
     this.reco.index(this.all());
     this.meta.data.lastRefresh = new Date().toISOString();
     this.meta.save();
     this.db.save();
-    this.emit.feedUpdated();
-
-    progress("Préparation des articles en tête du fil");
-    await this.prefetchTop(12);
-    done++;
-    this.emit.feedUpdated();
-
-    progress("Traduction des titres");
-    const top = [...this.rankFeed("all", 30), ...this.rankFeed("all", 20, "news")].map((f) => f.article.id);
-    await this.queueTeasers(top);
-    done++;
     this.emit.refresh({ running: false, step: "Fil à jour", done, total: done, newArticles: added });
     this.emit.feedUpdated();
+
+    // Not needed to read the feed: done in the background, without the spinner.
+    // (Card images and titles are prepared as the reader scrolls: prepareCards.)
+    void (async () => {
+      await this.resolvePending();
+      this.emit.feedUpdated();
+      // News titles, for when the reader opens the Actus tab.
+      await this.queueTeasers(this.rankFeed("all", 12, "news").map((f) => f.article.id));
+    })();
   }
 
   private merge(raws: RawArticle[]): number {
@@ -508,21 +508,46 @@ export class Library {
     }
   }
 
-  private async prefetchTop(n: number) {
-    const ids = this.rankFeed("all", n).map((f) => f.article.id);
-    const queue = [...ids];
-    await Promise.all(
-      Array.from({ length: 3 }, async () => {
-        while (queue.length) {
-          const id = queue.shift()!;
-          try {
-            await this.loadContent(id);
-          } catch {
-            /* marked pending inside loadContent */
-          }
+  /** Articles already prepared for their card (full text fetched once). */
+  private prepared = new Set<string>();
+  private prepareQueue: string[] = [];
+  private preparing = 0;
+  private lastPrepareEmit = 0;
+
+  /**
+   * Cards on screen: French title and summary, and the full text, which gives the
+   * card its image and makes the article open at once. Called as the reader scrolls,
+   * so only what is seen is prepared.
+   */
+  prepareCards(ids: string[]) {
+    void this.queueTeasers(ids, true);
+    const todo = ids.filter((id) => !this.prepared.has(id) && this.get(id));
+    todo.forEach((id) => this.prepared.add(id));
+    this.prepareQueue = [...todo, ...this.prepareQueue];
+    while (this.preparing < 3 && this.prepareQueue.length) void this.prepareNext();
+  }
+
+  private async prepareNext() {
+    this.preparing++;
+    try {
+      while (this.prepareQueue.length) {
+        const id = this.prepareQueue.shift()!;
+        const hadImage = !!this.get(id)?.image;
+        try {
+          await this.loadContent(id);
+        } catch {
+          /* marked pending inside loadContent */
         }
-      }),
-    );
+        // A new image: show it, at most every second and a half.
+        if (!hadImage && this.get(id)?.image && Date.now() - this.lastPrepareEmit > 1500) {
+          this.lastPrepareEmit = Date.now();
+          this.emit.feedUpdated();
+        }
+      }
+    } finally {
+      this.preparing--;
+      this.emit.feedUpdated();
+    }
   }
 
   // ------------------------------------------------------------ content

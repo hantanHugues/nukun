@@ -1519,3 +1519,6 @@ figure.blk .fig-explain {
   padding-left: 2px;
   font-size: 12.5px;
 }
+.lang-warning {
+  color: var(--accent);
+}
