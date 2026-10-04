@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>Confidentialité et mentions légales</title>
+    <meta name="description" content="Ce que Nùkún fait de tes données, qui édite le site, et les limites de l'app." />
+    <link rel="alternate" hreflang="fr" href="https://hantanhugues.github.io/nukun/confidentialite.html" />
+    <link rel="alternate" hreflang="en" href="https://hantanhugues.github.io/nukun/en/privacy.html" />
+    <link rel="icon" href="site/img/icon.png" />
+    <link rel="stylesheet" href="site/fonts.css" />
+    <link rel="stylesheet" href="site/style.css" />
+  </head>
+  <body>
+    <a class="skip" href="#main">Aller au contenu</a>
+    <header class="nav">
+      <div class="wrap">
+        <a class="brand" href="./"><img src="site/img/icon.png" alt="" width="30" height="30" />Nùkún</a>
+        <nav class="nav-links" aria-label="Navigation principale">
+          <a href="./#fonctionnalites">Fonctionnalités</a>
+          <a href="./#questions">Questions</a>
+          <a href="aide.html">Aide</a>
+        </nav>
+        <a class="lang-switch" href="en/privacy.html" hreflang="en" lang="en">English</a>
+        <a class="btn btn-primary btn-small" href="https://github.com/hantanHugues/nukun/releases/latest">Télécharger</a>
+      </div>
+    </header>
+
+    <main id="main" class="wrap help">
+      <nav class="help-nav" aria-label="Sommaire">
+        <a href="#app">L'app et tes données</a>
+        <a href="#tiers">Services utilisés</a>
+        <a href="#site">Ce site</a>
+        <a href="#contenus">Articles et traductions</a>
+        <a href="#logiciel">Licence et garantie</a>
+        <a href="#editeur">Éditeur</a>
+      </nav>
+
+      <div class="help-body">
+        <h1>Confidentialité et mentions légales</h1>
+        <p class="lede">En bref : Nùkún ne collecte rien sur toi. Il n'y a ni compte, ni publicité, ni mesure d'audience.</p>
+
+        <section id="app">
+          <h2>L'app et tes données</h2>
+          <p>
+            Nùkún fonctionne sur ton ordinateur, sans compte. Ton profil de lecture, tes centres d'intérêt, ta
+            bibliothèque, tes notes, tes textes, les traductions et tes réglages sont enregistrés uniquement sur ton PC,
+            dans <span class="ui">%APPDATA%\Nukun</span>. L'auteur de l'app n'y a pas accès et ne reçoit aucune donnée,
+            aucune statistique d'usage et aucun rapport d'erreur.
+          </p>
+          <p>
+            Tes clés d'API (Google, Claude, Semantic Scholar) restent elles aussi sur ton PC. Elles servent uniquement à
+            appeler le service correspondant.
+          </p>
+          <p>Pour tout effacer : désinstalle l'app, puis supprime le dossier ci-dessus.</p>
+        </section>
+
+        <section id="tiers">
+          <h2>Services utilisés par l'app</h2>
+          <p>Pour fonctionner, l'app contacte directement ces services, depuis ton ordinateur :</p>
+          <ul>
+            <li>
+              <strong>Les sources scientifiques et d'actualité</strong> (arXiv, Europe PMC, PLOS, OpenAlex, NASA, CNRS…) :
+              pour chercher les articles et télécharger leur texte et leurs images. Elles reçoivent des recherches liées à
+              tes centres d'intérêt, comme lorsqu'un navigateur visite leurs sites.
+            </li>
+            <li>
+              <strong>L'IA que tu choisis</strong> : Google Gemini avec ta clé, Claude d'Anthropic avec ton abonnement ou
+              ta clé, ou Ollama en local, sans rien envoyer sur Internet. Seuls les passages à traduire ou à expliquer, et
+              tes questions sur l'article, leur sont envoyés. Leur utilisation suit les conditions de ces services, que tu
+              acceptes en créant ta clé ou ton compte chez eux.
+            </li>
+            <li>
+              <strong>Hugging Face</strong> : une seule fois, pour télécharger le modèle de recommandations. Il tourne
+              ensuite sur ton PC.
+            </li>
+            <li>
+              <strong>GitHub</strong> : pour savoir si une nouvelle version existe, et la télécharger quand tu cliques sur
+              Mettre à jour.
+            </li>
+          </ul>
+          <p>Ces services peuvent voir ton adresse IP, comme pour toute connexion à Internet.</p>
+        </section>
+
+        <section id="site">
+          <h2>Ce site</h2>
+          <p>
+            Ce site ne dépose aucun cookie, ne contient aucun outil de mesure d'audience et ne charge rien depuis d'autres
+            sites : ses polices sont hébergées avec lui. Il est hébergé par GitHub Pages, qui peut conserver l'adresse IP
+            des visiteurs dans ses journaux techniques, comme l'explique la
+            <a href="https://docs.github.com/fr/site-policy/privacy-policies/github-general-privacy-statement">déclaration de confidentialité de GitHub</a>.
+          </p>
+        </section>
+
+        <section id="contenus">
+          <h2>Articles et traductions</h2>
+          <p>
+            Les articles appartiennent à leurs auteurs et à leurs éditeurs, sous leurs propres licences. Nùkún affiche
+            uniquement des articles en libre accès, sur ton ordinateur et pour ton usage personnel. Il indique toujours la
+            source et donne le lien vers la page officielle. Il ne contourne aucune protection : un article protégé n'est
+            pas affiché.
+          </p>
+          <p>
+            Les traductions, résumés et explications sont produits automatiquement par une IA et peuvent contenir des
+            erreurs. Ils ne remplacent pas le texte original et ne constituent pas un avis médical, juridique ou
+            professionnel. Pour toute décision, reporte-toi à l'article original et à un spécialiste.
+          </p>
+          <p>
+            Ce que tu écris et exportes avec l'app t'appartient. Si tu le publies, respecte les licences des articles que
+            tu cites.
+          </p>
+        </section>
+
+        <section id="logiciel">
+          <h2>Licence et garantie</h2>
+          <p>
+            Nùkún est un logiciel libre, distribué sous
+            <a href="https://github.com/hantanHugues/nukun/blob/main/LICENSE">licence MIT</a>. Il est fourni « tel quel »,
+            sans garantie d'aucune sorte. Tu peux l'utiliser, le copier et le modifier librement, en conservant la mention
+            de la licence.
+          </p>
+        </section>
+
+        <section id="editeur">
+          <h2>Éditeur</h2>
+          <p>
+            Site et application édités par Ashlynx (HANTAN Hugues), à titre personnel et non commercial. Portfolio :
+            <a href="https://hantan-hugues.vercel.app">hantan-hugues.vercel.app</a>.
+          </p>
+          <p>Contact : par un ticket sur <a href="https://github.com/hantanHugues/nukun/issues">GitHub</a>.</p>
+          <p>Hébergement : GitHub Pages, GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, États-Unis.</p>
+        </section>
+      </div>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <span>Nùkún, créé par <a href="https://hantan-hugues.vercel.app">Ashlynx</a>. Licence MIT.</span>
+        <span><a href="aide.html">Aide</a> &nbsp; <a href="https://github.com/hantanHugues/nukun">GitHub</a> &nbsp; <a href="https://hantan-hugues.vercel.app">Portfolio</a> &nbsp; <a href="en/privacy.html" hreflang="en">English</a></span>
+      </div>
+    </footer>
+    <script src="site/site.js" defer></script>
+  </body>
+</html>
