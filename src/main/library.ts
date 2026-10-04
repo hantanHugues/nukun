@@ -9,6 +9,7 @@ import type {
   ChatMessage,
   Draft,
   Explanation,
+  Note,
   FeedItem,
   Interaction,
   InterestProfileView,
@@ -65,6 +66,7 @@ export class Library {
   private db = new JsonDoc<Record<string, Article>>("articles.json", {});
   private status = new JsonDoc<Partial<Record<SourceId, SourceStatus>>>("sources.json", {});
   private drafts = new JsonDoc<Record<string, Draft>>("drafts.json", {});
+  private notes = new JsonDoc<Record<string, Note[]>>("notes.json", {});
   /** `explore`: disciplines next to the reader's interests, picked again at each refresh. */
   private meta = new JsonDoc<{ lastRefresh?: string; explore?: DomainId[] }>("meta.json", {});
   readonly reco = new Recommender();
@@ -142,6 +144,7 @@ export class Library {
   }
 
   flush() {
+    this.notes.flush();
     this.semantic.flush();
     this.topicNames.flush();
     this.db.flush();
@@ -471,7 +474,7 @@ export class Library {
   /** Remove articles for good, except those the reader saved, liked or wrote about. */
   private drop(articles: Article[]) {
     for (const a of articles) {
-      if (a.state.saved || a.state.liked || a.state.posted || this.drafts.data[a.id]) continue;
+      if (a.state.saved || a.state.liked || a.state.posted || this.drafts.data[a.id] || this.notes.data[a.id]?.length) continue;
       delete this.db.data[a.id];
       removeFile(contentFile(a.id));
     }
@@ -565,7 +568,8 @@ export class Library {
     // News ages faster than research.
     const newsCutoff = Date.now() - 21 * 86400000;
     for (const a of this.all()) {
-      const touched = a.state.opened || a.state.saved || a.state.liked || a.state.posted || this.drafts.data[a.id];
+      const touched =
+        a.state.opened || a.state.saved || a.state.liked || a.state.posted || this.drafts.data[a.id] || this.notes.data[a.id]?.length;
       const limit = a.kind === "news" ? newsCutoff : cutoff;
       if (!touched && Date.parse(a.fetchedAt) < limit) {
         delete this.db.data[a.id];
@@ -909,6 +913,8 @@ export class Library {
         st.dismissed = true;
         st.saved = false;
         removeFile(contentFile(a.id));
+        delete this.notes.data[a.id];
+        this.notes.save();
         break;
     }
     this.db.save();
@@ -949,6 +955,32 @@ export class Library {
   }
 
   // ------------------------------------------------------------ drafts & export
+  // ------------------------------------------------------------ notes
+  getNotes(id: string): Note[] {
+    return this.notes.data[id] ?? [];
+  }
+
+  saveNote(id: string, note: Note): Note[] {
+    const list = (this.notes.data[id] ??= []);
+    const i = list.findIndex((n) => n.id === note.id);
+    if (i >= 0) list[i] = note;
+    else list.push(note);
+    this.notes.save();
+    return list;
+  }
+
+  deleteNote(id: string, noteId: string): Note[] {
+    const list = (this.notes.data[id] ?? []).filter((n) => n.id !== noteId);
+    if (list.length) this.notes.data[id] = list;
+    else delete this.notes.data[id];
+    this.notes.save();
+    return list;
+  }
+
+  noteCounts(): Record<string, number> {
+    return Object.fromEntries(Object.entries(this.notes.data).map(([id, l]) => [id, l.length]));
+  }
+
   getDraft(id: string) {
     return this.drafts.data[id];
   }

@@ -1505,3 +1505,59 @@ figure.blk .fig-explain {
 .lang-warning {
   color: var(--accent);
 }
+
+/* ------------------------------------------------------------ notes */
+.notes {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.note-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.note-composer .btn {
+  align-self: flex-end;
+}
+.note-quote {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 8px 10px;
+  border-left: 2px solid var(--brand);
+  border-radius: 6px;
+  background: var(--brand-weak);
+  font-size: 13px;
+  font-style: italic;
+}
+.note-quote span {
+  flex: 1;
+  max-height: 120px;
+  overflow: auto;
+}
+.note {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.note blockquote {
+  margin: 0;
+  padding-left: 10px;
+  border-left: 2px solid var(--brand);
+  color: var(--text-medium);
+  font-size: 13px;
+  font-style: italic;
+}
+.note-text {
+  font-size: 14px;
+  white-space: pre-wrap;
+}
+.writing-notes {
+  padding: 14px;
+  max-height: 560px;
+  overflow: auto;
+}

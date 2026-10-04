@@ -1,7 +1,8 @@
 import { marked } from "marked";
 import { BookOpen, Copy, FileDown, FolderOpen } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { Article, Draft } from "@shared/types";
+import type { Article, Draft, Note } from "@shared/types";
+import { Notes } from "../components/Notes";
 import { api } from "../api";
 import { useApp } from "../App";
 import { sanitize, timeAgo } from "../util";
@@ -28,6 +29,31 @@ export function Writing({ articleId }: { articleId?: string }) {
   const [current, setCurrent] = useState<string | undefined>(articleId);
   const [draft, setDraft] = useState<Draft | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const editor = useRef<HTMLTextAreaElement>(null);
+  const [rightPane, setRightPane] = useState<"notes" | "preview">("preview");
+  const [noteCount, setNoteCount] = useState(0);
+  // The notes come first when the article has some.
+  useEffect(() => {
+    if (!current) return;
+    void api.getNotes(current).then((ns) => {
+      setNoteCount(ns.length);
+      setRightPane(ns.length ? "notes" : "preview");
+    });
+  }, [current]);
+
+  /** A note goes where the cursor is: the passage as a quote, then the comment. */
+  const insertNote = (n: Note) => {
+    if (!draft) return;
+    const piece = `${n.quote ? `> ${n.quote.replace(/\n+/g, " ")}\n\n` : ""}${n.text ? `${n.text}\n\n` : ""}`;
+    const el = editor.current;
+    const at = el ? el.selectionStart : draft.body.length;
+    update({ body: draft.body.slice(0, at) + piece + draft.body.slice(at) });
+    requestAnimationFrame(() => {
+      if (!el) return;
+      el.focus();
+      el.selectionStart = el.selectionEnd = at + piece.length;
+    });
+  };
 
   const loadList = async () => {
     const ds = await api.listDrafts();
@@ -159,8 +185,25 @@ export function Writing({ articleId }: { articleId?: string }) {
               <input className="input" style={{ maxWidth: 240 }} value={draft.tags} placeholder="Tags, séparés par des virgules" onChange={(e) => update({ tags: e.target.value })} />
             </div>
             <div className="editor-grid">
-              <textarea className="textarea" style={{ minHeight: 520, fontFamily: "var(--font-mono)", fontSize: 14 }} value={draft.body} onChange={(e) => update({ body: e.target.value })} spellCheck lang="fr" />
-              <div className="card preview" dangerouslySetInnerHTML={{ __html: preview }} />
+              <textarea ref={editor} className="textarea" style={{ minHeight: 520, fontFamily: "var(--font-mono)", fontSize: 14 }} value={draft.body} onChange={(e) => update({ body: e.target.value })} spellCheck lang="fr" />
+              {/* Next to the text: the preview, or the notes taken while reading. */}
+              <div className="stack" style={{ gap: 10 }}>
+                <div className="seg" style={{ alignSelf: "flex-start" }}>
+                  <button className={rightPane === "notes" ? "active" : ""} onClick={() => setRightPane("notes")}>
+                    Mes notes{noteCount ? ` (${noteCount})` : ""}
+                  </button>
+                  <button className={rightPane === "preview" ? "active" : ""} onClick={() => setRightPane("preview")}>
+                    Aperçu
+                  </button>
+                </div>
+                {rightPane === "notes" ? (
+                  <div className="card writing-notes">
+                    <Notes articleId={draft.articleId} onInsert={insertNote} />
+                  </div>
+                ) : (
+                  <div className="card preview" dangerouslySetInnerHTML={{ __html: preview }} />
+                )}
+              </div>
             </div>
             <div className="row wrap">
               <button className="btn primary" onClick={() => void exportMdx()}>

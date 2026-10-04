@@ -18,7 +18,8 @@ export const artFor = (d: DomainId) => GROUP_ART[fieldGroup(d) ?? "none"];
 export function timeAgo(iso: string) {
   const d = (Date.now() - Date.parse(iso)) / 1000;
   if (!Number.isFinite(d)) return "";
-  if (d < 3600) return `il y a ${Math.max(1, Math.round(d / 60))} min`;
+  if (d < 60) return "à l'instant";
+  if (d < 3600) return `il y a ${Math.round(d / 60)} min`;
   if (d < 86400) return `il y a ${Math.round(d / 3600)} h`;
   if (d < 86400 * 30) return `il y a ${Math.round(d / 86400)} j`;
   return new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });

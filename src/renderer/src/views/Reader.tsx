@@ -1,26 +1,14 @@
-import {
-  AArrowDown,
-  AArrowUp,
-  ArrowLeft,
-  BookmarkCheck,
-  Bookmark,
-  ExternalLink,
-  Heart,
-  Languages,
-  Lightbulb,
-  PanelRight,
-  PenLine,
-  RotateCcw,
-} from "lucide-react";
+import { AArrowDown, AArrowUp, ArrowLeft, Bookmark, BookmarkCheck, ExternalLink, Heart, Languages, Lightbulb, NotebookPen, PanelRight, PenLine, RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Article, ArticleContent, Block, TranslationProgress } from "@shared/types";
 import { api } from "../api";
 import { type Route, useApp } from "../App";
 import { Discussion, type ThreadItem } from "../components/Discussion";
+import { Notes } from "../components/Notes";
 import { authorsShort, domainLabel, plain, sanitize, sourceLabel, timeAgo } from "../util";
 
 type Mode = "fr" | "en" | "bi" | "pdf";
-type SideTab = "lexique" | "discussion" | "infos";
+type SideTab = "lexique" | "discussion" | "notes" | "infos";
 
 const Html = ({ html, as: Tag = "div", lang, className }: { html: string; as?: any; lang?: string; className?: string }) => (
   <Tag className={className} lang={lang} dangerouslySetInnerHTML={{ __html: sanitize(html) }} />
@@ -36,6 +24,8 @@ export function Reader({ id, back }: { id: string; back: Route }) {
   const [side, setSide] = useState<SideTab | null>("lexique");
   const [thread, setThread] = useState<ThreadItem[]>([]);
   const [pop, setPop] = useState<{ x: number; y: number; text: string } | null>(null);
+  /** Passage kept with "Noter", waiting in the notes tab for a comment. */
+  const [noteQuote, setNoteQuote] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [openOrig, setOpenOrig] = useState<Set<string>>(new Set());
@@ -562,9 +552,9 @@ export function Reader({ id, back }: { id: string; back: Route }) {
         {side && (
           <aside className="side">
             <div className="seg" style={{ width: "100%", marginBottom: 16 }} data-tour="side-tabs">
-              {(["lexique", "discussion", "infos"] as SideTab[]).map((t) => (
+              {(["lexique", "discussion", "notes", "infos"] as SideTab[]).map((t) => (
                 <button key={t} className={side === t ? "active" : ""} style={{ flex: 1 }} onClick={() => setSide(t)}>
-                  {t === "lexique" ? "Lexique" : t === "discussion" ? "Discussion" : "Infos"}
+                  {t === "lexique" ? "Lexique" : t === "discussion" ? "Discussion" : t === "notes" ? "Notes" : "Infos"}
                 </button>
               ))}
             </div>
@@ -602,6 +592,7 @@ export function Reader({ id, back }: { id: string; back: Route }) {
                 }}
               />
             )}
+            {side === "notes" && <Notes articleId={id} quote={noteQuote} onQuoteUsed={() => setNoteQuote(null)} />}
             {side === "infos" && article && (
               <div className="stack small" style={{ gap: 12 }}>
                 <div>
@@ -660,6 +651,17 @@ export function Reader({ id, back }: { id: string; back: Route }) {
         <div className="pop" style={{ left: pop.x, top: pop.y }} onMouseDown={(e) => e.preventDefault()}>
           <button className="btn sm brand" onClick={() => void explain(pop.text)}>
             <Lightbulb size={14} /> Expliquer
+          </button>
+          <button
+            className="btn sm"
+            onClick={() => {
+              setNoteQuote(pop.text);
+              setSide("notes");
+              setPop(null);
+              window.getSelection()?.removeAllRanges();
+            }}
+          >
+            <NotebookPen size={14} /> Noter
           </button>
         </div>
       )}

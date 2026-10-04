@@ -1,7 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain, nativeTheme, protocol, shell } from "electron";
 import fs from "node:fs";
 import path from "node:path";
-import type { DomainId, Draft, Interaction, Interest, Settings } from "@shared/types";
+import type { DomainId, Draft, Interaction, Interest, Note, Settings } from "@shared/types";
 import { claudeCodeAvailable } from "./ai/claudeCode";
 import { adviseLocalModel, detectHardware } from "./ai/hardware";
 import { ollamaModels, ollamaReachable, testAi } from "./ai/llm";
@@ -159,6 +159,10 @@ function registerIpc() {
   ipcMain.handle("getProfile", () => lib.profileView());
   ipcMain.handle("resetProfile", () => lib.resetProfile());
   ipcMain.handle("analyzeInterests", () => lib.analyzeInterests());
+  ipcMain.handle("getNotes", (_e, id: string) => lib.getNotes(id));
+  ipcMain.handle("saveNote", (_e, id: string, n: Note) => lib.saveNote(id, n));
+  ipcMain.handle("deleteNote", (_e, id: string, noteId: string) => lib.deleteNote(id, noteId));
+  ipcMain.handle("noteCounts", () => lib.noteCounts());
   ipcMain.handle("getDraft", (_e, id: string) => lib.getDraft(id));
   ipcMain.handle("listDrafts", () => lib.listDrafts());
   ipcMain.handle("saveDraft", (_e, d: Draft) => lib.saveDraft(d));

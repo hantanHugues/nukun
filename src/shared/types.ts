@@ -301,6 +301,14 @@ export interface SourceStatus {
   error?: string;
 }
 
+/** A note taken while reading: an idea, and/or a passage kept from the article. */
+export interface Note {
+  id: string;
+  quote?: string;
+  text: string;
+  at: string;
+}
+
 export interface Draft {
   articleId: string;
   title: string;
@@ -401,6 +409,12 @@ export interface NukunApi {
   getProfile(): Promise<InterestProfileView>;
   resetProfile(): Promise<void>;
   analyzeInterests(): Promise<void>;
+  getNotes(articleId: string): Promise<Note[]>;
+  /** Adds or updates a note; returns the article's notes. */
+  saveNote(articleId: string, note: Note): Promise<Note[]>;
+  deleteNote(articleId: string, noteId: string): Promise<Note[]>;
+  /** Number of notes per article (library badges). */
+  noteCounts(): Promise<Record<string, number>>;
   getDraft(articleId: string): Promise<Draft | undefined>;
   listDrafts(): Promise<Draft[]>;
   saveDraft(d: Draft): Promise<void>;

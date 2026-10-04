@@ -1,4 +1,4 @@
-import { CheckCircle2, Heart, PenLine, Trash2 } from "lucide-react";
+import { CheckCircle2, Heart, NotebookPen, PenLine, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { Article } from "@shared/types";
 import { api } from "../api";
@@ -19,9 +19,11 @@ export function Library() {
   const { go, toast } = useApp();
   const [tab, setTab] = useState<Tab>("encours");
   const [items, setItems] = useState<Article[]>([]);
+  const [noteCounts, setNoteCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     void api.getLibrary().then(setItems);
+    void api.noteCounts().then(setNoteCounts);
   }, []);
 
   const shown = items.filter(TABS.find((t) => t.id === tab)!.test);
@@ -68,6 +70,11 @@ export function Library() {
                     <span>· ouvert {timeAgo(a.state.lastOpened ?? a.fetchedAt)}</span>
                     {a.state.liked && <Heart size={13} fill="currentColor" color="var(--accent)" />}
                     {a.state.finished && <CheckCircle2 size={13} color="var(--success)" />}
+                    {noteCounts[a.id] > 0 && (
+                      <span className="row" style={{ gap: 4 }}>
+                        <NotebookPen size={13} /> {noteCounts[a.id]} note{noteCounts[a.id] > 1 ? "s" : ""}
+                      </span>
+                    )}
                   </div>
                   <div className="bar" style={{ maxWidth: 260 }}>
                     <div style={{ width: `${Math.round(a.state.progress * 100)}%` }} />
@@ -88,6 +95,8 @@ export function Library() {
                   aria-label="Retirer de la bibliothèque"
                   onClick={(e) => {
                     e.stopPropagation();
+                    const n = noteCounts[a.id] ?? 0;
+                    if (n && !confirm(`Cet article a ${n} note${n > 1 ? "s" : ""} : ${n > 1 ? "elles seront supprimées" : "elle sera supprimée"} aussi. Retirer quand même ?`)) return;
                     void api.interact({ id: a.id, type: "remove" });
                     setItems((xs) => xs.filter((x) => x.id !== a.id));
                     toast("Retiré de la bibliothèque.");
