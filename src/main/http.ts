@@ -21,6 +21,14 @@ export class HttpError extends Error {
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export async function get(url: string, opts: GetOpts = {}): Promise<Response> {
+  return request(url, opts, async (res) => res);
+}
+
+/**
+ * Fetch and read the answer within the same time limit: a server that starts
+ * answering and then sends the file drop by drop is abandoned like a silent one.
+ */
+async function request<T>(url: string, opts: GetOpts, read: (res: Response) => Promise<T>): Promise<T> {
   const retries = opts.retries ?? 2;
   let lastErr: unknown;
   for (let attempt = 0; attempt <= retries; attempt++) {
@@ -32,7 +40,7 @@ export async function get(url: string, opts: GetOpts = {}): Promise<Response> {
         signal: ctrl.signal,
         headers: { "User-Agent": opts.browser ? BROWSER_UA : API_UA, ...opts.headers },
       });
-      if (res.ok) return res;
+      if (res.ok) return await read(res);
       lastErr = new HttpError(res.status, url);
       // Only retry on rate limits and server errors.
       if (res.status !== 429 && res.status < 500) throw lastErr;
@@ -49,12 +57,12 @@ export async function get(url: string, opts: GetOpts = {}): Promise<Response> {
   throw lastErr;
 }
 
-export async function getText(url: string, opts?: GetOpts) {
-  return (await get(url, opts)).text();
+export async function getText(url: string, opts: GetOpts = {}) {
+  return request(url, opts, (res) => res.text());
 }
 
-export async function getJson<T = any>(url: string, opts?: GetOpts): Promise<T> {
-  return (await get(url, { ...opts, headers: { Accept: "application/json", ...opts?.headers } })).json() as Promise<T>;
+export async function getJson<T = any>(url: string, opts: GetOpts = {}): Promise<T> {
+  return request(url, { ...opts, headers: { Accept: "application/json", ...opts.headers } }, (res) => res.json() as Promise<T>);
 }
 
 /** Message shown when a site answers with an anti-robot page instead of the document. */
@@ -83,8 +91,8 @@ export async function pdfReachable(url: string): Promise<boolean> {
   return ok;
 }
 
-export async function getBuffer(url: string, opts?: GetOpts) {
-  return new Uint8Array(await (await get(url, opts)).arrayBuffer());
+export async function getBuffer(url: string, opts: GetOpts = {}) {
+  return request(url, opts, async (res) => new Uint8Array(await res.arrayBuffer()));
 }
 
 export function isoDaysAgo(days: number) {

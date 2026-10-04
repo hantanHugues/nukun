@@ -172,10 +172,11 @@ export function Writing({ articleId }: { articleId?: string }) {
         {draft ? (
           <div className="stack" style={{ gap: 16 }}>
             {a && (
-              <div className="row small muted wrap">
-                <span>D'après :</span>
-                <button className="btn sm ghost" onClick={() => go({ view: "reader", articleId: a.id, from: { view: "writing" } })}>
-                  <BookOpen size={14} /> {a.titleFr ?? a.title}
+              <div className="row small wrap" style={{ gap: 10 }}>
+                <span className="muted grow">D'après « {a.titleFr ?? a.title} »</span>
+                {/* Back to the article and back again: Escape or "Retour à mon texte". */}
+                <button className="btn sm" onClick={() => go({ view: "reader", articleId: a.id, from: { view: "writing", articleId: a.id } })}>
+                  <BookOpen size={14} /> Relire l'article
                 </button>
               </div>
             )}

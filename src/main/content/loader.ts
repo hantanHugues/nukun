@@ -253,7 +253,8 @@ async function inline(html: string, baseUrl: string): Promise<Loaded> {
 
 // ---------------------------------------------------------------- PDF-only sources
 async function pdf(url: string, originalUrl: string): Promise<Loaded> {
-  const data = await getBuffer(url, { browser: true, timeoutMs: 60000 });
+  // 90 s for the whole file, one more try: a reader never waits more than 3 minutes.
+  const data = await getBuffer(url, { browser: true, timeoutMs: 90000, retries: 1 });
   // An anti-robot page instead of the file: say so plainly.
   if (!new TextDecoder().decode(data.slice(0, 1024)).includes("%PDF")) throw new Error(BLOCKED_MESSAGE);
   const blocks = await pdfToBlocks(data);

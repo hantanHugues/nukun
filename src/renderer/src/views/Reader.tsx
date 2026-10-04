@@ -257,7 +257,7 @@ export function Reader({ id, back }: { id: string; back: Route }) {
     return (
       <div className="page" style={{ maxWidth: 720 }}>
         <button className="btn ghost" onClick={() => go(back)}>
-          <ArrowLeft size={16} /> Retour
+          <ArrowLeft size={16} /> {back.view === "writing" ? "Retour à mon texte" : "Retour"}
         </button>
         <div className="card section" style={{ marginTop: 24 }}>
           <h2 className="h2">{article?.titleFr ?? article?.title}</h2>
@@ -431,7 +431,7 @@ export function Reader({ id, back }: { id: string; back: Route }) {
     <>
       <div className="reader-bar">
         <button className="btn ghost sm" onClick={() => go(back)}>
-          <ArrowLeft size={16} /> Retour
+          <ArrowLeft size={16} /> {back.view === "writing" ? "Retour à mon texte" : "Retour"}
         </button>
         <div className="grow" />
         {translating && (
