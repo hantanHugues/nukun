@@ -91,6 +91,7 @@ async function readFeed(f: NewsFeed): Promise<RawArticle[]> {
       license: `Publication officielle (${f.venue})`,
       image,
       fullText: isFullPost(full) ? { kind: "inline", html: full, baseUrl: link } : { kind: "html", url: link, mode: "readable" },
+      video: /\/videos?\//.test(link) || undefined,
       availability: "ok",
     });
   }

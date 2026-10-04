@@ -1,4 +1,4 @@
-import { Bookmark, BookmarkCheck, Compass, EyeOff, Sparkles } from "lucide-react";
+import { Bookmark, BookmarkCheck, Compass, EyeOff, Play, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { FeedItem } from "@shared/types";
 import { languageLabel } from "@shared/types";
@@ -105,6 +105,11 @@ export function ArticleCard({
             <span className="tag brand">{domainLabel(a.domain)}</span>
           )}
           <span>{sourceLabel(a)}</span>
+          {a.video && (
+            <span className="tag">
+              <Play size={11} /> {t("Vidéo")}
+            </span>
+          )}
           {a.lang && a.lang !== "en" && (
             <span className="tag" title={t("Article en {langue}", { langue: languageLabel(a.lang).toLowerCase() })}>
               {a.lang.toUpperCase()}

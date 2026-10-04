@@ -1,4 +1,4 @@
-import { AArrowDown, AArrowUp, ArrowLeft, Bookmark, BookmarkCheck, ExternalLink, Heart, Languages, Lightbulb, NotebookPen, PanelRight, PenLine, RotateCcw } from "lucide-react";
+import { AArrowDown, AArrowUp, ArrowLeft, Bookmark, BookmarkCheck, ExternalLink, Heart, Languages, Lightbulb, NotebookPen, PanelRight, PenLine, Play, RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Article, ArticleContent, Block, TranslationProgress } from "@shared/types";
 import { lang, locale, t } from "@shared/i18n";
@@ -405,6 +405,20 @@ export function Reader({ id, back }: { id: string; back: Route }) {
             >
               <Lightbulb size={14} /> {t("Expliquer cette figure")}
             </button>
+          </figure>
+        );
+      case "video":
+        return (
+          <figure key={bi} className="blk video">
+            <button className="video-thumb" onClick={() => void api.openExternal(b.url)} title={t("Regarder la vidéo sur {site}", { site: b.site })}>
+              {b.thumb ? <img src={b.thumb} alt="" /> : <div className="video-blank" />}
+              <span className="video-play">
+                <Play size={28} fill="currentColor" />
+              </span>
+            </button>
+            <figcaption>
+              {t("Regarder la vidéo sur {site}", { site: b.site })} <ExternalLink size={13} />
+            </figcaption>
           </figure>
         );
       case "table":

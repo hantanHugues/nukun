@@ -60,6 +60,9 @@ type Emit = {
 /** ".../html/2610.02170/2610.02170v1/x.png" → ".../html/2610.02170v1/x.png" */
 const fixArxivUrl = (u: string) => u.replace(/(arxiv\.org\/html\/)([^/]+)\/(\2v\d+\/)/, "$1$3");
 
+/** Version of the extraction of news pages (videos, page furniture removed). */
+const NEWS_EXTRACTOR = 2;
+
 const emptyState = (): ArticleState => ({ impressions: 0, opened: 0, dwellSec: 0, progress: 0 });
 const contentFile = (id: string) => `content/${safeName(id)}.json`;
 
@@ -668,7 +671,11 @@ export class Library {
 
   // ------------------------------------------------------------ content
   async loadContent(id: string): Promise<ArticleContent> {
-    const cached = readJson<ArticleContent | null>(contentFile(id), null);
+    let cached = readJson<ArticleContent | null>(contentFile(id), null);
+    // News pages read before videos and page furniture were handled: read again.
+    const page = this.get(id)?.fullText;
+    const isPage = page && (page.kind === "inline" || (page.kind === "html" && page.mode === "readable"));
+    if (cached && isPage && (cached.extractor ?? 1) < NEWS_EXTRACTOR) cached = null;
     // Translated into another language than the one read now: translated again
     // (the translation memory keeps both, so going back costs nothing).
     if (cached && (cached.trLang ?? "fr") !== lang()) {
@@ -692,10 +699,15 @@ export class Library {
     try {
       const loaded = await loadFullText(a);
       if (loaded.blocks.filter((b) => b.t === "p").length < 2) throw new PendingError(t("Texte intégral trop court."));
-      const content: ArticleContent = { id, ...loaded, tr: {}, trLang: lang() };
+      const content: ArticleContent = { id, ...loaded, tr: {}, trLang: lang(), extractor: NEWS_EXTRACTOR };
       writeJson(contentFile(id), content);
       const firstFig = content.blocks.find((b) => b.t === "fig");
       if (!a.image && firstFig?.t === "fig") a.image = firstFig.src[0];
+      const video = content.blocks.find((b) => b.t === "video");
+      if (video?.t === "video") {
+        a.video = true;
+        if (!a.image && video.thumb) a.image = video.thumb;
+      }
       if (!a.abstract) {
         const firstP = content.blocks.find((b) => b.t === "p");
         if (firstP?.t === "p") a.abstract = firstP.segs[0].replace(/<[^>]+>/g, "").slice(0, 1500);

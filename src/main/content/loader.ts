@@ -220,16 +220,51 @@ async function scielo(url: string, pdfUrl?: string): Promise<Loaded> {
 /** The article part of an official news page, extracted like Firefox's reader view. */
 async function readable(url: string): Promise<Loaded> {
   const html = await getText(url, { browser: true, timeoutMs: 45000 });
+  // Readability drops embedded players: the videos are found first, in the whole page.
+  const found = videosIn(html);
   const { parseHTML } = await import("linkedom");
   const { Readability } = await import("@mozilla/readability");
   const { document } = parseHTML(html);
   const art = new Readability(document as unknown as Document).parse();
   if (!art?.content) throw new Error(t("Impossible d'extraire l'article de cette page."));
-  return inline(art.content, url);
+  return inline(art.content, url, found);
 }
 
+/**
+ * Videos embedded in a page (YouTube, Vimeo, Dailymotion). They are opened on their
+ * site: a desktop app is often refused by the players, so no player is embedded.
+ */
+function videosIn(html: string): Extract<Block, { t: "video" }>[] {
+  const out: Extract<Block, { t: "video" }>[] = [];
+  const seen = new Set<string>();
+  for (const m of html.matchAll(/<iframe[^>]+src="([^"]+)"/gi)) {
+    const src = m[1];
+    let v: Extract<Block, { t: "video" }> | null = null;
+    const yt = /youtube(?:-nocookie)?\.com\/embed\/([\w-]{11})/.exec(src);
+    const vm = /player\.vimeo\.com\/video\/(\d+)/.exec(src);
+    const dm = /dailymotion\.com\/embed\/video\/(\w+)/.exec(src);
+    if (yt) v = { t: "video", site: "YouTube", url: `https://www.youtube.com/watch?v=${yt[1]}`, thumb: `https://img.youtube.com/vi/${yt[1]}/hqdefault.jpg` };
+    else if (vm) v = { t: "video", site: "Vimeo", url: `https://vimeo.com/${vm[1]}` };
+    else if (dm) v = { t: "video", site: "Dailymotion", url: `https://www.dailymotion.com/video/${dm[1]}`, thumb: `https://www.dailymotion.com/thumbnail/video/${dm[1]}` };
+    if (v && !seen.has(v.url)) {
+      seen.add(v.url);
+      out.push(v);
+    }
+  }
+  return out;
+}
+
+/**
+ * Page furniture that is not the article: a video's empty information sheet, lists of
+ * other videos or articles. The text stops where it begins.
+ */
+const FURNITURE =
+  /^(à propos de cette vidéo|les vidéos récentes|vidéos récentes|à lire aussi|lire aussi|sur le même sujet|dans la même rubrique|articles? liés?|related (posts|articles|videos)|you may also like|more videos|recent videos)\b/i;
+
 // ---------------------------------------------------------------- NASA (content embedded in the feed)
-async function inline(html: string, baseUrl: string): Promise<Loaded> {
+async function inline(html: string, baseUrl: string, found: Extract<Block, { t: "video" }>[] = []): Promise<Loaded> {
+  // Videos of a post carried by the feed itself.
+  const videos = found.length ? found : videosIn(html);
   const $ = cheerio.load(`<div id="root">${html}</div>`);
   $("script, style, iframe, .hds-social-share").remove();
   const blocks = htmlToBlocks($, $("#root")[0], {
@@ -249,7 +284,11 @@ async function inline(html: string, baseUrl: string): Promise<Loaded> {
   // The feed ends with "The post … appeared first on NASA Science."
   const last = blocks[blocks.length - 1];
   if (last?.t === "p" && /appeared first on/.test(last.segs[0])) blocks.pop();
-  return { blocks, originalUrl: baseUrl };
+  const plainText = (b: Block) => (b.segs?.[0] ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  const cut = blocks.findIndex((b) => (b.t === "h" || b.t === "p") && FURNITURE.test(plainText(b)));
+  if (cut > 0) blocks.splice(cut);
+  // The video first, then the text that presents it.
+  return { blocks: [...videos, ...blocks], originalUrl: baseUrl };
 }
 
 // ---------------------------------------------------------------- PDF-only sources

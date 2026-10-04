@@ -157,6 +157,8 @@ export interface Article {
   /** Title and summary in the reading language (French or English, see `teaserLang`). */
   titleFr?: string;
   teaserFr?: string;
+  /** A video page (news): shown with the video's picture and a play button. */
+  video?: boolean;
   /** Language of `titleFr` / `teaserFr` (French when absent). */
   teaserLang?: string;
   /** Titles and summaries made in each reading language, kept when the language changes. */
@@ -190,7 +192,9 @@ export type Block =
   | { t: "table"; html: string; label?: string; segs: [string] }
   | { t: "eq"; html: string; segs?: [] }
   | { t: "code"; text: string; segs?: [] }
-  | { t: "refs"; items: string[]; segs?: [] };
+  | { t: "refs"; items: string[]; segs?: [] }
+  /** A video of the page (YouTube, Vimeo, Dailymotion): opened on its site. */
+  | { t: "video"; url: string; site: string; thumb?: string; segs?: [] };
 
 export interface GlossaryTerm {
   term: string;
@@ -209,6 +213,8 @@ export interface ArticleContent {
   tr: Record<number, string[]>;
   glossary?: GlossaryTerm[];
   translatedBy?: string;
+  /** Version of the news-page extraction (pages read before an improvement are read again). */
+  extractor?: number;
   /** Language the passages were translated into (French when absent). */
   trLang?: string;
   /** Passages translated so far, by provider (including the shared memory). */

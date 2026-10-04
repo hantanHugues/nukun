@@ -492,4 +492,7 @@ export const EN: Record<string, string> = {
   "Abonnement Claude ({modele})": "Claude subscription ({modele})",
   "gratuit": "free",
   "{ia}, en relais": "{ia}, as a fallback",
+  // ---------------------------------------------------------------- vidéos
+  "Vidéo": "Video",
+  "Regarder la vidéo sur {site}": "Watch the video on {site}",
 };
