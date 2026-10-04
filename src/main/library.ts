@@ -6,6 +6,7 @@ import type {
   ArticleState,
   DomainId,
   Draft,
+  Explanation,
   FeedItem,
   Interaction,
   RefreshProgress,
@@ -16,6 +17,7 @@ import type {
 import { SOURCES } from "@shared/types";
 import { analyzeInterests, explainPassage, makeTeasers } from "./ai/assist";
 import { describeError } from "./ai/llm";
+import { recallExplanation, rememberExplanation } from "./ai/memory";
 import { translateContent } from "./ai/translate";
 import { loadFullText, PendingError } from "./content/loader";
 import { Recommender } from "./reco/recommender";
@@ -325,8 +327,34 @@ export class Library {
     return job;
   }
 
-  explain(id: string, text: string) {
-    return explainPassage(this.get(id), text);
+  /**
+   * Explain a selected passage, cheapest source first: a single glossary term is
+   * answered from the article's glossary, a passage explained before comes from the
+   * shared memory, and only new passages go to an AI. Every answer is kept with the
+   * article so it is still there next time.
+   */
+  async explain(id: string, text: string): Promise<Explanation> {
+    const passage = text.replace(/\s+/g, " ").trim();
+    const c = await this.loadContent(id);
+    const save = (e: Explanation) => {
+      c.explanations = [...(c.explanations ?? []).filter((x) => x.q !== e.q), e];
+      writeJson(contentFile(id), c);
+      return e;
+    };
+    const at = new Date().toISOString();
+
+    const term = c.glossary?.find((g) => g.term.toLowerCase() === passage.toLowerCase().replace(/[.,;:]$/, ""));
+    if (term) {
+      const a = `${term.definition}${term.keep ? ` Les spécialistes francophones gardent le terme anglais « ${term.term} ».` : ` En français : « ${term.fr} ».`}`;
+      return save({ q: passage, a, by: "Lexique de l'article", at });
+    }
+
+    const known = recallExplanation(passage);
+    if (known) return save({ q: passage, a: known.a, by: `Mémoire (${known.by})`, at });
+
+    const { text: a, provider } = await explainPassage(this.get(id), passage);
+    rememberExplanation(passage, a, provider);
+    return save({ q: passage, a, by: provider, at });
   }
 
   async queueTeasers(ids: string[]) {

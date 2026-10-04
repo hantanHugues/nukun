@@ -34,3 +34,24 @@ export function memorySize() {
 export function flushMemory() {
   doc?.flush();
 }
+
+/**
+ * Explanation memory: the same passage selected again (in any article) gets its
+ * explanation back without calling an AI.
+ */
+let explDoc: JsonDoc<Record<string, { a: string; by: string }>> | null = null;
+const expl = () => (explDoc ??= new JsonDoc<Record<string, { a: string; by: string }>>("explanation-memory.json", {}));
+
+export function recallExplanation(passage: string) {
+  return expl().data[keyOf(passage.toLowerCase())];
+}
+
+export function rememberExplanation(passage: string, a: string, by: string) {
+  const d = expl();
+  d.data[keyOf(passage.toLowerCase())] = { a, by };
+  d.save();
+}
+
+export function flushExplanations() {
+  explDoc?.flush();
+}

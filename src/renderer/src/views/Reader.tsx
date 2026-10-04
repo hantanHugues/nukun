@@ -33,7 +33,7 @@ export function Reader({ id, back }: { id: string; back: Route }) {
   const [mode, setMode] = useState<Mode>("fr");
   const [tr, setTr] = useState<TranslationProgress | null>(null);
   const [side, setSide] = useState<SideTab | null>("lexique");
-  const [explains, setExplains] = useState<{ q: string; a?: string; err?: string }[]>([]);
+  const [explains, setExplains] = useState<{ q: string; a?: string; by?: string; err?: string }[]>([]);
   const [pop, setPop] = useState<{ x: number; y: number; text: string } | null>(null);
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
@@ -182,14 +182,22 @@ export function Reader({ id, back }: { id: string; back: Route }) {
     return () => document.removeEventListener("mouseup", onUp);
   }, []);
 
+  // Explanations asked during earlier visits come back with the article.
+  const explainsLoaded = useRef(false);
+  useEffect(() => {
+    if (!content || explainsLoaded.current) return;
+    explainsLoaded.current = true;
+    if (content.explanations?.length) setExplains(content.explanations.map((e) => ({ q: e.q, a: e.a, by: e.by })));
+  }, [content]);
+
   const explain = async (text: string) => {
     setPop(null);
     setSide("explications");
     const idx = explains.length;
     setExplains((xs) => [...xs, { q: text }]);
     try {
-      const a = await api.explain(id, text);
-      setExplains((xs) => xs.map((x, i) => (i === idx ? { ...x, a } : x)));
+      const e = await api.explain(id, text);
+      setExplains((xs) => xs.map((x, i) => (i === idx ? { ...x, a: e.a, by: e.by } : x)));
     } catch (e) {
       const err = e instanceof Error ? e.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, "") : String(e);
       setExplains((xs) => xs.map((x, i) => (i === idx ? { ...x, err } : x)));
@@ -548,7 +556,14 @@ export function Reader({ id, back }: { id: string; back: Route }) {
                       « {x.q.length > 220 ? `${x.q.slice(0, 220)}…` : x.q} »
                     </div>
                     {x.a ? (
-                      <div className="explain">{x.a}</div>
+                      <>
+                        <div className="explain">{x.a}</div>
+                        {x.by && (
+                          <div className="small muted" style={{ marginTop: 10 }}>
+                            Répondu par : {x.by}
+                          </div>
+                        )}
+                      </>
                     ) : x.err ? (
                       <div className="notice warn">{x.err}</div>
                     ) : (

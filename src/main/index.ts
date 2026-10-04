@@ -2,7 +2,7 @@ import { app, BrowserWindow, dialog, ipcMain, nativeTheme, protocol, shell } fro
 import path from "node:path";
 import type { DomainId, Draft, Interaction, Settings } from "@shared/types";
 import { ollamaModels, testAi } from "./ai/llm";
-import { flushMemory } from "./ai/memory";
+import { flushExplanations, flushMemory } from "./ai/memory";
 import { BROWSER_UA, get } from "./http";
 import { Library } from "./library";
 import { getSettings, getUsage, saveSettings } from "./settings";
@@ -169,6 +169,7 @@ if (!app.requestSingleInstanceLock()) {
   app.on("before-quit", () => {
     lib?.flush();
     flushMemory();
+    flushExplanations();
   });
   app.on("window-all-closed", () => {
     if (process.platform !== "darwin") app.quit();

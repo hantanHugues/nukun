@@ -120,6 +120,15 @@ export interface ArticleContent {
   translatedBy?: string;
   /** Passages translated so far, by provider (including the shared memory). */
   trBy?: Record<string, number>;
+  /** Explanations asked while reading this article, kept for later visits. */
+  explanations?: Explanation[];
+}
+
+export interface Explanation {
+  q: string; // the selected passage
+  a: string; // the explanation in French
+  by: string; // who answered: an AI, the shared memory or the glossary
+  at: string;
 }
 
 export interface FeedItem {
@@ -230,7 +239,7 @@ export interface VeilleApi {
   translate(id: string, force?: boolean): Promise<void>;
   /** Translate only these passages ("block:segment"), typically the ones on screen. */
   translateVisible(id: string, keys: string[]): Promise<void>;
-  explain(id: string, text: string): Promise<string>;
+  explain(id: string, text: string): Promise<Explanation>;
   interact(i: Interaction): Promise<void>;
   saveScroll(id: string, ratio: number): Promise<void>;
   refresh(): Promise<void>;

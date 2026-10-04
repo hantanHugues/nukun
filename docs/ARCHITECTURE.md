@@ -58,6 +58,16 @@ src/
 
 Every step of a chain covers for the previous one (quota reached, service busy, offline), so reading never blocks.
 
+### Explanations
+
+`Library.explain` answers a selected passage from the cheapest source first:
+
+1. a single term that is in the article's glossary is answered from the glossary;
+2. a passage explained before (in any article) comes from `explanation-memory.json`;
+3. only a new passage goes to an AI (the `heavy` tier: Claude in hybrid mode).
+
+Every answer, with who gave it, is stored in the article's content file and shown again on the next visit.
+
 ## Recommendations
 
 `reco/recommender.ts` is a content-based recommender with implicit feedback:
@@ -77,6 +87,7 @@ Everything lives in Electron's `userData` folder (`%APPDATA%\Veille Scientifique
 | `articles.json` | Article metadata and per-article reading state |
 | `content/*.json` | Parsed full text, translations, glossary |
 | `translation-memory.json` | Shared translation memory |
+| `explanation-memory.json` | Shared explanation memory |
 | `profile.json` | Recommendation profile |
 | `drafts.json` | The reader's own articles |
 | `settings.json` | Settings; API keys encrypted |

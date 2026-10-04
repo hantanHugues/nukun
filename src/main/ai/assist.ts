@@ -33,8 +33,8 @@ Pour chaque article :
   return new Map(data.items.map((i) => [i.id, { title: i.title_fr, teaser: i.teaser_fr }]));
 }
 
-export async function explainPassage(a: Article, passage: string): Promise<string> {
-  const { data } = await llmJson<{ explanation: string }>({
+export async function explainPassage(a: Article, passage: string): Promise<{ text: string; provider: string }> {
+  const { data, provider } = await llmJson<{ explanation: string }>({
     system: `Tu aides un lecteur francophone à comprendre un article scientifique. Il a sélectionné un passage qu'il ne comprend pas.
 Explique-le en français simple, comme à un étudiant motivé qui découvre le domaine : le sens du passage, les mots techniques qu'il contient (garde le terme anglais quand c'est l'usage et explique-le), et pourquoi c'est important dans l'article. Reste exact : ne déforme pas ce que disent les auteurs. 4 à 8 phrases, sans titre.`,
     user: `Article : « ${a.title} »\nRésumé : ${a.abstract.slice(0, 1500)}\n\nPassage sélectionné :\n${passage.slice(0, 4000)}`,
@@ -47,7 +47,7 @@ Explique-le en français simple, comme à un étudiant motivé qui découvre le 
     maxTokens: 6000,
     tier: "heavy",
   });
-  return data.explanation;
+  return { text: data.explanation, provider };
 }
 
 export interface AiInterest {
