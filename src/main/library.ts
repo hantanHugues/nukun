@@ -36,7 +36,7 @@ import {
   makeTeasers,
   translateTopicNames,
 } from "./ai/assist";
-import { get } from "./http";
+import { BLOCKED_MESSAGE, get } from "./http";
 import { claudeCodeAvailable } from "./ai/claudeCode";
 import { describeError, geminiAvailableToday } from "./ai/llm";
 import { glossarySize, recallExplanation, rememberExplanation, rememberGlossary } from "./ai/memory";
@@ -431,6 +431,7 @@ export class Library {
         }
       } catch (e) {
         st.error = describeError(e);
+        if (id === "hal" && /anti-robot/.test(st.error)) this.drop(this.all().filter((a) => a.source === "hal"));
       }
       this.status.data[id] = st;
       done++;
@@ -465,6 +466,18 @@ export class Library {
       // News titles, for when the reader opens the Actus tab.
       await this.queueTeasers(this.rankFeed("all", 12, "news").map((f) => f.article.id));
     })();
+  }
+
+  /** Remove articles for good, except those the reader saved, liked or wrote about. */
+  private drop(articles: Article[]) {
+    for (const a of articles) {
+      if (a.state.saved || a.state.liked || a.state.posted || this.drafts.data[a.id]) continue;
+      delete this.db.data[a.id];
+      removeFile(contentFile(a.id));
+    }
+    this.db.save();
+    this.feedCache.clear();
+    this.emit.feedUpdated();
   }
 
   private merge(raws: RawArticle[]): number {
@@ -646,6 +659,11 @@ export class Library {
       this.db.save();
       return content;
     } catch (e) {
+      // Protected by its site (anti-robot page): not for this app, removed.
+      if (e instanceof Error && e.message === BLOCKED_MESSAGE) {
+        this.drop([a]);
+        throw e;
+      }
       a.loadError = describeError(e);
       a.checkedAt = new Date().toISOString();
       // Unreadable for now: keep it out of the feed until a later check succeeds.

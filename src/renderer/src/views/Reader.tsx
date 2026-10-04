@@ -50,9 +50,16 @@ export function Reader({ id, back }: { id: string; back: Route }) {
     try {
       setContent(await api.loadContent(id));
     } catch (e) {
-      setError(e instanceof Error ? e.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, "") : String(e));
+      const msg = e instanceof Error ? e.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, "") : String(e);
+      // Protected by its site: the app removed it; back to the feed.
+      if (/anti-robot/.test(msg)) {
+        toast("Cet article est protégé par son site : il a été retiré.");
+        go(back);
+        return;
+      }
+      setError(msg);
     }
-  }, [id]);
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     void (async () => {

@@ -1,7 +1,7 @@
 import * as cheerio from "cheerio";
 import type { Element } from "domhandler";
 import type { Article, ArticleContent, Block, FullTextRef } from "@shared/types";
-import { getBuffer, getJson, getText } from "../http";
+import { BLOCKED_MESSAGE, getBuffer, getJson, getText } from "../http";
 import { epmcFindByDoi } from "../sources";
 import { absolutize, escapeText, htmlToBlocks } from "./html";
 import { jatsToBlocks } from "./jats";
@@ -253,7 +253,10 @@ async function inline(html: string, baseUrl: string): Promise<Loaded> {
 
 // ---------------------------------------------------------------- PDF-only sources
 async function pdf(url: string, originalUrl: string): Promise<Loaded> {
-  const blocks = await pdfToBlocks(await getBuffer(url, { browser: true, timeoutMs: 60000 }));
+  const data = await getBuffer(url, { browser: true, timeoutMs: 60000 });
+  // An anti-robot page instead of the file: say so plainly.
+  if (!new TextDecoder().decode(data.slice(0, 1024)).includes("%PDF")) throw new Error(BLOCKED_MESSAGE);
+  const blocks = await pdfToBlocks(data);
   return { blocks, pdfUrl: url, originalUrl, note: "Texte extrait du PDF : les figures sont visibles dans la version originale." };
 }
 

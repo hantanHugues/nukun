@@ -1,6 +1,6 @@
 import { XMLParser } from "fast-xml-parser";
 import type { Article, DomainId, Interest, SourceId } from "@shared/types";
-import { getJson, getText, isoDaysAgo, stripTags } from "../http";
+import { getJson, getText, isoDaysAgo, pdfReachable, stripTags } from "../http";
 import { classifyText } from "./classify";
 import { news } from "./news";
 
@@ -525,6 +525,7 @@ async function openalex(o: FetchOptions): Promise<RawArticle[]> {
       let kept = 0;
       for (const w of j.results ?? []) {
         if (!w.best_oa_location?.pdf_url || kept >= 15) continue;
+        if (!(await pdfReachable(w.best_oa_location.pdf_url))) continue;
         const a = openalexToArticle(w, "0");
         if (a && looksLikeTitle(a.title) && a.abstract.length > 200) {
           out.push(a);
@@ -704,6 +705,12 @@ async function hal(o: FetchOptions): Promise<RawArticle[]> {
     .join("");
   const fl = "halId_s,title_s,abstract_s,language_s,files_s,uri_s,domain_s,doiId_s,authFullName_s,producedDate_s,submittedDate_s,journalTitle_s,keyword_s,licence_s";
   const j = await getJson(`https://api.archives-ouvertes.fr/search/?q=*:*${fq}&fl=${fl}&sort=submittedDate_tdate%20desc&rows=80&wt=json`);
+  // HAL may put an anti-robot page in front of its files: then none of them could be
+  // opened, so none is added (the source status says why).
+  const probe = arr<string>(j.response?.docs?.find((d: any) => arr<string>(d.files_s)[0])?.files_s)[0];
+  if (probe && !(await pdfReachable(probe))) {
+    throw new Error("HAL bloque pour l'instant les téléchargements automatiques (protection anti-robot) : ses articles ne sont pas ajoutés.");
+  }
   const out: RawArticle[] = [];
   for (const d of j.response?.docs ?? []) {
     const pdf = arr<string>(d.files_s)[0];

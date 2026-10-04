@@ -57,6 +57,32 @@ export async function getJson<T = any>(url: string, opts?: GetOpts): Promise<T> 
   return (await get(url, { ...opts, headers: { Accept: "application/json", ...opts?.headers } })).json() as Promise<T>;
 }
 
+/** Message shown when a site answers with an anti-robot page instead of the document. */
+export const BLOCKED_MESSAGE =
+  "Le site de l'article bloque les téléchargements automatiques (protection anti-robot). Ouvre-le sur le site d'origine.";
+
+/**
+ * Does this address give a real PDF? Some archives put an anti-robot page in front
+ * of their files: the app does not get around it, it only avoids offering what it
+ * cannot open. One answer per site and per refresh is enough.
+ */
+const pdfSiteOk = new Map<string, { ok: boolean; at: number }>();
+export async function pdfReachable(url: string): Promise<boolean> {
+  const host = new URL(url).host;
+  const known = pdfSiteOk.get(host);
+  if (known && Date.now() - known.at < 30 * 60000) return known.ok;
+  let ok = false;
+  try {
+    const res = await get(url, { browser: true, retries: 0, timeoutMs: 20000 });
+    ok = !/text\/html/i.test(res.headers.get("content-type") ?? "");
+    await res.body?.cancel();
+  } catch {
+    ok = false;
+  }
+  pdfSiteOk.set(host, { ok, at: Date.now() });
+  return ok;
+}
+
 export async function getBuffer(url: string, opts?: GetOpts) {
   return new Uint8Array(await (await get(url, opts)).arrayBuffer());
 }
