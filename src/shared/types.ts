@@ -306,6 +306,13 @@ export interface SourceStatus {
   error?: string;
 }
 
+/** A newer version of the app, found among the GitHub releases. */
+export interface UpdateState {
+  status: "idle" | "available" | "downloading" | "ready";
+  version?: string;
+  percent?: number;
+}
+
 /** A note taken while reading: an idea, and/or a passage kept from the article. */
 export interface Note {
   id: string;
@@ -414,6 +421,11 @@ export interface NukunApi {
   getProfile(): Promise<InterestProfileView>;
   resetProfile(): Promise<void>;
   analyzeInterests(): Promise<void>;
+  updateState(): Promise<UpdateState>;
+  /** Download the new version (when data saving kept it from downloading on its own). */
+  downloadUpdate(): Promise<void>;
+  /** Restart on the new version. */
+  installUpdate(): Promise<void>;
   getNotes(articleId: string): Promise<Note[]>;
   /** Adds or updates a note; returns the article's notes. */
   saveNote(articleId: string, note: Note): Promise<Note[]>;
@@ -430,4 +442,5 @@ export interface NukunApi {
   on(channel: "refresh-progress", cb: (p: RefreshProgress) => void): () => void;
   on(channel: "translation-progress", cb: (p: TranslationProgress) => void): () => void;
   on(channel: "feed-updated", cb: () => void): () => void;
+  on(channel: "update-state", cb: (u: UpdateState) => void): () => void;
 }

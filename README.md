@@ -16,6 +16,12 @@ Lance `release/Nukun-Setup-1.0.0.exe`. L'installateur crée un raccourci « Nùk
 
 Si l'ancienne version « Veille Scientifique » est installée, désinstalle-la : Nùkún reprend automatiquement ses articles, traductions et préférences au premier lancement.
 
+## Mises à jour
+
+L'app vérifie au lancement, puis toutes les 6 heures, si une nouvelle version est publiée dans les *Releases* GitHub du dépôt. Elle la télécharge en arrière-plan (seulement ce qui a changé), puis une fenêtre propose « Mettre à jour » : rien ne s'installe sans ce clic, et la proposition revient à chaque lancement. Avec l'économie de données, le téléchargement attend aussi un clic. Le dépôt doit être public pour que les apps installées voient les versions.
+
+Publier une version : augmenter `version` dans `package.json`, puis `npm run release` (construit l'installateur et le publie avec `gh`).
+
 ## Sources
 
 arXiv, Europe PMC (PubMed Central), bioRxiv, medRxiv, PLOS, eLife, NASA Science, Nature Communications et Scientific Reports, Science Advances, OpenAlex, Semantic Scholar, PsyArXiv, HAL et SciELO. Les articles sont trouvés par les API officielles ; le texte intégral (page web, XML ou PDF en libre accès) est ensuite téléchargé sur le site de l'éditeur. Seuls les articles lisibles gratuitement en entier apparaissent dans le fil.

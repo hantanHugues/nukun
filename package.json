@@ -11,13 +11,15 @@
     "build": "electron-vite build",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "icon": "node scripts/make-icon.mjs",
-    "dist": "npm run build && electron-builder --win"
+    "dist": "npm run build && electron-builder --win --publish never",
+    "release": "npm run dist && node scripts/release.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",
     "@huggingface/transformers": "^4.3.0",
     "@mozilla/readability": "^0.6.0",
     "cheerio": "^1.2.0",
+    "electron-updater": "^6.8.9",
     "fast-xml-parser": "^5.11.2",
     "linkedom": "^0.18.13",
     "mammoth": "^1.13.0",
@@ -48,6 +50,13 @@
   },
   "build": {
     "appId": "com.hantan.nukun",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "hantanHugues",
+        "repo": "nukun"
+      }
+    ],
     "productName": "Nukun",
     "directories": {
       "output": "release",
@@ -86,7 +95,9 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": false,
       "include": "build/installer.nsh",
-      "installerLanguages": ["fr_FR"],
+      "installerLanguages": [
+        "fr_FR"
+      ],
       "language": "1036",
       "createStartMenuShortcut": true,
       "shortcutName": "Nùkún",

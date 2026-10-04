@@ -9,7 +9,7 @@ const methods = [
   "getFeed", "fieldCounts", "getLibrary", "getArticle", "loadContent", "translate", "translateVisible", "chat", "explainFigure", "setInterests", "searchTopics", "suggestion", "dismissSuggestion", "clearChat", "aiStatus", "explain", "interact", "saveScroll", "refresh",
   "prepareCards", "getSettings", "saveSettings", "testAi", "ollamaModels", "getUsage", "getSourceStatus",
   "getProfile", "resetProfile", "analyzeInterests", "getNotes", "saveNote", "deleteNote", "noteCounts", "getDraft", "listDrafts", "saveDraft", "exportDraft", "chooseDir",
-  "openExternal", "setTitleBarTheme",
+  "openExternal", "setTitleBarTheme", "updateState", "downloadUpdate", "installUpdate",
 ];
 
 const api: Record<string, unknown> = Object.fromEntries(methods.map((m) => [m, invoke(m)]));

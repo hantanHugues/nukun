@@ -6,6 +6,7 @@ import { api } from "./api";
 import iconUrl from "./assets/icon.png";
 import { Welcome } from "./components/Interests";
 import { Tour } from "./components/Tour";
+import { UpdateToast } from "./components/UpdateToast";
 import { Feed } from "./views/Feed";
 import { Library } from "./views/Library";
 import { Profile } from "./views/Profile";
@@ -191,6 +192,7 @@ export function App() {
           />
         )}
         {toastMsg && <div className="toast">{toastMsg}</div>}
+        <UpdateToast />
       </div>
     </AppCtx.Provider>
   );

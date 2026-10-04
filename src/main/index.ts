@@ -8,6 +8,7 @@ import { ollamaModels, ollamaReachable, testAi } from "./ai/llm";
 import { flushExplanations, flushGlossary, flushMemory } from "./ai/memory";
 import { BROWSER_UA, get } from "./http";
 import { Library } from "./library";
+import { downloadUpdate, installUpdate, startUpdates, updateState } from "./updater";
 import { geminiKey, getSettings, getUsage, saveSettings } from "./settings";
 
 app.setAppUserModelId("com.hantan.nukun");
@@ -161,6 +162,12 @@ function registerIpc() {
   ipcMain.handle("getProfile", () => lib.profileView());
   ipcMain.handle("resetProfile", () => lib.resetProfile());
   ipcMain.handle("analyzeInterests", () => lib.analyzeInterests());
+  ipcMain.handle("updateState", () => updateState());
+  ipcMain.handle("downloadUpdate", () => downloadUpdate());
+  ipcMain.handle("installUpdate", () => {
+    lib.flush();
+    installUpdate();
+  });
   ipcMain.handle("getNotes", (_e, id: string) => lib.getNotes(id));
   ipcMain.handle("saveNote", (_e, id: string, n: Note) => lib.saveNote(id, n));
   ipcMain.handle("deleteNote", (_e, id: string, noteId: string) => lib.deleteNote(id, noteId));
@@ -223,6 +230,7 @@ if (!app.requestSingleInstanceLock()) {
     // Meaning of the articles not analysed yet (first launch: downloads the model once).
     setTimeout(() => lib.indexMeaning(), 5000);
     setTimeout(() => lib.seedGlossaryMemory(), 8000);
+    startUpdates((s) => send("update-state", s));
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow();
     });
