@@ -65,7 +65,7 @@ async function claudeJson<T>(req: JsonRequest): Promise<T> {
   return JSON.parse(text) as T;
 }
 
-async function ollamaReachable(): Promise<boolean> {
+export async function ollamaReachable(): Promise<boolean> {
   const { ollamaUrl } = getSettings();
   try {
     const r = await fetch(`${ollamaUrl}/api/tags`, { signal: AbortSignal.timeout(2500) });

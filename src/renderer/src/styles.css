@@ -1224,3 +1224,102 @@ figure.blk figcaption {
     grid-template-columns: 1fr;
   }
 }
+
+/* ------------------------------------------------------------ discussion */
+.side:has(.discussion) {
+  display: flex;
+  flex-direction: column;
+}
+.discussion {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  gap: 12px;
+}
+.thread {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-right: 2px;
+}
+.composer {
+  display: grid;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.composer .textarea {
+  font-size: 14px;
+  resize: none;
+}
+.bubble {
+  padding: 10px 14px;
+  border-radius: var(--radius-l);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.bubble.user {
+  align-self: flex-end;
+  max-width: 90%;
+  background: var(--brand-weak);
+  color: var(--text);
+  border-bottom-right-radius: var(--radius-xs);
+}
+.bubble.ai {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-bottom-left-radius: var(--radius-xs);
+}
+.explain.md {
+  white-space: normal;
+}
+.explain.md p {
+  margin: 0 0 0.6em;
+}
+.explain.md p:last-child {
+  margin-bottom: 0;
+}
+.explain.md ul,
+.explain.md ol {
+  margin: 0.3em 0 0.6em;
+  padding-left: 1.2em;
+}
+
+/* ------------------------------------------------------------ guided tour */
+.tour {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  pointer-events: none; /* the highlighted controls stay usable */
+}
+.tour-dim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+}
+.tour-spot {
+  position: absolute;
+  border-radius: var(--radius-l);
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6), 0 0 0 2px var(--brand);
+  transition: all 0.3s var(--ease);
+}
+.tour-bubble {
+  position: absolute;
+  pointer-events: auto;
+  padding: 14px 16px;
+  display: grid;
+  gap: 8px;
+  background: var(--surface-strong);
+  box-shadow: var(--shadow);
+  transition: top 0.3s var(--ease), left 0.3s var(--ease);
+}
+.tour-bubble p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-medium);
+}

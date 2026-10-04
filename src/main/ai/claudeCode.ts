@@ -14,10 +14,13 @@ import type { JsonRequest } from "./llm";
 function findExecutable(): string | null {
   const home = os.homedir();
   const appData = process.env.APPDATA ?? path.join(home, "AppData", "Roaming");
+  const exe = process.platform === "win32" ? "claude.exe" : "claude";
   const candidates = [
-    path.join(appData, "npm", "node_modules", "@anthropic-ai", "claude-code", "bin", "claude.exe"),
-    path.join(home, ".local", "bin", "claude.exe"),
-    path.join(home, ".claude", "local", "claude.exe"),
+    path.join(appData, "npm", "node_modules", "@anthropic-ai", "claude-code", "bin", exe),
+    path.join(home, ".local", "bin", exe),
+    path.join(home, ".claude", "local", exe),
+    // Any other install that put Claude Code on the PATH.
+    ...(process.env.PATH ?? "").split(path.delimiter).filter(Boolean).map((dir) => path.join(dir, exe)),
   ];
   return candidates.find((c) => fs.existsSync(c)) ?? null;
 }

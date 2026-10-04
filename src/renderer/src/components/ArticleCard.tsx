@@ -11,7 +11,9 @@ export function ArticleCard({
   hero,
   onOpen,
   onDismiss,
+  tour,
 }: {
+  tour?: string;
   item: FeedItem;
   hero?: boolean;
   onOpen: () => void;
@@ -59,6 +61,7 @@ export function ArticleCard({
   return (
     <div
       ref={ref}
+      data-tour={tour}
       role="button"
       tabIndex={0}
       className={`card acard ${hero ? "hero" : ""}`}

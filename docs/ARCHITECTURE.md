@@ -16,7 +16,7 @@ src/
 │   ├── ai/                Model providers, translation, assistance, translation memory
 │   └── reco/              Recommendation engine
 ├── preload/index.ts       Exposes the IPC API to the page as window.veille
-└── renderer/src/          React UI (feed, reader, library, writing, profile, settings)
+└── renderer/src/          React UI (feed, reader with discussion, library, writing, profile, settings, guided tour)
 ```
 
 ## Data flow
@@ -57,6 +57,14 @@ src/
 | Claude API | optional | Anthropic SDK, structured outputs, server-side refusal fallback |
 
 Every step of a chain covers for the previous one (quota reached, service busy, offline), so reading never blocks.
+
+### Chat about an article
+
+`Library.chat` answers a question from the article's own text. `relevantPassages` (in `ai/assist.ts`) scores every paragraph against the question and the recent conversation (TF-IDF-like word overlap) and keeps the best ones within a character budget (about 14,000 for cloud models, 3,500 for a local model), plus the opening of the article. Only those passages and the last six messages are sent, not the whole article. The conversation is stored in the article's content file.
+
+### Local hardware
+
+`ai/hardware.ts` reads the graphics card and its memory (`nvidia-smi`, else the Windows display driver registry) and suggests the largest local model that fits entirely in video memory, since a model that spills onto the CPU becomes several times slower. `ai/claudeCode.ts` finds Claude Code in its usual install folders and on the `PATH`; when it is missing, the hybrid chains simply skip it.
 
 ### Explanations
 

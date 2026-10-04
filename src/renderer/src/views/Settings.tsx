@@ -1,6 +1,6 @@
 import { CheckCircle2, ExternalLink, FolderOpen, KeyRound, RefreshCw, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { AiProvider, Settings, SourceStatus, UsageStats } from "@shared/types";
+import type { AiProvider, AiStatus, Settings, SourceStatus, UsageStats } from "@shared/types";
 import { DOMAINS, SOURCES } from "@shared/types";
 import { api } from "../api";
 import { useApp } from "../App";
@@ -20,12 +20,14 @@ export function SettingsView() {
   const [test, setTest] = useState<{ ok: boolean; message: string } | null>(null);
   const [testing, setTesting] = useState(false);
   const [models, setModels] = useState<string[]>([]);
+  const [hw, setHw] = useState<AiStatus | null>(null);
   const [usage, setUsage] = useState<UsageStats | null>(null);
   const [status, setStatus] = useState<SourceStatus[]>([]);
   const [hint, setHint] = useState(settings?.keepTermsHint ?? "");
 
   useEffect(() => {
     void api.ollamaModels().then(setModels);
+    void api.aiStatus().then(setHw);
     void api.getUsage().then(setUsage);
     void api.getSourceStatus().then(setStatus);
   }, []);
@@ -76,7 +78,7 @@ export function SettingsView() {
             Elle traduit les articles, prépare les titres en français, explique les passages difficiles et affine tes
             recommandations.
           </p>
-          <div className="radio-cards">
+          <div className="radio-cards" data-tour="ai-modes">
             {providers.map((p) => (
               <button key={p.id} className={`radio-card ${settings.provider === p.id ? "active" : ""}`} onClick={() => void save({ provider: p.id })}>
                 <strong>{p.title}</strong>
@@ -85,7 +87,7 @@ export function SettingsView() {
             ))}
           </div>
 
-          <div className="field">
+          <div className="field" data-tour="gemini-key">
             <label>
               Clé API Gemini (gratuite) {settings.hasGeminiKey && <span className="tag brand" style={{ marginLeft: 6 }}>enregistrée</span>}
             </label>
@@ -185,8 +187,14 @@ export function SettingsView() {
             </select>
           </div>
 
-          <div className="field">
+          <div className="field" data-tour="ollama">
             <label>IA locale (Ollama)</label>
+            {hw && (
+              <span className="small muted">
+                Ton PC : {hw.gpu}
+                {hw.vramGb ? ` (${hw.vramGb} Go)` : ""}. Modèle conseillé : <code>{hw.advice.model}</code>. {hw.advice.why}
+              </span>
+            )}
             {models.length ? (
               <select className="select" value={settings.ollamaModel} onChange={(e) => void save({ ollamaModel: e.target.value })}>
                 <option value="">Premier modèle disponible</option>
@@ -231,7 +239,7 @@ export function SettingsView() {
           </div>
 
           <div className="row" style={{ marginTop: 12 }}>
-            <button className="btn" onClick={() => void runTest()} disabled={testing}>
+            <button className="btn" onClick={() => void runTest()} disabled={testing} data-tour="ai-test">
               {testing ? <div className="spinner" /> : <RefreshCw size={15} />} Tester l'IA
             </button>
             {test && (
@@ -262,7 +270,7 @@ export function SettingsView() {
         </section>
 
         {/* ---------------------------------------------------------------- domains */}
-        <section className="card section">
+        <section className="card section" data-tour="domains">
           <h2 className="h2">Domaines suivis</h2>
           {DOMAINS.map((d) => (
             <div key={d.id} className="setting-row">
@@ -277,7 +285,7 @@ export function SettingsView() {
         </section>
 
         {/* ---------------------------------------------------------------- sources */}
-        <section className="card section">
+        <section className="card section" data-tour="sources">
           <div className="row">
             <h2 className="h2 grow">Sources scientifiques</h2>
             <select className="select" style={{ width: "auto" }} value={settings.refreshHours} onChange={(e) => void save({ refreshHours: Number(e.target.value) })}>
@@ -327,6 +335,21 @@ export function SettingsView() {
                 <ExternalLink size={15} /> Demander une clé
               </button>
             </div>
+          </div>
+        </section>
+
+        {/* ---------------------------------------------------------------- tutorial */}
+        <section className="card section">
+          <div className="row">
+            <div className="grow">
+              <h2 className="h2">Tutoriel</h2>
+              <p className="small muted" style={{ margin: "6px 0 0" }}>
+                Refaire la visite guidée de l'app.
+              </p>
+            </div>
+            <button className="btn" onClick={() => void save({ onboarded: false })}>
+              Relancer la visite
+            </button>
           </div>
         </section>
 

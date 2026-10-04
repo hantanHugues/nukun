@@ -1,11 +1,13 @@
 import { app, BrowserWindow, dialog, ipcMain, nativeTheme, protocol, shell } from "electron";
 import path from "node:path";
 import type { DomainId, Draft, Interaction, Settings } from "@shared/types";
-import { ollamaModels, testAi } from "./ai/llm";
+import { claudeCodeAvailable } from "./ai/claudeCode";
+import { adviseLocalModel, detectHardware } from "./ai/hardware";
+import { ollamaModels, ollamaReachable, testAi } from "./ai/llm";
 import { flushExplanations, flushMemory } from "./ai/memory";
 import { BROWSER_UA, get } from "./http";
 import { Library } from "./library";
-import { getSettings, getUsage, saveSettings } from "./settings";
+import { geminiKey, getSettings, getUsage, saveSettings } from "./settings";
 
 app.setAppUserModelId("com.hantan.veille");
 app.userAgentFallback = BROWSER_UA;
@@ -80,6 +82,20 @@ function registerIpc() {
   });
   ipcMain.handle("translateVisible", (_e, id: string, keys: string[]) => {
     lib.translateVisible(id, keys);
+  });
+  ipcMain.handle("chat", (_e, id: string, q: string) => lib.chat(id, q));
+  ipcMain.handle("clearChat", (_e, id: string) => lib.clearChat(id));
+  ipcMain.handle("aiStatus", async () => {
+    const hw = await detectHardware();
+    return {
+      gemini: !!geminiKey(),
+      claudeCode: claudeCodeAvailable(),
+      ollama: await ollamaReachable(),
+      ollamaModels: await ollamaModels(),
+      gpu: hw.gpu,
+      vramGb: hw.vramGb,
+      advice: adviseLocalModel(hw),
+    };
   });
   ipcMain.handle("explain", (_e, id: string, text: string) => lib.explain(id, text));
   ipcMain.handle("interact", (_e, i: Interaction) => lib.interact(i));

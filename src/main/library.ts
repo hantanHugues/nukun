@@ -5,6 +5,7 @@ import type {
   ArticleContent,
   ArticleState,
   DomainId,
+  ChatMessage,
   Draft,
   Explanation,
   FeedItem,
@@ -15,8 +16,9 @@ import type {
   TranslationProgress,
 } from "@shared/types";
 import { SOURCES } from "@shared/types";
-import { analyzeInterests, explainPassage, makeTeasers } from "./ai/assist";
-import { describeError } from "./ai/llm";
+import { analyzeInterests, chatAboutArticle, explainPassage, makeTeasers } from "./ai/assist";
+import { claudeCodeAvailable } from "./ai/claudeCode";
+import { describeError, geminiAvailableToday } from "./ai/llm";
 import { recallExplanation, rememberExplanation } from "./ai/memory";
 import { translateContent } from "./ai/translate";
 import { loadFullText, PendingError } from "./content/loader";
@@ -325,6 +327,26 @@ export class Library {
     })().finally(() => this.translating.delete(id));
     this.translating.set(id, job);
     return job;
+  }
+
+  /** A question about the article, answered by the AI from the article's own text. */
+  async chat(id: string, question: string): Promise<ChatMessage> {
+    const c = await this.loadContent(id);
+    const history = c.chat ?? [];
+    const s = getSettings();
+    const local = s.provider === "ollama" || (s.provider !== "claude" && !claudeCodeAvailable() && !geminiAvailableToday());
+    const { text, provider } = await chatAboutArticle(this.get(id), c, history, question.trim(), local);
+    const now = new Date().toISOString();
+    const answer: ChatMessage = { role: "assistant", text, by: provider, at: now };
+    c.chat = [...history, { role: "user", text: question.trim(), at: now }, answer];
+    writeJson(contentFile(id), c);
+    return answer;
+  }
+
+  async clearChat(id: string) {
+    const c = await this.loadContent(id);
+    c.chat = [];
+    writeJson(contentFile(id), c);
   }
 
   /**

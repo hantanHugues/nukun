@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useLayoutEffect, use
 import type { RefreshProgress, Settings } from "@shared/types";
 import { api } from "./api";
 import iconUrl from "./assets/icon.png";
+import { Tour } from "./components/Tour";
 import { Feed } from "./views/Feed";
 import { Library } from "./views/Library";
 import { Profile } from "./views/Profile";
@@ -101,7 +102,7 @@ export function App() {
             <strong>Veille</strong>
             <span>· {now.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}</span>
           </div>
-          <nav className="nav" aria-label="Navigation principale">
+          <nav className="nav" aria-label="Navigation principale" data-tour="nav">
             {nav.map((n) => (
               <button key={n.id} className={`toggle ${active === n.id ? "active" : ""}`} onClick={() => go({ view: n.id } as Route)}>
                 {n.icon}
@@ -131,6 +132,14 @@ export function App() {
           {route.view === "settings" && <SettingsView />}
           {route.view === "reader" && <Reader key={route.articleId} id={route.articleId} back={route.from} />}
         </main>
+        {settings && !settings.onboarded && (
+          <Tour
+            onDone={async () => {
+              await api.saveSettings({ onboarded: true });
+              await reloadSettings();
+            }}
+          />
+        )}
         {toastMsg && <div className="toast">{toastMsg}</div>}
       </div>
     </AppCtx.Provider>

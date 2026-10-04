@@ -1,4 +1,4 @@
-import type { Article } from "@shared/types";
+import type { Article, ArticleContent, ChatMessage } from "@shared/types";
 import { llmJson } from "./llm";
 
 const TEASER_SCHEMA = {
@@ -82,4 +82,87 @@ Réponds avec 4 à 8 intérêts. Pour chacun : "label" (en français, précis, e
     tier: "light",
   });
   return data.interests;
+}
+
+// ---------------------------------------------------------------- chat about an article
+
+const STOP_WORDS = new Set(
+  "the of and to in is are was were that this with for which from by be as on these those has have it its their le la les de des du un une et en est sont que qui pour dans par sur au aux ce ces se sa son ses ne pas plus ou il elle ils elles on nous vous je tu".split(" "),
+);
+const words = (s: string) =>
+  (s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").match(/[a-z0-9]{3,}/g) ?? []).filter((w) => !STOP_WORDS.has(w));
+
+/**
+ * Picks the passages of the article that best match the question (and the recent
+ * conversation), within a character budget: the model gets what it needs to answer
+ * without being sent the whole article every time.
+ */
+export function relevantPassages(c: ArticleContent, query: string, budget: number): string {
+  const plainText = (h: string) => h.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  // Chunks = paragraphs (and captions) tagged with their section heading.
+  const chunks: { text: string; order: number }[] = [];
+  let section = "";
+  c.blocks.forEach((b, i) => {
+    if (b.t === "h") section = plainText(b.segs[0]);
+    else if (b.t === "p" || b.t === "quote" || b.t === "li" || b.t === "fig" || b.t === "table") {
+      const t = (b.segs ?? []).map(plainText).join(" ").trim();
+      if (t.length > 40) chunks.push({ text: section ? `[${section}] ${t}` : t, order: i });
+    }
+  });
+  const q = new Set(words(query));
+  const df = new Map<string, number>();
+  for (const ch of chunks) for (const w of new Set(words(ch.text))) df.set(w, (df.get(w) ?? 0) + 1);
+  const scored = chunks.map((ch) => {
+    let s = 0;
+    for (const w of new Set(words(ch.text))) if (q.has(w)) s += Math.log(1 + chunks.length / (df.get(w) ?? 1));
+    return { ...ch, s };
+  });
+  // The opening of the article (abstract) is always useful context.
+  const picked = new Set(scored.slice(0, 2));
+  let used = [...picked].reduce((n, x) => n + x.text.length, 0);
+  for (const ch of [...scored].sort((a, b) => b.s - a.s)) {
+    if (used >= budget) break;
+    if (picked.has(ch) || (ch.s === 0 && picked.size > 4)) continue;
+    if (used + ch.text.length > budget * 1.1) continue;
+    picked.add(ch);
+    used += ch.text.length;
+  }
+  return [...picked].sort((a, b) => a.order - b.order).map((x) => x.text).join("\n\n");
+}
+
+export async function chatAboutArticle(
+  a: Article,
+  c: ArticleContent,
+  history: ChatMessage[],
+  question: string,
+  local: boolean,
+): Promise<{ text: string; provider: string }> {
+  const recent = history.slice(-6);
+  const query = [question, ...recent.filter((m) => m.role === "user").map((m) => m.text)].join(" ");
+  // Small local models have a short memory: send them less.
+  const passages = relevantPassages(c, query, local ? 3500 : 14000);
+  const { data, provider } = await llmJson<{ answer: string }>({
+    system: `Tu discutes avec un lecteur francophone d'un article scientifique qu'il est en train de lire. Il n'est pas forcément spécialiste du domaine.
+Règles :
+- Réponds en français clair et simple, comme un bon professeur. Garde les termes techniques anglais quand c'est l'usage, en les expliquant.
+- Appuie-toi sur les extraits de l'article fournis. Quand tu cites un résultat, dis de quelle section il vient.
+- Distingue bien ce que dit l'article de tes connaissances générales (« L'article dit… » / « De façon générale… »).
+- Si l'article ne répond pas à la question, dis-le honnêtement au lieu d'inventer.
+- Sois concis : 3 à 10 phrases, ou une courte liste si c'est plus clair. Tu peux utiliser du Markdown simple (gras, listes).`,
+    user: `Article : « ${a.title} » (${a.venue ?? a.source}${a.authors.length ? `, ${a.authors.slice(0, 3).join(", ")}${a.authors.length > 3 ? " et al." : ""}` : ""})
+
+Extraits de l'article utiles pour cette question :
+${passages}
+
+${recent.length ? `Conversation jusqu'ici :\n${recent.map((m) => `${m.role === "user" ? "Lecteur" : "Toi"} : ${m.text}`).join("\n")}\n\n` : ""}Question du lecteur : ${question}`,
+    schema: {
+      type: "object",
+      properties: { answer: { type: "string" } },
+      required: ["answer"],
+      additionalProperties: false,
+    },
+    maxTokens: 6000,
+    tier: "heavy",
+  });
+  return { text: data.answer, provider };
 }

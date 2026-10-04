@@ -52,7 +52,7 @@ export function Feed() {
           <h1 className="display">{greeting()} ce que la recherche a publié pour toi.</h1>
         </div>
         <div className="stack" style={{ alignItems: "flex-end", gap: 8 }}>
-          <button className="btn" onClick={() => void api.refresh()} disabled={running}>
+          <button className="btn" onClick={() => void api.refresh()} disabled={running} data-tour="refresh">
             {running ? <div className="spinner" /> : <RefreshCw size={15} />}
             Actualiser
           </button>
@@ -64,7 +64,7 @@ export function Feed() {
         </div>
       </div>
 
-      <div className="feed-filters">
+      <div className="feed-filters" data-tour="filters">
         <button className={`chip ${domain === "all" ? "active" : ""}`} onClick={() => setDomain("all")}>
           Tout
         </button>
@@ -100,6 +100,7 @@ export function Feed() {
         <div className="grid">
           {items.map((it, i) => (
             <ArticleCard
+              tour={i === 0 ? "first-card" : undefined}
               key={it.article.id}
               item={it}
               hero={i === 0}

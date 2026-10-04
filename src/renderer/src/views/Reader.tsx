@@ -16,10 +16,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Article, ArticleContent, Block, TranslationProgress } from "@shared/types";
 import { api } from "../api";
 import { type Route, useApp } from "../App";
+import { Discussion, type ThreadItem } from "../components/Discussion";
 import { authorsShort, domainLabel, plain, sanitize, sourceLabel, timeAgo } from "../util";
 
 type Mode = "fr" | "en" | "bi" | "pdf";
-type SideTab = "lexique" | "explications" | "infos";
+type SideTab = "lexique" | "discussion" | "infos";
 
 const Html = ({ html, as: Tag = "div", lang, className }: { html: string; as?: any; lang?: string; className?: string }) => (
   <Tag className={className} lang={lang} dangerouslySetInnerHTML={{ __html: sanitize(html) }} />
@@ -33,7 +34,7 @@ export function Reader({ id, back }: { id: string; back: Route }) {
   const [mode, setMode] = useState<Mode>("fr");
   const [tr, setTr] = useState<TranslationProgress | null>(null);
   const [side, setSide] = useState<SideTab | null>("lexique");
-  const [explains, setExplains] = useState<{ q: string; a?: string; by?: string; err?: string }[]>([]);
+  const [thread, setThread] = useState<ThreadItem[]>([]);
   const [pop, setPop] = useState<{ x: number; y: number; text: string } | null>(null);
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
@@ -182,27 +183,49 @@ export function Reader({ id, back }: { id: string; back: Route }) {
     return () => document.removeEventListener("mouseup", onUp);
   }, []);
 
-  // Explanations asked during earlier visits come back with the article.
-  const explainsLoaded = useRef(false);
+  // Explanations and conversation from earlier visits come back with the article.
+  const threadLoaded = useRef(false);
   useEffect(() => {
-    if (!content || explainsLoaded.current) return;
-    explainsLoaded.current = true;
-    if (content.explanations?.length) setExplains(content.explanations.map((e) => ({ q: e.q, a: e.a, by: e.by })));
+    if (!content || threadLoaded.current) return;
+    threadLoaded.current = true;
+    const items: ThreadItem[] = (content.explanations ?? []).map((e) => ({ kind: "explain", q: e.q, a: e.a, by: e.by, at: e.at }));
+    const chat = content.chat ?? [];
+    for (let i = 0; i < chat.length; i++) {
+      if (chat[i].role !== "user") continue;
+      const answer = chat[i + 1]?.role === "assistant" ? chat[i + 1] : undefined;
+      items.push({ kind: "chat", q: chat[i].text, a: answer?.text, by: answer?.by, at: chat[i].at, err: answer ? undefined : "Pas de réponse." });
+    }
+    setThread(items.sort((a, b) => a.at.localeCompare(b.at)));
   }, [content]);
 
-  const explain = async (text: string) => {
+  const cleanError = (e: unknown) =>
+    e instanceof Error ? e.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, "") : String(e);
+
+  /** Adds an entry to the thread, then fills in the answer when it arrives. */
+  const runThread = async (item: ThreadItem, call: () => Promise<{ a: string; by?: string }>) => {
     setPop(null);
-    setSide("explications");
-    const idx = explains.length;
-    setExplains((xs) => [...xs, { q: text }]);
+    setSide("discussion");
+    setThread((xs) => [...xs, item]);
+    const same = (x: ThreadItem) => x.at === item.at && x.q === item.q;
     try {
-      const e = await api.explain(id, text);
-      setExplains((xs) => xs.map((x, i) => (i === idx ? { ...x, a: e.a, by: e.by } : x)));
+      const r = await call();
+      setThread((xs) => xs.map((x) => (same(x) ? { ...x, a: r.a, by: r.by } : x)));
     } catch (e) {
-      const err = e instanceof Error ? e.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, "") : String(e);
-      setExplains((xs) => xs.map((x, i) => (i === idx ? { ...x, err } : x)));
+      setThread((xs) => xs.map((x) => (same(x) ? { ...x, err: cleanError(e) } : x)));
     }
   };
+
+  const explain = (text: string) =>
+    runThread({ kind: "explain", q: text, at: new Date().toISOString() }, async () => {
+      const e = await api.explain(id, text);
+      return { a: e.a, by: e.by };
+    });
+
+  const ask = (question: string) =>
+    runThread({ kind: "chat", q: question, at: new Date().toISOString() }, async () => {
+      const m = await api.chat(id, question);
+      return { a: m.text, by: m.by };
+    });
 
   // ---------------------------------------------------------------- actions
   const toggle = async (key: "liked" | "saved") => {
@@ -404,7 +427,7 @@ export function Reader({ id, back }: { id: string; back: Route }) {
             Traduction {tr && tr.total ? `${Math.round((tr.done / tr.total) * 100)} %` : "…"}
           </span>
         )}
-        <div className="seg" role="tablist" aria-label="Langue d'affichage">
+        <div className="seg" role="tablist" aria-label="Langue d'affichage" data-tour="lang-modes">
           <button className={mode === "fr" ? "active" : ""} onClick={() => setMode("fr")}>
             Français
           </button>
@@ -444,7 +467,7 @@ export function Reader({ id, back }: { id: string; back: Route }) {
         <button className="btn sm icon ghost" onClick={() => void toggle("saved")} title="Lire plus tard">
           {article?.state.saved ? <BookmarkCheck size={16} /> : <Bookmark size={16} />}
         </button>
-        <button className="btn sm" onClick={() => go({ view: "writing", articleId: id })}>
+        <button className="btn sm" onClick={() => go({ view: "writing", articleId: id })} data-tour="write">
           <PenLine size={14} /> Écrire mon article
         </button>
         <button className={`btn sm icon ghost`} onClick={() => setSide(side ? null : "lexique")} title="Panneau latéral">
@@ -511,10 +534,10 @@ export function Reader({ id, back }: { id: string; back: Route }) {
 
         {side && (
           <aside className="side">
-            <div className="seg" style={{ width: "100%", marginBottom: 16 }}>
-              {(["lexique", "explications", "infos"] as SideTab[]).map((t) => (
+            <div className="seg" style={{ width: "100%", marginBottom: 16 }} data-tour="side-tabs">
+              {(["lexique", "discussion", "infos"] as SideTab[]).map((t) => (
                 <button key={t} className={side === t ? "active" : ""} style={{ flex: 1 }} onClick={() => setSide(t)}>
-                  {t === "lexique" ? "Lexique" : t === "explications" ? "Explications" : "Infos"}
+                  {t === "lexique" ? "Lexique" : t === "discussion" ? "Discussion" : "Infos"}
                 </button>
               ))}
             </div>
@@ -542,38 +565,15 @@ export function Reader({ id, back }: { id: string; back: Route }) {
                 )}
               </div>
             )}
-            {side === "explications" && (
-              <div className="stack" style={{ gap: 16 }}>
-                {!explains.length && (
-                  <div className="notice">
-                    <Lightbulb size={18} style={{ flex: "none" }} />
-                    <span>Sélectionne un passage de l'article puis clique sur « Expliquer » : l'IA te le réexplique simplement.</span>
-                  </div>
-                )}
-                {explains.map((x, i) => (
-                  <div key={i} className="card" style={{ padding: 14 }}>
-                    <div className="small muted" style={{ fontStyle: "italic", marginBottom: 8 }}>
-                      « {x.q.length > 220 ? `${x.q.slice(0, 220)}…` : x.q} »
-                    </div>
-                    {x.a ? (
-                      <>
-                        <div className="explain">{x.a}</div>
-                        {x.by && (
-                          <div className="small muted" style={{ marginTop: 10 }}>
-                            Répondu par : {x.by}
-                          </div>
-                        )}
-                      </>
-                    ) : x.err ? (
-                      <div className="notice warn">{x.err}</div>
-                    ) : (
-                      <div className="row small muted">
-                        <div className="spinner" /> Réflexion…
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+            {side === "discussion" && (
+              <Discussion
+                items={thread}
+                onAsk={(q) => void ask(q)}
+                onClear={async () => {
+                  await api.clearChat(id);
+                  setThread((xs) => xs.filter((x) => x.kind === "explain"));
+                }}
+              />
             )}
             {side === "infos" && article && (
               <div className="stack small" style={{ gap: 12 }}>

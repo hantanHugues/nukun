@@ -122,6 +122,8 @@ export interface ArticleContent {
   trBy?: Record<string, number>;
   /** Explanations asked while reading this article, kept for later visits. */
   explanations?: Explanation[];
+  /** Conversation with the AI about this article. */
+  chat?: ChatMessage[];
 }
 
 export interface Explanation {
@@ -129,6 +131,24 @@ export interface Explanation {
   a: string; // the explanation in French
   by: string; // who answered: an AI, the shared memory or the glossary
   at: string;
+}
+
+export interface ChatMessage {
+  role: "user" | "assistant";
+  text: string;
+  by?: string; // which AI answered
+  at: string;
+}
+
+export interface AiStatus {
+  gemini: boolean;
+  claudeCode: boolean;
+  ollama: boolean;
+  ollamaModels: string[];
+  /** Graphics card of this PC and the local model it can run best. */
+  gpu: string;
+  vramGb: number;
+  advice: { model: string; sizeGb: number; why: string };
 }
 
 export interface FeedItem {
@@ -159,6 +179,8 @@ export interface Settings {
   readerSize: number;
   semanticScholarKey?: string;
   hasSemanticScholarKey?: boolean;
+  /** The first-run tutorial has been completed (or skipped). */
+  onboarded?: boolean;
 }
 
 export interface UsageStats {
@@ -240,6 +262,10 @@ export interface VeilleApi {
   /** Translate only these passages ("block:segment"), typically the ones on screen. */
   translateVisible(id: string, keys: string[]): Promise<void>;
   explain(id: string, text: string): Promise<Explanation>;
+  /** Ask the AI a question about the article; it answers from the article's text. */
+  chat(id: string, question: string): Promise<ChatMessage>;
+  clearChat(id: string): Promise<void>;
+  aiStatus(): Promise<AiStatus>;
   interact(i: Interaction): Promise<void>;
   saveScroll(id: string, ratio: number): Promise<void>;
   refresh(): Promise<void>;
