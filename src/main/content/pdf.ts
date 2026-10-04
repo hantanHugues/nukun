@@ -101,6 +101,10 @@ export async function pdfToBlocks(data: Uint8Array): Promise<Block[]> {
   });
 }
 
+const CJK = /[　-鿿가-힯＀-￯]/;
+
 function needsSpace(a: string, b: string) {
+  // Chinese, Japanese and Korean text has no spaces between words.
+  if (CJK.test(a.slice(-1)) || CJK.test(b.charAt(0))) return false;
   return !!a && !a.endsWith(" ") && !b.startsWith(" ") && !a.endsWith("-");
 }

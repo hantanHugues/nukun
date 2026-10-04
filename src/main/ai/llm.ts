@@ -13,6 +13,8 @@ export interface JsonRequest {
    * and "heavy" work (glossary, technical passages, repairs, explanations) goes to Claude.
    */
   tier?: "light" | "heavy";
+  /** An image to look at (a figure), for models that read images. */
+  image?: { data: Buffer; mime: string };
 }
 
 export class LlmUnavailableError extends Error {}
@@ -87,6 +89,7 @@ export async function ollamaModels(): Promise<string[]> {
 }
 
 async function ollamaJson<T>(req: JsonRequest): Promise<T> {
+  if (req.image) throw new LlmUnavailableError("Le modèle local ne lit pas les images.");
   const { ollamaUrl, ollamaModel } = getSettings();
   const model = ollamaModel || (await ollamaModels())[0];
   if (!model) throw new LlmUnavailableError("Ollama ne tourne pas ou aucun modèle n'est installé (Réglages → IA locale).");
@@ -160,7 +163,15 @@ async function geminiCall<T>(key: string, model: string, req: JsonRequest): Prom
       headers: { "Content-Type": "application/json", "x-goog-api-key": key },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: req.system }] },
-        contents: [{ role: "user", parts: [{ text: req.user }] }],
+        contents: [
+          {
+            role: "user",
+            parts: [
+              ...(req.image ? [{ inlineData: { mimeType: req.image.mime, data: req.image.data.toString("base64") } }] : []),
+              { text: req.user },
+            ],
+          },
+        ],
         generationConfig: {
           temperature: 0.2,
           maxOutputTokens: Math.max(req.maxTokens ?? 8000, 8000),

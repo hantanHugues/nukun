@@ -19,6 +19,12 @@ src/
 └── renderer/src/          React UI (feed, reader with discussion, library, writing, profile, settings, guided tour)
 ```
 
+## Disciplines and languages
+
+- Articles are classified in the 26 OpenAlex fields (`FIELDS` in `shared/types.ts`, grouped in 4 domains). Sources map their own categories to fields (arXiv categories, bioRxiv categories, PLOS subjects, HAL codes…) and are only queried for enabled fields. After each refresh, `Library.classifyNew` asks OpenAlex for the field of every new DOI (50 per request).
+- Languages: HAL (French), SciELO (Spanish, Portuguese; Chile excluded, its site blocks automated downloads), OpenAlex for German, Russian, Japanese and Chinese (only papers with a reachable PDF). `detectLanguage` checks the declared language against the text itself. Translation prompts and the automatic checks take the source language into account; French articles are not translated.
+- The feed reserves one slot in seven for articles in other languages, which share few words with a profile learnt mostly in English.
+
 ## Data flow
 
 1. **Refresh** (`Library.refresh`, every few hours or on demand)
@@ -33,7 +39,9 @@ src/
    - `pdf.ts` (pdf.js) and mammoth (Word) when only a file exists.
    Parsed content is cached in `userData/content/<id>.json` together with its translations.
 
-3. **Reading** (`renderer/src/views/Reader.tsx`)
+3. **Feed** (`renderer/src/views/Feed.tsx`): pages of 30 from one ranking kept in `Library.feed` (no reshuffling while scrolling), loaded when the reader nears the bottom or with "Charger plus"; the position is restored after reading an article.
+
+4. **Reading** (`renderer/src/views/Reader.tsx`)
    - Blocks are rendered after DOMPurify sanitization (HTML + MathML).
    - Every block with untranslated passages carries `data-tkeys`; an IntersectionObserver sends the ones on screen (plus one screen ahead) to `Library.translateVisible`.
    - Scroll position, reading time and progress are reported back as interactions.
@@ -57,6 +65,10 @@ src/
 | Claude API | optional | Anthropic SDK, structured outputs, server-side refusal fallback |
 
 Every step of a chain covers for the previous one (quota reached, service busy, offline), so reading never blocks.
+
+### Figures
+
+`Library.explainFigure` downloads the figure, sends the image and its caption to a model that reads images (Claude Code through its Read tool, or Gemini), and keeps the answer like text explanations.
 
 ### Chat about an article
 

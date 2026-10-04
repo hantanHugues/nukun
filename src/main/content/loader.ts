@@ -31,7 +31,7 @@ async function loadRef(ref: FullTextRef, a: Article): Promise<Loaded> {
     case "jats":
       return jats(ref, a);
     case "html":
-      return nature(ref.url);
+      return ref.mode === "scielo" ? scielo(ref.url, ref.pdf) : nature(ref.url);
     case "inline":
       return inline(ref.html, ref.baseUrl);
     case "pdf":
@@ -180,6 +180,37 @@ async function nature(url: string): Promise<Loaded> {
   }
   blocks.push(...bodyBlocks);
   return { blocks, originalUrl: url, pdfUrl };
+}
+
+// ---------------------------------------------------------------- SciELO (article web page)
+async function scielo(url: string, pdfUrl?: string): Promise<Loaded> {
+  try {
+    const html = await getText(url, { browser: true, timeoutMs: 45000 });
+    const $ = cheerio.load(html);
+    $("script, style, .modal, .ref-list, #article-back, nav, footer").remove();
+    // Classic pages write section titles as classed paragraphs: make them headings
+    // so the table of contents works.
+    for (const [cls, tag] of [["sec", "h2"], ["subsec", "h3"], ["sub-subsec", "h4"]]) {
+      $(`p.${cls}`).each((_, el) => {
+        (el as { name: string }).name = tag;
+      });
+    }
+    const blocks: Block[] = [];
+    // Classic SciELO sites (Spain…) put the text in #article-body; the new Brazilian
+    // site splits it into .articleSection blocks.
+    const classic = $("#article-body").first();
+    const roots = classic.length ? [classic[0]] : $(".articleSection").toArray();
+    for (const r of roots) {
+      const title = $(r).attr("data-anchor") ?? "";
+      if (/refer[eê]ncias|referencias|references/i.test(title)) continue;
+      blocks.push(...htmlToBlocks($, r, { base: url, skip: ".ref, sup.xref-sup" }));
+    }
+    if (blocks.filter((b) => b.t === "p").length >= 3) return { blocks, originalUrl: url, pdfUrl };
+  } catch {
+    /* fall back to the PDF below */
+  }
+  if (!pdfUrl) throw new Error("Texte intégral SciELO indisponible.");
+  return pdf(pdfUrl, url);
 }
 
 // ---------------------------------------------------------------- NASA (content embedded in the feed)

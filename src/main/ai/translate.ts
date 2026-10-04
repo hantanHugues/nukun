@@ -1,14 +1,15 @@
 import type { Article, ArticleContent, GlossaryTerm } from "@shared/types";
+import { languageLabel } from "@shared/types";
 import { claudeKey, geminiKey, getSettings } from "../settings";
 import { claudeCodeAvailable } from "./claudeCode";
 import { recall, remember } from "./memory";
 import { llmJson, OutputTooLongError } from "./llm";
 
-const RULES = `Tu es un traducteur scientifique professionnel, de l'anglais vers le français.
+const RULES = `Tu es un traducteur scientifique professionnel. Tu traduis vers le français des articles écrits en anglais ou dans une autre langue (indiquée avec l'article).
 
 Règles de traduction :
 1. Traduis fidèlement et intégralement, phrase par phrase. Ne résume jamais, n'ajoute rien, ne supprime rien. Le sens, les nuances, les chiffres, les unités, les noms propres et le niveau de certitude des auteurs (« suggère », « démontre », « pourrait ») doivent être conservés exactement.
-2. Les termes techniques que les spécialistes francophones emploient couramment en anglais RESTENT EN ANGLAIS. Exemples : dans un article sur MQTT, « topic », « broker », « payload », « publish/subscribe » restent tels quels ; en IA : « machine learning », « deep learning », « transformer », « prompt », « fine-tuning », « embedding », « benchmark » ; en biologie : « western blot », « knockout », « RNA-seq » ; en robotique : « SLAM », « reinforcement learning ». Tout le reste (vocabulaire courant, verbes, tournures) est traduit en français naturel.
+2. Les termes techniques que les spécialistes francophones emploient couramment en anglais RESTENT EN ANGLAIS. Exemples : dans un article sur MQTT, « topic », « broker », « payload », « publish/subscribe » restent tels quels ; en IA : « machine learning », « deep learning », « transformer », « prompt », « fine-tuning », « embedding », « benchmark » ; en biologie : « western blot », « knockout », « RNA-seq » ; en robotique : « SLAM », « reinforcement learning ». Tout le reste (vocabulaire courant, verbes, tournures) est traduit en français naturel. Si l'article n'est pas en anglais, un terme que les francophones emploient en anglais s'écrit en anglais, pas dans la langue d'origine.
 3. Respecte le glossaire fourni : un terme marqué « garder » reste en anglais ; sinon utilise la traduction indiquée, toujours la même dans tout l'article.
 4. Ne traduis jamais : noms de gènes, protéines, molécules, espèces en latin, logiciels, jeux de données, modèles, sigles, équations, citations bibliographiques.
 5. Les marqueurs ⟦1⟧, ⟦2⟧… représentent des formules ou des références : recopie-les exactement, à la place qui convient dans la phrase française.
@@ -66,7 +67,7 @@ export async function buildGlossary(a: Article, c: ArticleContent): Promise<Glos
   }
   const { data } = await llmJson<{ terms: GlossaryTerm[] }>({
     system: `${RULES}\n\nTa tâche ici : préparer le glossaire technique d'un article avant sa traduction.`,
-    user: `Article : « ${a.title} »\nDomaine : ${a.categories.join(", ") || a.venue || ""}\n\nTitres des sections :\n${headings.join("\n")}\n\nExtrait :\n${sample}\n\nListe 10 à 30 termes techniques importants de cet article. Pour chacun : "term" (en anglais, tel qu'écrit dans l'article), "keep" (true si les spécialistes francophones l'utilisent en anglais), "fr" (la traduction française de référence, ou le terme anglais si keep=true), "definition" (une explication très simple en français, une phrase, pour quelqu'un qui découvre le domaine).${getSettings().keepTermsHint ? `\n\nPréférences de l'utilisateur : ${getSettings().keepTermsHint}` : ""}`,
+    user: `Article : « ${a.title} »\nLangue de l'article : ${languageLabel(a.lang)}\nDomaine :${a.categories.join(", ") || a.venue || ""}\n\nTitres des sections :\n${headings.join("\n")}\n\nExtrait :\n${sample}\n\nListe 10 à 30 termes techniques importants de cet article. Pour chacun : "term" (tel qu'écrit dans l'article, dans sa langue), "keep" (true si les spécialistes francophones emploient ce terme en anglais), "fr" (la forme à utiliser dans la traduction : la traduction française de référence, ou le terme anglais d'usage si keep=true), "definition" (une explication très simple en français, une phrase, pour quelqu'un qui découvre le domaine).${getSettings().keepTermsHint ? `\n\nPréférences de l'utilisateur : ${getSettings().keepTermsHint}` : ""}`,
     schema: GLOSSARY_SCHEMA,
     maxTokens: 8000,
     tier: "heavy",
@@ -134,7 +135,9 @@ function batches(segs: Segment[], maxChars: number): Segment[][] {
 
 function glossaryText(g: GlossaryTerm[]) {
   if (!g.length) return "(aucun)";
-  return g.map((t) => (t.keep ? `- ${t.term} → garder « ${t.term} »` : `- ${t.term} → « ${t.fr} »`)).join("\n");
+  return g
+    .map((t) => (t.keep ? `- ${t.term} → « ${t.fr || t.term} » (terme anglais d'usage, à garder)` : `- ${t.term} → « ${t.fr} »`))
+    .join("\n");
 }
 
 type Tier = "light" | "heavy";
@@ -149,27 +152,31 @@ interface BatchResult {
 }
 
 const EN_WORDS = new Set("the of and to in is are was were that this with for which from by be as on these those has have it its their".split(" "));
+const FR_WORDS = new Set("le la les de des du un une et est en que qui dans pour par sur au aux ce cette ces se sont il elle ils on pas plus ou avec".split(" "));
 
 /** Cheap checks that catch the usual failures of small models, without any AI call. */
-function looksWrong(s: Segment, frRaw: string, glossary: GlossaryTerm[]): boolean {
+function looksWrong(s: Segment, frRaw: string, glossary: GlossaryTerm[], lang = "en"): boolean {
   const src = s.text.replace(/<[^>]+>/g, " ");
   const out = frRaw.replace(/<[^>]+>/g, " ");
   // A formula or reference marker went missing.
   for (let i = 1; i <= s.tokens.length; i++) if (!frRaw.includes(`⟦${i}⟧`)) return true;
-  const words = out.toLowerCase().match(/[a-zàâçéèêëîïôûùüÿœ']+/g) ?? [];
-  if (words.length >= 8) {
+  const words = out.toLowerCase().match(/[\p{L}']+/gu) ?? [];
+  if (words.length >= 8 && lang === "en") {
     // Still mostly English.
     const en = words.filter((w) => EN_WORDS.has(w)).length / words.length;
     if (en > 0.12) return true;
   }
+  // Whatever the source language, real French has its small function words.
+  if (words.length >= 12 && words.filter((w) => FR_WORDS.has(w)).length / words.length < 0.06) return true;
   // Much shorter or longer than the source: something was dropped or invented.
+  // (Chinese and Japanese are much denser than French: no length check for them.)
   const ratio = out.trim().length / Math.max(1, src.trim().length);
-  if (src.length > 60 && (ratio < 0.6 || ratio > 2.2)) return true;
+  if (src.length > 60 && !["zh", "ja"].includes(lang) && (ratio < 0.6 || ratio > 2.2)) return true;
   // A term that must stay in English was translated anyway.
   for (const g of glossary) {
     if (!g.keep || g.term.length < 3) continue;
-    const t = g.term.toLowerCase();
-    if (src.toLowerCase().includes(t) && !out.toLowerCase().includes(t)) return true;
+    const expected = (g.fr || g.term).toLowerCase();
+    if (src.toLowerCase().includes(g.term.toLowerCase()) && !out.toLowerCase().includes(expected)) return true;
   }
   return false;
 }
@@ -186,7 +193,7 @@ async function translateBatch(a: Article, glossary: GlossaryTerm[], batch: Segme
   const hint = getSettings().keepTermsHint;
   try {
     const { data, provider } = await llmJson<{ translations: { i: number; fr: string }[] }>({
-      system: `${RULES}${hint ? `\n\nPréférences de l'utilisateur : ${hint}` : ""}\n\nArticle : « ${a.title} »\n\nGlossaire de cet article :\n${glossaryText(glossary)}`,
+      system: `${RULES}${hint ? `\n\nPréférences de l'utilisateur : ${hint}` : ""}\n\nArticle : « ${a.title} »\nLangue de l'article : ${languageLabel(a.lang)}\n\nGlossaire de cet article :\n${glossaryText(glossary)}`,
       user: `Traduis chaque segment en français. Réponds avec un élément par segment, avec le même "i".\n\n${JSON.stringify(
         batch.map((s, i) => ({ i, text: s.text })),
       )}`,
@@ -200,7 +207,7 @@ async function translateBatch(a: Article, glossary: GlossaryTerm[], batch: Segme
       if (!s || !t.fr?.trim()) continue;
       res.fr.set(s.key, restore(t.fr, s.tokens));
       res.raw.set(s.key, t.fr);
-      if (tier === "light" && looksWrong(s, t.fr, glossary)) res.suspicious.add(s.key);
+      if (tier === "light" && looksWrong(s, t.fr, glossary, a.lang)) res.suspicious.add(s.key);
     }
     for (const s of batch) if (tier === "light" && !res.fr.has(s.key)) res.suspicious.add(s.key);
     return res;

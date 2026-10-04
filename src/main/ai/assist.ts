@@ -50,6 +50,33 @@ Explique-le en français simple, comme à un étudiant motivé qui découvre le 
   return { text: data.explanation, provider };
 }
 
+/** Explains a figure from its image and caption, for a non-specialist reader. */
+export async function explainFigure(
+  a: Article,
+  caption: string,
+  image: { data: Buffer; mime: string },
+): Promise<{ text: string; provider: string }> {
+  const { data, provider } = await llmJson<{ explanation: string }>({
+    system: `Tu aides un lecteur francophone, pas forcément spécialiste, à lire une figure d'article scientifique.
+Explique en français simple : ce que représente la figure (type de graphique, axes, unités, panneaux A/B/C…), ce qu'on y voit concrètement (tendances, différences, valeurs marquantes), et ce que les auteurs veulent montrer avec. Appuie-toi sur l'image et sur la légende ; si un détail n'est pas lisible, dis-le plutôt que de l'inventer. Garde les termes techniques anglais d'usage en les expliquant. Écris des phrases complètes et naturelles (pas de style télégraphique) : 5 à 10 phrases, ou une courte liste.`,
+    user: `Article : « ${a.title} »
+Résumé : ${a.abstract.slice(0, 1200)}
+
+Légende de la figure :
+${caption.slice(0, 3000) || "(pas de légende)"}`,
+    schema: {
+      type: "object",
+      properties: { explanation: { type: "string" } },
+      required: ["explanation"],
+      additionalProperties: false,
+    },
+    maxTokens: 6000,
+    tier: "heavy",
+    image,
+  });
+  return { text: data.explanation, provider };
+}
+
 export interface AiInterest {
   label: string;
   keywords: string[];

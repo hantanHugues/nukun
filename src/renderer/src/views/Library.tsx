@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import type { Article } from "@shared/types";
 import { api } from "../api";
 import { useApp } from "../App";
-import { DOMAIN_ART, domainLabel, sourceLabel, timeAgo } from "../util";
+import { artFor, domainLabel, sourceLabel, timeAgo } from "../util";
 
 type Tab = "encours" | "sauves" | "aimes" | "termines" | "postes";
 
@@ -44,7 +44,7 @@ export function Library() {
       ) : (
         <div className="list">
           {shown.map((a) => {
-            const art = DOMAIN_ART[a.domain];
+            const art = artFor(a.domain);
             return (
               <div key={a.id} className="list-item" onClick={() => go({ view: "reader", articleId: a.id, from: { view: "library" } })}>
                 <div className="thumb">

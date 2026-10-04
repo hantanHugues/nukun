@@ -1,5 +1,6 @@
 import type { Article, DomainId, FeedItem, Interaction, InterestProfileView } from "@shared/types";
-import { DOMAINS } from "@shared/types";
+import { FIELDS, fieldLabel, languageLabel } from "@shared/types";
+import { LEGACY_DOMAINS } from "../sources/classify";
 import { JsonDoc } from "../store";
 import type { AiInterest } from "../ai/assist";
 
@@ -27,17 +28,6 @@ interface Profile {
   lastDecay: string;
 }
 
-const SEEDS: Record<DomainId, string[]> = {
-  psy: [
-    "emotion", "emotional", "emotion regulation", "affect", "affective", "mood", "instability", "affective instability",
-    "impulsivity", "anxiety", "stress", "amygdala", "personality", "rumination", "self-regulation", "wellbeing",
-  ],
-  info: ["machine learning", "language model", "neural network", "artificial intelligence", "algorithm", "iot", "security"],
-  robot: ["robot", "robotic", "embedded", "control", "sensor", "autonomous", "manipulation"],
-  phys: ["quantum", "exoplanet", "galaxy", "black hole", "telescope", "nasa", "space"],
-  bio: ["brain", "neuron", "gene", "cell", "protein", "neuroscience"],
-  autre: [],
-};
 
 const STOP = new Set(
   `a about above after again against all also am an and any are as at be because been before being below between both but by can could
@@ -72,7 +62,8 @@ export function tokenize(text: string): string[] {
   const words = text
     .toLowerCase()
     .replace(/<[^>]+>/g, " ")
-    .replace(/[^a-z0-9\- ]+/g, " ")
+    // Letters of any alphabet (articles come in several languages).
+    .replace(/[^\p{L}\p{N}\- ]+/gu, " ")
     .split(/\s+/)
     .map((w) => w.replace(/^-+|-+$/g, ""))
     .filter((w) => w.length > 2 && !/^\d+$/.test(w) && !STOP.has(w))
@@ -88,14 +79,23 @@ export class Recommender {
   private idf = new Map<string, number>();
   private corpusSize = 0;
 
+  /** A blank profile: the feed starts neutral and learns from what is read. */
   static emptyProfile(): Profile {
-    const domains = Object.fromEntries(DOMAINS.map((d) => [d.id, { w: 0, imp: 0, pos: 0 }])) as Record<DomainId, DomainStat>;
-    const terms: Record<string, number> = {};
-    for (const [, words] of Object.entries(SEEDS)) for (const w of words) for (const t of tokenize(w)) terms[t] = (terms[t] ?? 0) + 0.5;
-    // Psychology was named as a favourite: give it a head start.
-    for (const t of SEEDS.psy.flatMap(tokenize)) terms[t] = (terms[t] ?? 0) + 0.5;
-    domains.psy.w = 0.5;
-    return { terms, domains, aiInterests: [], signals: 0, signalsSinceAnalysis: 0, lastDecay: new Date().toISOString() };
+    return { terms: {}, domains: {}, aiInterests: [], signals: 0, signalsSinceAnalysis: 0, lastDecay: new Date().toISOString() };
+  }
+
+  constructor() {
+    // Profiles from before the 26 disciplines used other domain keys ("psy"…).
+    const d = this.doc.data.domains;
+    for (const k of Object.keys(d)) {
+      const field = LEGACY_DOMAINS[k];
+      if (!field) continue;
+      const cur = (d[field] ??= { w: 0, imp: 0, pos: 0 });
+      cur.w += d[k].w;
+      cur.imp += d[k].imp;
+      cur.pos += d[k].pos;
+      delete d[k];
+    }
   }
 
   get profile() {
@@ -108,12 +108,22 @@ export class Recommender {
   }
 
   private tf(a: Article) {
-    let m = this.tfCache.get(a.id);
+    // The French title and summary act as a shared language between articles
+    // written in different languages.
+    const key = `${a.id}|${a.titleFr ? 1 : 0}`;
+    let m = this.tfCache.get(key);
     if (!m) {
       m = new Map();
-      const toks = [...tokenize(a.title), ...tokenize(a.title), ...tokenize(a.abstract), ...a.categories.flatMap(tokenize)];
+      const toks = [
+        ...tokenize(a.title),
+        ...tokenize(a.title),
+        ...tokenize(a.abstract),
+        ...a.categories.flatMap(tokenize),
+        ...tokenize(a.titleFr ?? ""),
+        ...tokenize(a.teaserFr ?? ""),
+      ];
       for (const t of toks) m.set(t, (m.get(t) ?? 0) + 1);
-      this.tfCache.set(a.id, m);
+      this.tfCache.set(key, m);
     }
     return m;
   }
@@ -256,13 +266,28 @@ export class Recommender {
 
     // One slot in seven goes to discovery: a fresh article from a domain read less often.
     const rest = items.filter((x) => !chosen.includes(x));
-    const leastSeen = [...DOMAINS]
+    const leastSeen = [...FIELDS]
       .filter((d) => enabledDomains[d.id] !== false)
       .sort((x, y) => (p.domains[x.id]?.pos ?? 0) - (p.domains[y.id]?.pos ?? 0))
       .map((d) => d.id);
+    // Articles in other languages rarely share words with what the reader has read so
+    // far (learnt mostly in English): one slot in seven goes to the best of them,
+    // each enabled language in turn.
+    const otherLangs = [...new Set(rest.map((x) => x.a.lang ?? "en").filter((l) => l !== "en"))].sort();
     const result: FeedItem[] = [];
     let di = 0;
+    let li = 0;
     for (let i = 0; i < chosen.length; i++) {
+      if (i % 7 === 3 && otherLangs.length) {
+        for (let tries = 0; tries < otherLangs.length; tries++) {
+          const lang = otherLangs[li++ % otherLangs.length];
+          const pickIdx = rest.findIndex((x) => x.a.lang === lang);
+          if (pickIdx < 0) continue;
+          const pick = rest.splice(pickIdx, 1)[0];
+          result.push({ article: pick.a, score: pick.score, reasons: [`Article en ${languageLabel(lang).toLowerCase()}`] });
+          break;
+        }
+      }
       if (i > 0 && i % 7 === 0) {
         const dom = leastSeen[di++ % Math.max(1, leastSeen.length)];
         const pickIdx = rest.findIndex((x) => x.a.domain === dom && x.fresh > 0.3);
@@ -285,7 +310,7 @@ export class Recommender {
       .filter((t, i, arr) => !arr.some((o, j) => j < i && (o.includes(t) || t.includes(o))))
       .slice(0, 3);
     if (terms.length && c.contrib.length) r.push(`Proche de tes lectures : ${terms.join(", ")}`);
-    if (c.ds.pos >= 3) r.push(`Tu lis souvent en ${DOMAINS.find((d) => d.id === c.a.domain)?.short ?? c.a.domain}`);
+    if (c.ds.pos >= 3) r.push(`Tu lis souvent en ${fieldLabel(c.a.domain)}`);
     if (c.fresh > 0.8) r.push("Publié il y a moins de 2 jours");
     return r;
   }
@@ -298,7 +323,7 @@ export class Recommender {
         .sort((a, b) => b[1] - a[1])
         .slice(0, 30)
         .map(([term, weight]) => ({ term, weight })),
-      domains: DOMAINS.map((d) => ({ id: d.id, weight: p.domains[d.id]?.w ?? 0, impressions: p.domains[d.id]?.imp ?? 0 })),
+      domains: FIELDS.map((d) => ({ id: d.id, weight: p.domains[d.id]?.w ?? 0, impressions: p.domains[d.id]?.imp ?? 0 })),
       aiInterests: p.aiInterests,
       signals: p.signals,
     };

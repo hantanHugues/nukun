@@ -81,7 +81,7 @@ export function Reader({ id, back }: { id: string; back: Route }) {
   // for their untranslated passages. Translated passages carry no key, so they are
   // never requested again.
   useEffect(() => {
-    if (!content || !settings?.autoTranslate || mode === "en" || mode === "pdf") return;
+    if (!content || !settings?.autoTranslate || mode === "en" || mode === "pdf" || article?.lang === "fr") return;
     const root = document.getElementById("main-scroll");
     const wanted = new Set<string>();
     let timer: ReturnType<typeof setTimeout> | null = null;
@@ -109,7 +109,7 @@ export function Reader({ id, back }: { id: string; back: Route }) {
       io.disconnect();
       if (timer) clearTimeout(timer);
     };
-  }, [content, settings?.autoTranslate, mode, id]);
+  }, [content, settings?.autoTranslate, mode, id, article?.lang]);
 
   const translating = tr && !tr.finished;
 
@@ -218,6 +218,12 @@ export function Reader({ id, back }: { id: string; back: Route }) {
   const explain = (text: string) =>
     runThread({ kind: "explain", q: text, at: new Date().toISOString() }, async () => {
       const e = await api.explain(id, text);
+      return { a: e.a, by: e.by };
+    });
+
+  const explainFig = (bi: number, label: string) =>
+    runThread({ kind: "explain", q: label, at: new Date().toISOString() }, async () => {
+      const e = await api.explainFigure(id, bi);
       return { a: e.a, by: e.by };
     });
 
@@ -379,6 +385,16 @@ export function Reader({ id, back }: { id: string; back: Route }) {
               ))}
             </div>
             {b.segs[0] && <figcaption className={pendingCls(bi)}>{renderSeg(bi, 0, b.segs[0], "span")}</figcaption>}
+            <button
+              className="btn sm ghost fig-explain"
+              onClick={() => {
+                const num = b.label?.replace(/^(fig(ure)?\.?\s*)/i, "") || String(content!.blocks.slice(0, bi + 1).filter((x) => x.t === "fig").length);
+                const cap = plain(content?.tr[bi]?.[0] || b.segs[0]).slice(0, 120);
+                void explainFig(bi, cap ? `Figure ${num} : ${cap}` : `Figure ${num}`);
+              }}
+            >
+              <Lightbulb size={14} /> Expliquer cette figure
+            </button>
           </figure>
         );
       case "table":
@@ -431,19 +447,23 @@ export function Reader({ id, back }: { id: string; back: Route }) {
           <button className={mode === "fr" ? "active" : ""} onClick={() => setMode("fr")}>
             Français
           </button>
-          <button className={mode === "bi" ? "active" : ""} onClick={() => setMode("bi")}>
-            Côte à côte
-          </button>
-          <button className={mode === "en" ? "active" : ""} onClick={() => setMode("en")}>
-            Original
-          </button>
+          {article?.lang !== "fr" && (
+            <>
+              <button className={mode === "bi" ? "active" : ""} onClick={() => setMode("bi")}>
+                Côte à côte
+              </button>
+              <button className={mode === "en" ? "active" : ""} onClick={() => setMode("en")}>
+                Original{article?.lang && article.lang !== "en" ? ` (${article.lang.toUpperCase()})` : ""}
+              </button>
+            </>
+          )}
           {content?.pdfUrl && (
             <button className={mode === "pdf" ? "active" : ""} onClick={() => setMode("pdf")}>
               PDF
             </button>
           )}
         </div>
-        {!translating && pendingSegs > 0 && content && (
+        {!translating && pendingSegs > 0 && content && article?.lang !== "fr" && (
           <button
             className="btn sm brand"
             title="Traduit tout l'article d'un coup, pour le lire plus tard. Sinon, seul ce qui s'affiche est traduit."

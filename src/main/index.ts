@@ -73,7 +73,10 @@ function scheduleRefresh() {
 }
 
 function registerIpc() {
-  ipcMain.handle("getFeed", (_e, o: { domain?: DomainId | "all"; limit?: number }) => lib.feed(o?.domain ?? "all", o?.limit ?? 60));
+  ipcMain.handle("getFeed", (_e, o: { domain?: string; limit?: number; offset?: number; fresh?: boolean }) =>
+    lib.feed(o?.domain ?? "all", o?.limit ?? 30, o?.offset ?? 0, o?.fresh ?? (o?.offset ?? 0) === 0),
+  );
+  ipcMain.handle("fieldCounts", () => lib.fieldCounts());
   ipcMain.handle("getLibrary", () => lib.libraryList());
   ipcMain.handle("getArticle", (_e, id: string) => lib.get(id));
   ipcMain.handle("loadContent", (_e, id: string) => lib.loadContent(id));
@@ -84,6 +87,7 @@ function registerIpc() {
     lib.translateVisible(id, keys);
   });
   ipcMain.handle("chat", (_e, id: string, q: string) => lib.chat(id, q));
+  ipcMain.handle("explainFigure", (_e, id: string, block: number) => lib.explainFigure(id, block));
   ipcMain.handle("clearChat", (_e, id: string) => lib.clearChat(id));
   ipcMain.handle("aiStatus", async () => {
     const hw = await detectHardware();

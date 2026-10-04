@@ -19,7 +19,7 @@ interface Step {
 
 const STEPS: Step[] = [
   { view: "feed", title: "Bienvenue", text: "En 1 minute, on fait le tour de l'app. Tu peux quitter à tout moment." },
-  { view: "feed", target: "filters", title: "Tes domaines", text: "Filtre ton fil : informatique, robotique, physique, biologie, psychologie…" },
+  { view: "feed", target: "filters", title: "Filtres", text: "Les 4 grands domaines, puis tes disciplines les plus fournies ; les autres sont dans la liste." },
   { view: "feed", target: "first-card", title: "Un article", text: "Clique pour le lire. Au survol : sauvegarder pour plus tard, ou « pas intéressé »." },
   { view: "feed", target: "refresh", title: "Actualiser", text: "Va chercher les derniers articles. L'app le fait aussi toute seule." },
   { view: "article", target: "lang-modes", title: "Langue", text: "Français, côte à côte ou original. Seul ce qui est à l'écran est traduit." },
@@ -29,7 +29,7 @@ const STEPS: Step[] = [
   { view: "settings", target: "gemini-key", title: "Clé Google gratuite", text: "Crée-la sur aistudio.google.com/apikey et colle-la ici." },
   { view: "settings", target: "ollama", title: "IA locale", text: "Ta carte graphique est détectée : installe le modèle conseillé avec Ollama." },
   { view: "settings", target: "ai-test", title: "Tester", text: "Vérifie que ton IA répond." },
-  { view: "settings", target: "domains", title: "Domaines", text: "Active ou désactive les domaines de ton fil." },
+  { view: "settings", target: "domains", title: "Disciplines et langues", text: "Coche tes disciplines (26 au choix) et les langues des articles à recevoir." },
   { view: "settings", target: "sources", title: "Sources", text: "Active ou désactive chaque source scientifique." },
   { view: "feed", target: "nav", title: "Le menu", text: "Ta bibliothèque, tes articles, et ce que l'algorithme a compris de tes goûts." },
   { view: "feed", title: "C'est parti", text: "Bonne lecture ! Tu peux relancer cette visite depuis les Réglages." },

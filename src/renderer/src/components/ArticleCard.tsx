@@ -1,8 +1,9 @@
 import { Bookmark, BookmarkCheck, Compass, EyeOff, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { FeedItem } from "@shared/types";
+import { languageLabel } from "@shared/types";
 import { api } from "../api";
-import { authorsShort, DOMAIN_ART, domainLabel, sourceLabel, timeAgo } from "../util";
+import { artFor, authorsShort, domainLabel, sourceLabel, timeAgo } from "../util";
 
 const seen = new Set<string>();
 
@@ -48,7 +49,7 @@ export function ArticleCard({
     };
   }, [a.id]);
 
-  const art = DOMAIN_ART[a.domain];
+  const art = artFor(a.domain);
   const isFigure = !!a.image && !["nasa", "elife"].includes(a.source);
   const title = a.titleFr ?? a.title;
 
@@ -102,6 +103,11 @@ export function ArticleCard({
             <span className="tag brand">{domainLabel(a.domain)}</span>
           )}
           <span>{sourceLabel(a)}</span>
+          {a.lang && a.lang !== "en" && (
+            <span className="tag" title={`Article en ${languageLabel(a.lang).toLowerCase()}`}>
+              {a.lang.toUpperCase()}
+            </span>
+          )}
           <span>·</span>
           <span>{timeAgo(a.published)}</span>
         </div>

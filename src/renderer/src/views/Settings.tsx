@@ -1,7 +1,7 @@
 import { CheckCircle2, ExternalLink, FolderOpen, KeyRound, RefreshCw, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { AiProvider, AiStatus, Settings, SourceStatus, UsageStats } from "@shared/types";
-import { DOMAINS, SOURCES } from "@shared/types";
+import { FIELD_GROUPS, FIELDS, LANGUAGES, SOURCES } from "@shared/types";
 import { api } from "../api";
 import { useApp } from "../App";
 import { timeAgo } from "../util";
@@ -271,17 +271,67 @@ export function SettingsView() {
 
         {/* ---------------------------------------------------------------- domains */}
         <section className="card section" data-tour="domains">
-          <h2 className="h2">Domaines suivis</h2>
-          {DOMAINS.map((d) => (
-            <div key={d.id} className="setting-row">
-              <div className="grow">{d.label}</div>
-              <button
-                className={`switch ${settings.domains[d.id] !== false ? "on" : ""}`}
-                aria-label={d.label}
-                onClick={() => void save({ domains: { ...settings.domains, [d.id]: settings.domains[d.id] === false } })}
-              />
+          <h2 className="h2">Disciplines et langues</h2>
+          <p className="small muted" style={{ marginTop: 6 }}>
+            Coche ce qui t'intéresse : chaque source n'est interrogée que pour les disciplines qu'elle couvre. Les 26 disciplines
+            sont celles d'OpenAlex.
+          </p>
+          {FIELD_GROUPS.map((g) => {
+            const fields = FIELDS.filter((f) => f.group === g.id);
+            const allOn = fields.every((f) => settings.domains[f.id] !== false);
+            return (
+              <div key={g.id} className="field">
+                <div className="row" style={{ justifyContent: "space-between" }}>
+                  <label>{g.label}</label>
+                  <button
+                    className="btn sm ghost"
+                    onClick={() =>
+                      void save({ domains: { ...settings.domains, ...Object.fromEntries(fields.map((f) => [f.id, !allOn])) } })
+                    }
+                  >
+                    {allOn ? "Tout décocher" : "Tout cocher"}
+                  </button>
+                </div>
+                <div className="row wrap" style={{ gap: 6 }}>
+                  {fields.map((f) => {
+                    const on = settings.domains[f.id] !== false;
+                    return (
+                      <button
+                        key={f.id}
+                        className={`chip ${on ? "active" : ""}`}
+                        aria-pressed={on}
+                        onClick={() => void save({ domains: { ...settings.domains, [f.id]: !on } })}
+                      >
+                        {f.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+          <div className="field">
+            <label>Langues des articles</label>
+            <div className="row wrap" style={{ gap: 6 }}>
+              {LANGUAGES.map((l) => {
+                const on = settings.languages[l.id] !== false;
+                return (
+                  <button
+                    key={l.id}
+                    className={`chip ${on ? "active" : ""}`}
+                    aria-pressed={on}
+                    onClick={() => void save({ languages: { ...settings.languages, [l.id]: !on } })}
+                  >
+                    {l.label}
+                  </button>
+                );
+              })}
             </div>
-          ))}
+            <span className="small muted">
+              Tous les articles sont traduits en français ; ceux déjà en français sont lus tels quels. Sources par langue : HAL pour le
+              français, SciELO pour l'espagnol et le portugais, OpenAlex pour les autres.
+            </span>
+          </div>
         </section>
 
         {/* ---------------------------------------------------------------- sources */}

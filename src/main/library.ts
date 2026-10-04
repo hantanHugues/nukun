@@ -15,8 +15,9 @@ import type {
   SourceStatus,
   TranslationProgress,
 } from "@shared/types";
-import { SOURCES } from "@shared/types";
-import { analyzeInterests, chatAboutArticle, explainPassage, makeTeasers } from "./ai/assist";
+import { fieldGroup, SOURCES, UNCLASSIFIED } from "@shared/types";
+import { analyzeInterests, chatAboutArticle, explainFigure, explainPassage, makeTeasers } from "./ai/assist";
+import { get } from "./http";
 import { claudeCodeAvailable } from "./ai/claudeCode";
 import { describeError, geminiAvailableToday } from "./ai/llm";
 import { recallExplanation, rememberExplanation } from "./ai/memory";
@@ -24,7 +25,8 @@ import { translateContent } from "./ai/translate";
 import { loadFullText, PendingError } from "./content/loader";
 import { Recommender } from "./reco/recommender";
 import { getSettings, semanticScholarKey } from "./settings";
-import { epmcFindByDoi, FETCHERS, type RawArticle } from "./sources";
+import { epmcFindByDoi, FETCHERS, openalexClassify, type RawArticle } from "./sources";
+import { classifyText, detectLanguage, LEGACY_DOMAINS } from "./sources/classify";
 import { JsonDoc, readJson, removeFile, safeName, writeJson } from "./store";
 
 type Emit = {
@@ -52,6 +54,29 @@ export class Library {
   private analyzing = false;
 
   constructor(private emit: Emit) {
+    // Articles from before the 26 disciplines carry the old domain keys ("psy"…).
+    let migrated = false;
+    for (const a of this.all()) {
+      const field = LEGACY_DOMAINS[a.domain];
+      if (field !== undefined) {
+        a.domain = field;
+        migrated = true;
+      }
+      if (!a.langChecked) {
+        a.lang = detectLanguage(`${a.title} ${a.abstract}`) ?? a.lang ?? "en";
+        a.langChecked = true;
+        migrated = true;
+      }
+    }
+    // SciELO Chile blocks automated downloads: its papers could never be opened.
+    for (const a of this.all()) {
+      const ft = a.fullText as { url?: string };
+      if (a.source === "scielo" && ft.url?.includes("scielo.cl") && !a.state.opened && !a.state.saved) {
+        delete this.db.data[a.id];
+        migrated = true;
+      }
+    }
+    if (migrated) this.db.save();
     this.reco.index(this.all());
   }
 
@@ -75,12 +100,51 @@ export class Library {
   }
 
   // ------------------------------------------------------------ feed
-  feed(domain: DomainId | "all" = "all", limit = 60): FeedItem[] {
+  /** Articles that may appear in the feed: readable, not seen yet, in an enabled language. */
+  private candidates() {
     const s = getSettings();
-    const candidates = this.all().filter(
-      (a) => a.availability === "ok" && !a.state.dismissed && !a.state.opened && (domain === "all" || a.domain === domain),
+    return this.all().filter(
+      (a) => a.availability === "ok" && !a.state.dismissed && !a.state.opened && s.languages[a.lang ?? "en"] !== false,
     );
-    return this.reco.rank(candidates, limit, domain === "all" ? s.domains : ({ [domain]: true } as Record<DomainId, boolean>));
+  }
+
+  /** `filter` is "all", a field id, or "g:<group>" for one of the 4 big domains. */
+  /** Ranked feed kept between pages, so scrolling down never reshuffles what is above. */
+  private feedCache: { filter: string; items: FeedItem[] } | null = null;
+
+  private rankFeed(filter: string, limit: number): FeedItem[] {
+    const s = getSettings();
+    const match = (a: Article) =>
+      filter === "all" || a.domain === filter || (filter.startsWith("g:") && fieldGroup(a.domain) === filter.slice(2));
+    const candidates = this.candidates().filter(match);
+    return this.reco.rank(candidates, limit, filter === "all" ? s.domains : ({} as Record<DomainId, boolean>));
+  }
+
+  /**
+   * One page of the feed. `fresh` ranks again (opening the feed, "new articles");
+   * otherwise pages come from the same ranking, extended when the reader goes further.
+   * `filter` is "all", a field id, or "g:<group>" for one of the 4 big domains.
+   */
+  feed(filter = "all", limit = 30, offset = 0, fresh = offset === 0): FeedItem[] {
+    const c = this.feedCache;
+    if (fresh || !c || c.filter !== filter) {
+      this.feedCache = { filter, items: this.rankFeed(filter, Math.max(offset + limit, 150)) };
+    } else if (c.items.length < offset + limit && c.items.length >= 150) {
+      // Deeper than the first ranking: extend it, keeping the order already shown.
+      const seen = new Set(c.items.map((x) => x.article.id));
+      const more = this.rankFeed(filter, offset + limit + 150).filter((x) => !seen.has(x.article.id));
+      c.items.push(...more);
+    }
+    // Raw slices: the page knows what it has hidden (dismissed cards).
+    return this.feedCache!.items.slice(offset, offset + limit);
+  }
+
+  /** How many readable articles each discipline has, for the feed filters. */
+  fieldCounts(): Record<DomainId, number> {
+    const s = getSettings();
+    const counts: Record<DomainId, number> = {};
+    for (const a of this.candidates()) if (s.domains[a.domain] !== false) counts[a.domain] = (counts[a.domain] ?? 0) + 1;
+    return counts;
   }
 
   libraryList() {
@@ -109,7 +173,12 @@ export class Library {
     const run = async (id: SourceId) => {
       const st: SourceStatus = { source: id, lastRun: new Date().toISOString() };
       try {
-        const raws = await FETCHERS[id]({ s2Key: semanticScholarKey() });
+        const raws = await FETCHERS[id]({
+          s2Key: semanticScholarKey(),
+          fields: new Set(Object.entries(s.domains).filter(([, on]) => on).map(([f]) => f)),
+          languages: new Set(Object.entries(s.languages).filter(([, on]) => on).map(([l]) => l)),
+          known: new Set(Object.keys(this.db.data)),
+        });
         st.lastCount = raws.length;
         added += this.merge(raws);
       } catch (e) {
@@ -128,6 +197,9 @@ export class Library {
     );
     this.status.save();
 
+    progress("Classement des articles par discipline");
+    await this.classifyNew();
+
     progress("Recherche des textes intégraux en attente");
     await this.resolvePending();
     done++;
@@ -145,7 +217,7 @@ export class Library {
     this.emit.feedUpdated();
 
     progress("Traduction des titres");
-    const top = this.feed("all", 30).map((f) => f.article.id);
+    const top = this.rankFeed("all", 30).map((f) => f.article.id);
     await this.queueTeasers(top);
     done++;
     this.emit.refresh({ running: false, step: "Fil à jour", done, total: done, newArticles: added });
@@ -168,11 +240,39 @@ export class Library {
         if (!existing.image && r.image) existing.image = r.image;
         continue;
       }
-      this.db.data[r.id] = { ...r, fetchedAt: now, state: emptyState() };
+      // Declared languages are sometimes wrong (an English paper tagged Spanish…):
+      // trust the text itself when it is clear.
+      const lang = detectLanguage(`${r.title} ${r.abstract}`) ?? r.lang ?? "en";
+      this.db.data[r.id] = { ...r, lang, fetchedAt: now, state: emptyState() };
       added++;
     }
     this.db.save();
     return added;
+  }
+
+  /**
+   * OpenAlex gives the discipline (and language) of any paper with a DOI: one
+   * reliable classification for every source, instead of guessing from keywords.
+   */
+  private async classifyNew() {
+    const todo = this.all().filter((a) => a.doi && !a.classified).slice(0, 300);
+    if (!todo.length) return;
+    try {
+      const found = await openalexClassify(todo.map((a) => a.doi!.toLowerCase()));
+      const s = getSettings();
+      for (const a of todo) {
+        a.classified = true;
+        const hit = found.get(a.doi!.toLowerCase());
+        if (hit?.field) a.domain = hit.field;
+        else if (a.domain === UNCLASSIFIED) a.domain = classifyText(`${a.title} ${a.abstract}`);
+        if (hit?.lang && !a.lang) a.lang = hit.lang;
+        // Now that its discipline is known, drop it if that discipline is switched off.
+        if (s.domains[a.domain] === false && !a.state.opened && !a.state.saved) delete this.db.data[a.id];
+      }
+      this.db.save();
+    } catch {
+      /* OpenAlex unreachable: the source's own classification stays */
+    }
   }
 
   private async resolvePending() {
@@ -212,7 +312,7 @@ export class Library {
   }
 
   private async prefetchTop(n: number) {
-    const ids = this.feed("all", n).map((f) => f.article.id);
+    const ids = this.rankFeed("all", n).map((f) => f.article.id);
     const queue = [...ids];
     await Promise.all(
       Array.from({ length: 3 }, async () => {
@@ -265,6 +365,7 @@ export class Library {
    */
   translateVisible(id: string, keys: string[]) {
     if (this.translating.has(id)) return; // a full translation already covers it
+    if (this.get(id)?.lang === "fr") return; // already in French
     const q = this.visibleQueue.get(id) ?? new Set<string>();
     for (const k of keys) {
       q.delete(k); // re-add so the latest request moves to the end (= served first)
@@ -327,6 +428,43 @@ export class Library {
     })().finally(() => this.translating.delete(id));
     this.translating.set(id, job);
     return job;
+  }
+
+  /**
+   * Explains a figure from its image and caption. The answer is kept with the article
+   * and in the shared memory (keyed by the image), like text explanations.
+   */
+  async explainFigure(id: string, blockIndex: number): Promise<Explanation> {
+    const c = await this.loadContent(id);
+    const b = c.blocks[blockIndex];
+    if (!b || b.t !== "fig") throw new Error("Figure introuvable.");
+    const src = b.src[0];
+    const caption = (c.tr[blockIndex]?.[0] || b.segs[0] || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    const num = b.label?.replace(/^(fig(ure)?\.?\s*)/i, "") || String(c.blocks.slice(0, blockIndex + 1).filter((x) => x.t === "fig").length);
+    const label = caption ? `Figure ${num} : ${caption.slice(0, 120)}${caption.length > 120 ? "…" : ""}` : `Figure ${num}`;
+    const save = (e: Explanation) => {
+      c.explanations = [...(c.explanations ?? []).filter((x) => x.q !== e.q), e];
+      writeJson(contentFile(id), c);
+      return e;
+    };
+    const at = new Date().toISOString();
+    const known = recallExplanation(`figure:${src}`);
+    if (known) return save({ q: label, a: known.a, by: `Mémoire (${known.by})`, at });
+
+    let image: { data: Buffer; mime: string };
+    if (src.startsWith("data:")) {
+      const m = src.match(/^data:([^;]+);base64,(.*)$/);
+      if (!m) throw new Error("Image illisible.");
+      image = { mime: m[1], data: Buffer.from(m[2], "base64") };
+    } else {
+      const res = await get(src, { browser: true, timeoutMs: 45000 });
+      image = { mime: (res.headers.get("content-type") ?? "image/jpeg").split(";")[0], data: Buffer.from(await res.arrayBuffer()) };
+    }
+    if (!/^image\/(png|jpe?g|gif|webp)$/.test(image.mime)) throw new Error(`Format d'image non pris en charge (${image.mime}).`);
+    if (image.data.length > 8 * 1024 * 1024) throw new Error("Image trop lourde pour être analysée.");
+    const { text, provider } = await explainFigure(this.get(id), caption, image);
+    rememberExplanation(`figure:${src}`, text, provider);
+    return save({ q: label, a: text, by: provider, at });
   }
 
   /** A question about the article, answered by the AI from the article's own text. */

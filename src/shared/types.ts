@@ -1,13 +1,64 @@
-export type DomainId = "info" | "robot" | "phys" | "bio" | "psy" | "autre";
+/**
+ * A discipline, as classified by OpenAlex ("fields" 11 to 36, grouped in 4 domains).
+ * "0" means not classified yet.
+ */
+export type DomainId = string;
 
-export const DOMAINS: { id: DomainId; label: string; short: string }[] = [
-  { id: "info", label: "Informatique & IA", short: "Info & IA" },
-  { id: "robot", label: "Robotique & électronique", short: "Robotique" },
-  { id: "phys", label: "Physique & espace", short: "Physique & espace" },
-  { id: "bio", label: "Biologie & médecine", short: "Bio & médecine" },
-  { id: "psy", label: "Psychologie & émotions", short: "Psychologie" },
-  { id: "autre", label: "Autres sciences", short: "Autre" },
+export type FieldGroup = "life" | "social" | "physical" | "health";
+
+export const FIELD_GROUPS: { id: FieldGroup; label: string }[] = [
+  { id: "physical", label: "Sciences physiques et ingénierie" },
+  { id: "life", label: "Sciences de la vie" },
+  { id: "health", label: "Sciences de la santé" },
+  { id: "social", label: "Sciences humaines et sociales" },
 ];
+
+export const FIELDS: { id: DomainId; label: string; group: FieldGroup }[] = [
+  { id: "17", label: "Informatique", group: "physical" },
+  { id: "22", label: "Ingénierie", group: "physical" },
+  { id: "31", label: "Physique et astronomie", group: "physical" },
+  { id: "26", label: "Mathématiques", group: "physical" },
+  { id: "16", label: "Chimie", group: "physical" },
+  { id: "15", label: "Génie chimique", group: "physical" },
+  { id: "25", label: "Science des matériaux", group: "physical" },
+  { id: "21", label: "Énergie", group: "physical" },
+  { id: "19", label: "Sciences de la Terre", group: "physical" },
+  { id: "23", label: "Environnement", group: "physical" },
+  { id: "13", label: "Biochimie et génétique", group: "life" },
+  { id: "28", label: "Neurosciences", group: "life" },
+  { id: "24", label: "Immunologie et microbiologie", group: "life" },
+  { id: "11", label: "Agriculture et biologie", group: "life" },
+  { id: "30", label: "Pharmacologie", group: "life" },
+  { id: "27", label: "Médecine", group: "health" },
+  { id: "29", label: "Soins infirmiers", group: "health" },
+  { id: "36", label: "Professions de santé", group: "health" },
+  { id: "35", label: "Odontologie", group: "health" },
+  { id: "34", label: "Médecine vétérinaire", group: "health" },
+  { id: "32", label: "Psychologie", group: "social" },
+  { id: "33", label: "Sciences sociales", group: "social" },
+  { id: "12", label: "Arts et humanités", group: "social" },
+  { id: "20", label: "Économie et finance", group: "social" },
+  { id: "14", label: "Gestion", group: "social" },
+  { id: "18", label: "Sciences de la décision", group: "social" },
+];
+
+export const UNCLASSIFIED: DomainId = "0";
+
+export const fieldLabel = (id: DomainId) => FIELDS.find((f) => f.id === id)?.label ?? "Non classé";
+export const fieldGroup = (id: DomainId): FieldGroup | undefined => FIELDS.find((f) => f.id === id)?.group;
+
+/** Languages of articles the app can fetch and translate (ISO 639-1). */
+export const LANGUAGES: { id: string; label: string }[] = [
+  { id: "en", label: "Anglais" },
+  { id: "fr", label: "Français" },
+  { id: "es", label: "Espagnol" },
+  { id: "pt", label: "Portugais" },
+  { id: "de", label: "Allemand" },
+  { id: "ru", label: "Russe" },
+  { id: "ja", label: "Japonais" },
+  { id: "zh", label: "Chinois" },
+];
+export const languageLabel = (id?: string) => LANGUAGES.find((l) => l.id === id)?.label ?? id ?? "Anglais";
 
 export type SourceId =
   | "arxiv"
@@ -21,7 +72,9 @@ export type SourceId =
   | "sciadv"
   | "openalex"
   | "semanticscholar"
-  | "psyarxiv";
+  | "psyarxiv"
+  | "hal"
+  | "scielo";
 
 export const SOURCES: { id: SourceId; label: string; description: string }[] = [
   { id: "arxiv", label: "arXiv", description: "Prépublications en informatique, IA, robotique, physique et biologie quantitative" },
@@ -33,9 +86,11 @@ export const SOURCES: { id: SourceId; label: string; description: string }[] = [
   { id: "nasa", label: "NASA Science", description: "Actualités scientifiques officielles de la NASA" },
   { id: "nature", label: "Nature (OA)", description: "Nature Communications et Scientific Reports, en libre accès" },
   { id: "sciadv", label: "Science Advances", description: "Revue en libre accès de l'AAAS (texte via Europe PMC)" },
-  { id: "openalex", label: "OpenAlex", description: "Index mondial des publications, filtré sur le libre accès" },
+  { id: "openalex", label: "OpenAlex", description: "Index mondial de toutes les disciplines, en libre accès, et articles en allemand, russe, japonais et chinois" },
   { id: "semanticscholar", label: "Semantic Scholar", description: "Moteur de recherche académique (limité sans clé API)" },
   { id: "psyarxiv", label: "PsyArXiv", description: "Prépublications en psychologie" },
+  { id: "hal", label: "HAL", description: "Archive ouverte française, toutes disciplines, beaucoup d'articles en français" },
+  { id: "scielo", label: "SciELO", description: "Revues d'Amérique latine, d'Espagne et du Portugal, en espagnol et en portugais" },
 ];
 
 /** How the full text of an article can be obtained. */
@@ -43,7 +98,7 @@ export type FullTextRef =
   | { kind: "arxiv"; arxivId: string }
   | { kind: "jats"; url: string; imageBase?: string; imageMode: "biorxiv" | "plos" | "pmc" | "elife"; pmcid?: string; articleId?: string }
   | { kind: "pmc"; pmcid: string }
-  | { kind: "html"; url: string; mode: "nature" }
+  | { kind: "html"; url: string; mode: "nature" | "scielo"; pdf?: string }
   | { kind: "inline"; html: string; baseUrl: string }
   | { kind: "pdf"; url: string }
   | { kind: "osf"; preprintId: string }
@@ -59,6 +114,7 @@ export interface Article {
   published: string; // ISO date
   fetchedAt: string;
   url: string; // landing page
+  lang?: string; // language of the article (ISO 639-1), "en" when unknown
   doi?: string;
   venue?: string;
   categories: string[];
@@ -68,6 +124,8 @@ export interface Article {
   /** "pending" means the free full text is not reachable yet (rechecked later). */
   availability: "ok" | "pending";
   checkedAt?: string; // last time a pending full text was looked for
+  classified?: boolean; // discipline checked with OpenAlex
+  langChecked?: boolean; // language checked against the text itself
   loadError?: string;
   // AI-generated French presentation
   titleFr?: string;
@@ -173,6 +231,8 @@ export interface Settings {
   keepTermsHint: string; // extra user rules for the translator
   sources: Record<SourceId, boolean>;
   domains: Record<DomainId, boolean>;
+  /** Languages of articles to show. */
+  languages: Record<string, boolean>;
   refreshHours: number;
   exportDir: string;
   theme: "system" | "dark" | "light";
@@ -254,7 +314,10 @@ export interface TranslationProgress {
 }
 
 export interface VeilleApi {
-  getFeed(opts: { domain?: DomainId | "all"; limit?: number }): Promise<FeedItem[]>;
+  /** `domain`: "all", a field id, or "g:<group>". */
+  /** One page of the feed; `fresh` ranks again instead of continuing the current ranking. */
+  getFeed(opts: { domain?: string; limit?: number; offset?: number; fresh?: boolean }): Promise<FeedItem[]>;
+  fieldCounts(): Promise<Record<DomainId, number>>;
   getLibrary(): Promise<Article[]>;
   getArticle(id: string): Promise<Article | undefined>;
   loadContent(id: string): Promise<ArticleContent>;
@@ -262,6 +325,8 @@ export interface VeilleApi {
   /** Translate only these passages ("block:segment"), typically the ones on screen. */
   translateVisible(id: string, keys: string[]): Promise<void>;
   explain(id: string, text: string): Promise<Explanation>;
+  /** Explain a figure (block index) from its image and caption. */
+  explainFigure(id: string, block: number): Promise<Explanation>;
   /** Ask the AI a question about the article; it answers from the article's text. */
   chat(id: string, question: string): Promise<ChatMessage>;
   clearChat(id: string): Promise<void>;

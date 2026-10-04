@@ -1,7 +1,7 @@
 import { app, safeStorage } from "electron";
 import path from "node:path";
 import type { DomainId, Settings, SourceId, UsageStats } from "@shared/types";
-import { DOMAINS, SOURCES } from "@shared/types";
+import { FIELDS, LANGUAGES, SOURCES } from "@shared/types";
 import { JsonDoc } from "./store";
 
 interface StoredSettings extends Omit<Settings, "hasClaudeKey" | "hasSemanticScholarKey" | "semanticScholarKey" | "hasGeminiKey"> {
@@ -20,7 +20,9 @@ const defaults = (): StoredSettings => ({
   autoTranslate: true,
   keepTermsHint: "",
   sources: Object.fromEntries(SOURCES.map((s) => [s.id, true])) as Record<SourceId, boolean>,
-  domains: Object.fromEntries(DOMAINS.map((d) => [d.id, true])) as Record<DomainId, boolean>,
+  // Every discipline and every language at first: the feed learns from what is read.
+  domains: Object.fromEntries(FIELDS.map((f) => [f.id, true])) as Record<DomainId, boolean>,
+  languages: Object.fromEntries(LANGUAGES.map((l) => [l.id, true])),
   refreshHours: 3,
   exportDir: path.join(app.getPath("documents"), "porfolio", "article", "mes-articles"),
   theme: "system",
@@ -33,7 +35,17 @@ function stored() {
   if (!doc) {
     doc = new JsonDoc<StoredSettings>("settings.json", defaults());
     const d = defaults();
-    doc.data = { ...d, ...doc.data, sources: { ...d.sources, ...doc.data.sources }, domains: { ...d.domains, ...doc.data.domains } };
+    // Settings from before the 26 disciplines used other keys ("info", "psy"…): the
+    // old choices covered only a few topics, so every discipline is switched on.
+    const saved = doc.data.domains ?? {};
+    const legacy = Object.keys(saved).some((k) => !/^\d+$/.test(k));
+    doc.data = {
+      ...d,
+      ...doc.data,
+      sources: { ...d.sources, ...doc.data.sources },
+      domains: legacy ? d.domains : { ...d.domains, ...saved },
+      languages: { ...d.languages, ...doc.data.languages },
+    };
   }
   return doc;
 }

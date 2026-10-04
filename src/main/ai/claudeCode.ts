@@ -35,6 +35,16 @@ export async function claudeCodeJson<T>(req: JsonRequest): Promise<T> {
   // An empty working folder, no tools, no MCP servers, no settings: a plain text request.
   const cwd = path.join(os.tmpdir(), "veille-claude-code");
   fs.mkdirSync(cwd, { recursive: true });
+  // A figure is handed over as a file Claude Code may read, and nothing else.
+  let prompt = req.user;
+  if (req.image) {
+    const ext = req.image.mime.split("/")[1]?.replace("jpeg", "jpg") ?? "png";
+    const file = path.join(cwd, `figure.${ext}`);
+    fs.writeFileSync(file, req.image.data);
+    prompt = `${req.user}
+
+L'image de la figure est le fichier « ${file} » : ouvre-la avec l'outil Read avant de répondre.`;
+  }
   const args = [
     "-p",
     "--output-format", "json",
@@ -42,7 +52,9 @@ export async function claudeCodeJson<T>(req: JsonRequest): Promise<T> {
     "--system-prompt", req.system,
     "--model", getSettings().claudeCodeModel || "opus",
     "--effort", "low",
-    "--tools", "",
+    "--tools", req.image ? "Read" : "",
+    // Print mode cannot ask for permission: reading the figure is allowed up front.
+    ...(req.image ? ["--allowedTools", "Read"] : []),
     "--setting-sources", "",
     "--strict-mcp-config",
     "--no-session-persistence",
@@ -60,7 +72,7 @@ export async function claudeCodeJson<T>(req: JsonRequest): Promise<T> {
       if (stdout.trim()) resolve(stdout);
       else reject(new Error(`Claude Code s'est arrêté (code ${code}) : ${stderr.slice(0, 300)}`));
     });
-    child.stdin.end(req.user);
+    child.stdin.end(prompt);
   });
   recordClaudeCodeCall();
   const j = JSON.parse(out);

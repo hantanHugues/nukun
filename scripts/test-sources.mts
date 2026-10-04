@@ -1,4 +1,6 @@
 import { FETCHERS } from "../src/main/sources/index";
+import { FIELDS, LANGUAGES } from "../src/shared/types";
+const opts = { fields: new Set(FIELDS.map((f) => f.id)), languages: new Set(LANGUAGES.map((l) => l.id)), known: new Set<string>() };
 import { pdfToBlocks } from "../src/main/content/pdf";
 import { getBuffer } from "../src/main/http";
 const only = process.argv[2];
@@ -10,9 +12,9 @@ if (only === "pdf") {
     if (only && name !== only) continue;
     const t = Date.now();
     try {
-      const r = await f({});
+      const r = await f(opts);
       const dom: Record<string, number> = {};
-      for (const a of r) dom[a.domain] = (dom[a.domain] ?? 0) + 1;
+      for (const a of r) dom[a.domain + "/" + a.lang] = (dom[a.domain + "/" + a.lang] ?? 0) + 1;
       console.log(name.padEnd(16), String(r.length).padStart(4), `${Date.now() - t}ms`, JSON.stringify(dom), "|", r[0]?.title.slice(0, 60), "|", r[0]?.published);
     } catch (e: any) {
       console.log(name.padEnd(16), "ERROR", e.message);

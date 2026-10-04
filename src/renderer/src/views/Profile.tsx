@@ -1,7 +1,7 @@
 import { Brain, RotateCcw, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { InterestProfileView } from "@shared/types";
-import { DOMAINS } from "@shared/types";
+import { fieldLabel } from "@shared/types";
 import { api } from "../api";
 import { useApp } from "../App";
 
@@ -73,14 +73,17 @@ export function Profile() {
 
       <div className="card section" style={{ marginBottom: 20 }}>
         <h2 className="h2" style={{ fontSize: 18 }}>
-          Affinité par domaine
+          Affinité par discipline
         </h2>
         <div className="stack" style={{ gap: 12, marginTop: 16 }}>
           {p.domains
-            .filter((d) => d.id !== "autre" || d.impressions > 0)
+            // Only the disciplines the reader has met, most liked first.
+            .filter((d) => d.impressions > 0 || d.weight !== 0)
+            .sort((a, b) => b.weight - a.weight || b.impressions - a.impressions)
+            .slice(0, 12)
             .map((d) => (
               <div key={d.id} className="row" style={{ gap: 14 }}>
-                <span style={{ width: 200 }}>{DOMAINS.find((x) => x.id === d.id)?.label}</span>
+                <span style={{ width: 220 }}>{fieldLabel(d.id)}</span>
                 <div className="bar grow">
                   <div style={{ width: `${Math.max(2, (Math.max(0, d.weight) / maxW) * 100)}%`, background: d.weight < 0 ? "var(--accent)" : undefined }} />
                 </div>

@@ -6,7 +6,7 @@ const invoke =
     ipcRenderer.invoke(channel, ...args);
 
 const methods = [
-  "getFeed", "getLibrary", "getArticle", "loadContent", "translate", "translateVisible", "chat", "clearChat", "aiStatus", "explain", "interact", "saveScroll", "refresh",
+  "getFeed", "fieldCounts", "getLibrary", "getArticle", "loadContent", "translate", "translateVisible", "chat", "explainFigure", "clearChat", "aiStatus", "explain", "interact", "saveScroll", "refresh",
   "translateTeasers", "getSettings", "saveSettings", "testAi", "ollamaModels", "getUsage", "getSourceStatus",
   "getProfile", "resetProfile", "analyzeInterests", "getDraft", "listDrafts", "saveDraft", "exportDraft", "chooseDir",
   "openExternal", "setTitleBarTheme",
