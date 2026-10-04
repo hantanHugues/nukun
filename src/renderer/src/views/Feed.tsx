@@ -29,7 +29,8 @@ export function Feed({ kind }: { kind: ArticleKind }) {
   const [items, setItems] = useState<FeedItem[] | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [end, setEnd] = useState(false);
-  const [newCount, setNewCount] = useState(0);
+  // The reader clicked "Actualiser": show the result once the refresh is done.
+  const manualRefresh = useRef(false);
   const fetched = useRef(0); // items taken from the ranking so far (dismissed included)
   const hidden = useRef(new Set<string>());
   const sentinel = useRef<HTMLDivElement>(null);
@@ -97,7 +98,6 @@ export function Feed({ kind }: { kind: ArticleKind }) {
       setCounts(c);
       setItems(visible(page));
       setEnd(page.length < limit);
-      setNewCount(0);
       if (kind === "paper") setSuggested(await api.suggestion());
       if (back) pendingScroll.current = back.scroll;
     },
@@ -128,16 +128,17 @@ export function Feed({ kind }: { kind: ArticleKind }) {
       setItems(visible(page));
       setCounts(c);
     });
-    // A refresh found new articles: offer them without moving the reader.
+    // New articles: shown when the reader asked for them ("Actualiser") or is at the
+    // top of the feed. Further down, nothing moves; they come at the next launch.
     const offRefresh = api.on("refresh-progress", (p) => {
-      if (p.running || !p.newArticles) return;
-      // At the top of the feed: show them straight away. Further down: offer them,
-      // so the cards being read do not move.
+      if (p.running) return;
       const main = document.getElementById("main-scroll");
-      if (!main || main.scrollTop < 300) {
-        savedPos[kind] = null;
-        void loadFirst(false);
-      } else setNewCount(p.newArticles);
+      const asked = manualRefresh.current;
+      manualRefresh.current = false;
+      if (!asked && (!p.newArticles || (main && main.scrollTop >= 300))) return;
+      savedPos[kind] = null;
+      main?.scrollTo({ top: 0 });
+      void loadFirst(false);
     });
     return () => {
       offUpdate();
@@ -158,10 +159,9 @@ export function Feed({ kind }: { kind: ArticleKind }) {
     return () => io.disconnect();
   }, [loadMore]);
 
-  const showNew = () => {
-    savedPos[kind] = null;
-    document.getElementById("main-scroll")?.scrollTo({ top: 0 });
-    void loadFirst(false);
+  const refreshNow = () => {
+    manualRefresh.current = true;
+    void api.refresh();
   };
 
   const dismiss = (id: string) => {
@@ -199,7 +199,7 @@ export function Feed({ kind }: { kind: ArticleKind }) {
           </h1>
         </div>
         <div className="stack" style={{ alignItems: "flex-end", gap: 8 }}>
-          <button className="btn" onClick={() => void api.refresh()} disabled={running} data-tour={kind === "paper" ? "refresh" : undefined}>
+          <button className="btn" onClick={refreshNow} disabled={running} data-tour={kind === "paper" ? "refresh" : undefined}>
             {running ? <div className="spinner" /> : <RefreshCw size={15} />}
             Actualiser
           </button>
@@ -210,12 +210,6 @@ export function Feed({ kind }: { kind: ArticleKind }) {
           )}
         </div>
       </div>
-
-      {newCount > 0 && (
-        <button className="new-banner" onClick={showNew}>
-          <RefreshCw size={14} /> Nouveaux articles : afficher
-        </button>
-      )}
 
       {suggested && (
         <div className="suggest-banner">
@@ -264,7 +258,7 @@ export function Feed({ kind }: { kind: ArticleKind }) {
                   ? "Aucune source d'actualité officielle ne couvre encore tes centres d'intérêt : les articles de recherche sont dans l'onglet Articles."
                   : "Aucun article à afficher pour l'instant."}
               </p>
-              <button className="btn" onClick={() => void api.refresh()}>
+              <button className="btn" onClick={refreshNow}>
                 <RefreshCw size={15} /> Chercher de nouveaux articles
               </button>
             </>
@@ -290,7 +284,7 @@ export function Feed({ kind }: { kind: ArticleKind }) {
           {end ? (
             <>
               <p className="muted">Tu as tout parcouru pour cette sélection.</p>
-              <button className="btn" onClick={() => void api.refresh()} disabled={running}>
+              <button className="btn" onClick={refreshNow} disabled={running}>
                 {running ? <div className="spinner" /> : <RefreshCw size={15} />} Chercher de nouveaux articles
               </button>
             </>
