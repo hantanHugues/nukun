@@ -1,0 +1,47 @@
+import DOMPurify from "dompurify";
+import type { Article, DomainId } from "@shared/types";
+import { DOMAINS, SOURCES } from "@shared/types";
+
+export const domainLabel = (d: DomainId) => DOMAINS.find((x) => x.id === d)?.short ?? d;
+export const sourceLabel = (a: Article) => a.venue || SOURCES.find((s) => s.id === a.source)?.label || a.source;
+
+/** Gradient pairs for cards without an image, one per domain. */
+export const DOMAIN_ART: Record<DomainId, { g1: string; g2: string; dot: string }> = {
+  info: { g1: "#094074", g2: "#049ee2", dot: "rgba(255,255,255,.22)" },
+  robot: { g1: "#151515", g2: "#0279be", dot: "rgba(23,192,253,.35)" },
+  phys: { g1: "#050911", g2: "#2b2f86", dot: "rgba(255,255,255,.28)" },
+  bio: { g1: "#06291f", g2: "#0d8a5a", dot: "rgba(255,255,255,.2)" },
+  psy: { g1: "#130507", g2: "#830711", dot: "rgba(255,150,137,.3)" },
+  autre: { g1: "#151515", g2: "#595959", dot: "rgba(255,255,255,.2)" },
+};
+
+export function timeAgo(iso: string) {
+  const d = (Date.now() - Date.parse(iso)) / 1000;
+  if (!Number.isFinite(d)) return "";
+  if (d < 3600) return `il y a ${Math.max(1, Math.round(d / 60))} min`;
+  if (d < 86400) return `il y a ${Math.round(d / 3600)} h`;
+  if (d < 86400 * 30) return `il y a ${Math.round(d / 86400)} j`;
+  return new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
+}
+
+export function readingMinutes(a: Article, words?: number) {
+  return Math.max(3, Math.round((words ?? 4000) / 200));
+}
+
+export function sanitize(html: string) {
+  return DOMPurify.sanitize(html, {
+    USE_PROFILES: { html: true, mathMl: true },
+    ADD_ATTR: ["target"],
+    FORBID_TAGS: ["style", "form", "input", "iframe"],
+  });
+}
+
+export function plain(html: string) {
+  return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+export function authorsShort(a: Article) {
+  if (!a.authors.length) return "";
+  if (a.authors.length === 1) return a.authors[0];
+  return `${a.authors[0]} et ${a.authors.length - 1 > 1 ? `${a.authors.length - 1} autres` : a.authors[1]}`;
+}

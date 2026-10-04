@@ -1,0 +1,22 @@
+import { contextBridge, ipcRenderer } from "electron";
+
+const invoke =
+  (channel: string) =>
+  (...args: unknown[]) =>
+    ipcRenderer.invoke(channel, ...args);
+
+const methods = [
+  "getFeed", "getLibrary", "getArticle", "loadContent", "translate", "translateVisible", "explain", "interact", "saveScroll", "refresh",
+  "translateTeasers", "getSettings", "saveSettings", "testAi", "ollamaModels", "getUsage", "getSourceStatus",
+  "getProfile", "resetProfile", "analyzeInterests", "getDraft", "listDrafts", "saveDraft", "exportDraft", "chooseDir",
+  "openExternal", "setTitleBarTheme",
+];
+
+const api: Record<string, unknown> = Object.fromEntries(methods.map((m) => [m, invoke(m)]));
+api.on = (channel: string, cb: (payload: unknown) => void) => {
+  const listener = (_e: unknown, payload: unknown) => cb(payload);
+  ipcRenderer.on(channel, listener);
+  return () => ipcRenderer.removeListener(channel, listener);
+};
+
+contextBridge.exposeInMainWorld("veille", api);
