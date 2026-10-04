@@ -1,4 +1,5 @@
 import { app } from "electron";
+import fs from "node:fs";
 import path from "node:path";
 import type { Article } from "@shared/types";
 import { JsonDoc } from "../store";
@@ -28,6 +29,7 @@ function model(): Promise<Embedder> {
     // ESM-only package: loaded on demand.
     const { env, pipeline } = await import("@huggingface/transformers");
     env.cacheDir = path.join(app.getPath("userData"), "models");
+    removeStaleDownloads(env.cacheDir);
     const pipe = await pipeline("feature-extraction", MODEL, { dtype: "q8" });
     state = "ready";
     return pipe as unknown as Embedder;
@@ -37,6 +39,18 @@ function model(): Promise<Embedder> {
     throw e;
   });
   return embedder;
+}
+
+/** Pieces of a download interrupted by closing the app ("model.onnx.tmp.<pid>.xxxx"). */
+function removeStaleDownloads(dir: string) {
+  try {
+    for (const f of fs.readdirSync(dir, { recursive: true }) as string[]) {
+      const m = /\.tmp\.(\d+)\.[^\/]+$/.exec(f);
+      if (m && Number(m[1]) !== process.pid) fs.rmSync(path.join(dir, f), { force: true });
+    }
+  } catch {
+    /* no models folder yet */
+  }
 }
 
 /** Vectors are stored as 8-bit integers: 384 bytes per article. */

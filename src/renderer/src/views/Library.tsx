@@ -47,11 +47,17 @@ export function Library() {
             const art = artFor(a.domain);
             return (
               <div key={a.id} className="list-item" onClick={() => go({ view: "reader", articleId: a.id, from: { view: "library" } })}>
-                <div className="thumb">
-                  {a.image ? (
-                    <img src={a.image} alt="" loading="lazy" />
-                  ) : (
-                    <div style={{ width: "100%", height: "100%", background: `linear-gradient(135deg, ${art.g1}, ${art.g2})` }} />
+                {/* The coloured background shows when there is no image or it fails to load. */}
+                <div className="thumb" style={{ background: `linear-gradient(135deg, ${art.g1}, ${art.g2})` }}>
+                  {a.image && (
+                    <img
+                      src={a.image}
+                      alt=""
+                      loading="lazy"
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                      }}
+                    />
                   )}
                 </div>
                 <div className="grow stack" style={{ gap: 6 }}>

@@ -56,7 +56,9 @@ async function arxiv(id: string): Promise<Loaded> {
     const root = $("article.ltx_document").first();
     if (!root.length) throw new Error("no html");
     root.find(".ltx_bibliography, .ltx_authors, .ltx_dates, nav, .ltx_page_footer, .ltx_note_outer, .ltx_tag_note").remove();
-    const base = `https://arxiv.org/html/${id}/`;
+    // The page lives at /html/<id> without a final slash; its figures ("<id>v1/x1.png")
+    // are relative to that address.
+    const base = `https://arxiv.org/html/${id}`;
     // The paper title is shown by the reader header already.
     root.find("h1.ltx_title_document").remove();
     // The abstract heading is an h6 in LaTeXML; promote it.

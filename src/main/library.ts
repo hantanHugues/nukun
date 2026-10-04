@@ -55,6 +55,9 @@ type Emit = {
   feedUpdated: () => void;
 };
 
+/** ".../html/2610.02170/2610.02170v1/x.png" → ".../html/2610.02170v1/x.png" */
+const fixArxivUrl = (u: string) => u.replace(/(arxiv\.org\/html\/)([^/]+)\/(\2v\d+\/)/, "$1$3");
+
 const emptyState = (): ArticleState => ({ impressions: 0, opened: 0, dwellSec: 0, progress: 0 });
 const contentFile = (id: string) => `content/${safeName(id)}.json`;
 
@@ -111,6 +114,14 @@ export class Library {
       const ft = a.fullText as { url?: string };
       if (a.source === "scielo" && ft.url?.includes("scielo.cl") && !a.state.opened && !a.state.saved) {
         delete this.db.data[a.id];
+        migrated = true;
+      }
+    }
+    // arXiv figures saved with a wrong address (".../html/<id>/<id>v1/x.png").
+    for (const a of this.all()) {
+      const fixed = a.image && fixArxivUrl(a.image);
+      if (fixed && fixed !== a.image) {
+        a.image = fixed;
         migrated = true;
       }
     }
@@ -609,7 +620,14 @@ export class Library {
   // ------------------------------------------------------------ content
   async loadContent(id: string): Promise<ArticleContent> {
     const cached = readJson<ArticleContent | null>(contentFile(id), null);
-    if (cached) return cached;
+    if (cached) {
+      // Parsed before the arXiv figure fix: repair the addresses once.
+      if (id.startsWith("arxiv:") && cached.blocks.some((b) => b.t === "fig" && b.src.some((s) => fixArxivUrl(s) !== s))) {
+        for (const b of cached.blocks) if (b.t === "fig") b.src = b.src.map(fixArxivUrl);
+        writeJson(contentFile(id), cached);
+      }
+      return cached;
+    }
     const a = this.get(id);
     if (!a) throw new Error("Article introuvable.");
     try {
