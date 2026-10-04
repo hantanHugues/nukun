@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>Aide de Nùkún</title>
+    <meta name="description" content="Où régler chaque chose dans Nùkún, et ce que veulent dire les messages de l'app." />
+    <link rel="alternate" hreflang="fr" href="https://hantanhugues.github.io/nukun/aide.html" />
+    <link rel="alternate" hreflang="en" href="https://hantanhugues.github.io/nukun/en/help.html" />
+    <link rel="icon" href="site/img/icon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="site/style.css" />
+  </head>
+  <body>
+    <a class="skip" href="#main">Aller au contenu</a>
+    <header class="nav">
+      <div class="wrap">
+        <a class="brand" href="./"><img src="site/img/icon.png" alt="" width="30" height="30" />Nùkún</a>
+        <nav class="nav-links" aria-label="Navigation principale">
+          <a href="./#fonctionnalites">Fonctionnalités</a>
+          <a href="./#questions">Questions</a>
+          <a href="aide.html" aria-current="page">Aide</a>
+        </nav>
+        <a class="lang-switch" href="en/help.html" hreflang="en" lang="en">English</a>
+        <a class="btn btn-primary btn-small" href="https://github.com/hantanHugues/nukun/releases/latest">Télécharger</a>
+      </div>
+    </header>
+
+    <main id="main" class="wrap help">
+      <nav class="help-nav" aria-label="Sommaire">
+        <a href="#installer">Installer</a>
+        <a href="#premier-lancement">Premier lancement</a>
+        <a href="#cle">La clé Google</a>
+        <a href="#ou-regler">Où régler quoi</a>
+        <a href="#messages">Les messages</a>
+        <a href="#gestes">Gestes utiles</a>
+        <a href="#mises-a-jour">Mises à jour</a>
+        <a href="#donnees">Tes données</a>
+      </nav>
+
+      <div class="help-body">
+        <h1>Aide</h1>
+        <p class="lede">
+          Ce qui n'est pas évident au premier coup d'œil : où se règle chaque chose, ce que veulent dire les messages, et
+          quoi faire quand un article ne s'ouvre pas.
+        </p>
+
+        <section id="installer">
+          <h2>Installer</h2>
+          <ol>
+            <li>
+              Télécharge <span class="ui">Nukun-Setup.exe</span> sur la
+              <a href="https://github.com/hantanHugues/nukun/releases/latest">page des versions</a>.
+            </li>
+            <li>
+              Lance-le. Si Windows affiche « Windows a protégé votre ordinateur », clique sur
+              <span class="ui">Informations complémentaires</span> puis <span class="ui">Exécuter quand même</span>.
+              L'app n'est pas signée par un certificat payant, c'est la seule raison de cet avertissement.
+            </li>
+            <li>
+              L'installateur te demande où installer l'app et s'il faut créer une icône sur le Bureau. Elle apparaît dans
+              tous les cas dans le menu Démarrer.
+            </li>
+          </ol>
+          <p>Il faut Windows 10 ou 11 en 64 bits, 4 Go de mémoire et environ 1 Go d'espace libre.</p>
+        </section>
+
+        <section id="premier-lancement">
+          <h2>Premier lancement</h2>
+          <p>
+            Choisis d'abord la langue de l'app, français ou anglais. C'est aussi la langue dans laquelle les articles sont
+            traduits et expliqués. Choisis ensuite tes centres d'intérêt : dans le catalogue, ou en tapant n'importe quel
+            sujet dans la recherche.
+          </p>
+          <p>
+            Un court tutoriel présente ensuite les réglages. Tu peux le revoir plus tard depuis
+            <span class="ui">Réglages</span>, section <span class="ui">Tutoriel</span>.
+          </p>
+          <h3>Le premier fil met quelques minutes</h3>
+          <p>
+            L'app interroge toutes les sources, puis télécharge une seule fois un modèle de 130 Mo qui sert à comprendre le
+            sens des articles. Si la connexion coupe, le téléchargement reprend là où il s'était arrêté. Avec le mode
+            <span class="ui">Données mobiles</span>, ce modèle n'est pas téléchargé et les recommandations se font sur les
+            mots seulement.
+          </p>
+        </section>
+
+        <section id="cle">
+          <h2>La clé Google, pour traduire</h2>
+          <p>
+            Les traductions et les explications passent par Gemini, l'IA de Google. Son quota gratuit suffit pour un usage
+            quotidien, mais il faut ta propre clé.
+          </p>
+          <ol>
+            <li>
+              Ouvre <a href="https://aistudio.google.com/apikey">aistudio.google.com/apikey</a> et connecte-toi avec ton
+              compte Google.
+            </li>
+            <li>Clique sur <span class="ui">Create API key</span> et copie la clé.</li>
+            <li>
+              Dans Nùkún, ouvre <span class="ui">Réglages</span>, section <span class="ui">Intelligence artificielle</span>,
+              et colle-la dans le champ de la clé Gemini.
+            </li>
+          </ol>
+          <p>Aucune carte bancaire n'est demandée. La clé reste sur ton PC.</p>
+          <h3>Les autres modes d'IA</h3>
+          <p>Dans la même section, tu choisis qui fait le travail :</p>
+          <ul>
+            <li><strong>Gemini seul</strong> : gratuit avec ta clé. L'IA locale prend le relais si le quota du jour est atteint.</li>
+            <li><strong>IA locale seule</strong> : gratuit et hors ligne grâce à Ollama, sur ta carte graphique. Plus lent, moins précis.</li>
+            <li><strong>Mon abonnement Claude</strong> : passe par Claude Code s'il est installé et connecté sur ce PC.</li>
+            <li><strong>Hybride</strong> : Gemini traduit le gros du texte, Claude reprend les passages les plus techniques.</li>
+          </ul>
+        </section>
+
+        <section id="ou-regler">
+          <h2>Où régler quoi</h2>
+          <table class="where">
+            <thead>
+              <tr>
+                <th scope="col">Je veux</th>
+                <th scope="col">Où</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Passer l'app en anglais</td>
+                <td>Réglages, section Langue. Les traductions déjà faites dans l'autre langue restent en mémoire.</td>
+              </tr>
+              <tr>
+                <td>Ajouter ou retirer un centre d'intérêt</td>
+                <td>Réglages, section Centres d'intérêt, ou le bouton Modifier en haut du fil.</td>
+              </tr>
+              <tr>
+                <td>Voir ce que l'app a appris de moi</td>
+                <td>La page Mes goûts, dans la barre de gauche.</td>
+              </tr>
+              <tr>
+                <td>Repartir de zéro</td>
+                <td>Mes goûts, bouton Réinitialiser. Tes sauvegardes et tes notes sont gardées.</td>
+              </tr>
+              <tr>
+                <td>Changer d'IA ou coller ma clé</td>
+                <td>Réglages, section Intelligence artificielle.</td>
+              </tr>
+              <tr>
+                <td>Consommer moins de données</td>
+                <td>
+                  Réglages, section Économiser les données. Les articles ne sont téléchargés qu'à l'ouverture, les cartes
+                  restent sans image jusque-là.
+                </td>
+              </tr>
+              <tr>
+                <td>Activer ou couper une source</td>
+                <td>Réglages, section Sources scientifiques.</td>
+              </tr>
+              <tr>
+                <td>Changer la fréquence d'actualisation</td>
+                <td>Réglages, section Sources scientifiques, réglage Actualiser toutes les… heures.</td>
+              </tr>
+              <tr>
+                <td>Passer en thème sombre</td>
+                <td>L'icône de lune en bas de la barre de gauche.</td>
+              </tr>
+              <tr>
+                <td>Agrandir le texte d'un article</td>
+                <td>Les boutons A plus petit et A plus grand, en haut du lecteur.</td>
+              </tr>
+              <tr>
+                <td>Lire l'original ou les deux langues</td>
+                <td>En haut du lecteur : Traduction, Original ou Côte à côte.</td>
+              </tr>
+              <tr>
+                <td>Choisir où sont exportés mes textes</td>
+                <td>Réglages, section Export.</td>
+              </tr>
+              <tr>
+                <td>Revoir le tutoriel</td>
+                <td>Réglages, section Tutoriel.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="messages">
+          <h2>Les messages, et quoi faire</h2>
+
+          <h3>Un article ne s'ouvre pas</h3>
+          <figure>
+            <img class="shot crop-top" src="site/img/erreur-fr.webp" width="1440" height="900" loading="lazy" alt="Le lecteur affiche un message : le texte intégral de cet article n'est pas encore en ligne, avec les boutons Réessayer et Ouvrir sur le site." />
+            <figcaption>L'écran affiché quand le texte intégral n'a pas pu être récupéré.</figcaption>
+          </figure>
+          <div class="message">
+            <q>Le texte intégral de cet article n'est pas encore en ligne. Il sera vérifié à nouveau plus tard.</q>
+            <p>
+              C'est fréquent pour les articles très récents : la revue annonce l'article avant de publier son texte. L'app
+              vérifie de nouveau toute seule, environ toutes les 12 heures. Tu peux cliquer sur
+              <span class="ui">Réessayer</span> tout de suite, ou sur <span class="ui">Ouvrir sur le site</span> pour lire
+              le résumé sur le site de la revue.
+            </p>
+          </div>
+          <div class="message">
+            <q>Le texte intégral n'est pas encore disponible gratuitement pour cet article.</q>
+            <p>
+              L'article existe, mais il n'est pas encore en libre accès. Il arrive qu'une revue le libère quelques mois
+              après sa parution. <span class="ui">Ouvrir sur le site</span> mène à la page officielle.
+            </p>
+          </div>
+          <div class="message">
+            <q>Un article a disparu de mon fil.</q>
+            <p>
+              Si le site d'un article bloque la lecture automatique, l'article est retiré du fil au lieu de rester affiché
+              sans contenu. Nùkún ne contourne aucune protection.
+            </p>
+          </div>
+
+          <h3>L'IA ne répond pas</h3>
+          <div class="message">
+            <q>Quotas gratuits Google épuisés pour aujourd'hui.</q>
+            <p>
+              Le quota gratuit de Gemini est compté par jour. L'app passe déjà d'un modèle gratuit à l'autre avant d'en
+              arriver là. Attends le lendemain, ou installe Ollama pour qu'une IA locale prenne le relais. Les traductions
+              déjà faites restent lisibles.
+            </p>
+          </div>
+          <div class="message">
+            <q>Aucune IA disponible : ajoute une clé Gemini, lance Ollama ou connecte Claude Code.</q>
+            <p>
+              Aucun des modes choisis ne peut répondre. Le plus simple : <a href="#cle">ajouter une clé Google</a>. Si tu
+              utilises l'IA locale, vérifie qu'Ollama est lancé et qu'un modèle est installé.
+            </p>
+          </div>
+
+          <h3>Une source ne répond pas</h3>
+          <div class="message">
+            <q>Indisponible : le service limite le nombre de requêtes, nouvel essai à la prochaine actualisation</q>
+            <p>
+              Visible dans Réglages, section Sources scientifiques. La source a refusé trop de demandes à la suite. Rien à
+              faire : l'app réessaie seule. Pour Semantic Scholar, une clé API gratuite, à coller dans la même section,
+              supprime presque toujours ce message.
+            </p>
+          </div>
+        </section>
+
+        <section id="gestes">
+          <h2>Gestes utiles</h2>
+          <ul>
+            <li><kbd>Échap</kbd> ferme ce qui est ouvert et revient à l'écran précédent.</li>
+            <li>
+              Sélectionne un passage dans un article : <span class="ui">Expliquer</span> le fait expliquer simplement,
+              <span class="ui">Noter</span> l'ajoute à tes notes de lecture.
+            </li>
+            <li>Sur une figure, <span class="ui">Expliquer cette figure</span> décrit ce qu'elle montre.</li>
+            <li>
+              Sur une carte, l'icône d'œil barré veut dire « pas intéressé » : l'algorithme t'en montrera moins comme
+              ça. Le signet sauvegarde l'article dans ta bibliothèque.
+            </li>
+            <li><span class="ui">Tout traduire</span> traduit l'article d'un coup, pour le lire plus tard. Sinon seul ce qui s'affiche est traduit.</li>
+            <li>
+              <span class="ui">Écrire mon article</span> ouvre l'éditeur avec tes notes à côté. Depuis l'éditeur,
+              <span class="ui">Relire l'article</span> te ramène à l'article d'origine.
+            </li>
+            <li>Dans la bibliothèque, la corbeille retire un article. Une confirmation est demandée.</li>
+          </ul>
+        </section>
+
+        <section id="mises-a-jour">
+          <h2>Mises à jour</h2>
+          <p>
+            Quand une nouvelle version existe, une fenêtre apparaît en bas de l'écran avec un bouton
+            <span class="ui">Mettre à jour</span>. Rien ne se télécharge ni ne s'installe sans ton clic. Tes articles, tes
+            notes et tes réglages sont gardés, et tu n'as pas besoin de réinstaller.
+          </p>
+        </section>
+
+        <section id="donnees">
+          <h2>Tes données</h2>
+          <p>
+            Tout ce que l'app garde est sur ton PC, dans <span class="ui">%APPDATA%\Nukun</span> : profil de lecture,
+            bibliothèque, traductions, notes et réglages. Rien de cela n'est envoyé ailleurs. Seuls les passages à traduire
+            ou à expliquer partent vers l'IA que tu as choisie.
+          </p>
+          <p>
+            Pour désinstaller, passe par Paramètres de Windows, puis Applications. Pour effacer aussi tes données, supprime
+            ensuite le dossier ci-dessus.
+          </p>
+          <p>
+            Un problème qui n'est pas décrit ici ? Ouvre un ticket sur
+            <a href="https://github.com/hantanHugues/nukun/issues">GitHub</a>.
+          </p>
+        </section>
+      </div>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <span>Nùkún, licence MIT</span>
+        <span><a href="./">Accueil</a> &nbsp; <a href="https://github.com/hantanHugues/nukun">GitHub</a> &nbsp; <a href="en/help.html" hreflang="en">English</a></span>
+      </div>
+    </footer>
+    <script src="site/site.js" defer></script>
+  </body>
+</html>

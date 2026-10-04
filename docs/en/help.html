@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>Nùkún help</title>
+    <meta name="description" content="Where to change each setting in Nùkún, and what the app's messages mean." />
+    <link rel="alternate" hreflang="fr" href="https://hantanhugues.github.io/nukun/aide.html" />
+    <link rel="alternate" hreflang="en" href="https://hantanhugues.github.io/nukun/en/help.html" />
+    <link rel="icon" href="../site/img/icon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../site/style.css" />
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="nav">
+      <div class="wrap">
+        <a class="brand" href="./"><img src="../site/img/icon.png" alt="" width="30" height="30" />Nùkún</a>
+        <nav class="nav-links" aria-label="Main navigation">
+          <a href="./#features">Features</a>
+          <a href="./#questions">Questions</a>
+          <a href="help.html" aria-current="page">Help</a>
+        </nav>
+        <a class="lang-switch" href="../aide.html" hreflang="fr" lang="fr">Français</a>
+        <a class="btn btn-primary btn-small" href="https://github.com/hantanHugues/nukun/releases/latest">Download</a>
+      </div>
+    </header>
+
+    <main id="main" class="wrap help">
+      <nav class="help-nav" aria-label="Contents">
+        <a href="#install">Install</a>
+        <a href="#first-launch">First launch</a>
+        <a href="#key">The Google key</a>
+        <a href="#where">Where to change what</a>
+        <a href="#messages">Messages</a>
+        <a href="#gestures">Handy gestures</a>
+        <a href="#updates">Updates</a>
+        <a href="#data">Your data</a>
+      </nav>
+
+      <div class="help-body">
+        <h1>Help</h1>
+        <p class="lede">
+          What is not obvious at first sight: where each setting lives, what the messages mean, and what to do when a
+          paper won't open.
+        </p>
+
+        <section id="install">
+          <h2>Install</h2>
+          <ol>
+            <li>
+              Download <span class="ui">Nukun-Setup.exe</span> from the
+              <a href="https://github.com/hantanHugues/nukun/releases/latest">releases page</a>.
+            </li>
+            <li>
+              Run it. If Windows says “Windows protected your PC”, click <span class="ui">More info</span> then
+              <span class="ui">Run anyway</span>. The app is not signed with a paid certificate; that is the only reason
+              for this warning.
+            </li>
+            <li>
+              The installer asks where to install the app and whether to create a desktop icon. It always appears in the
+              Start menu.
+            </li>
+          </ol>
+          <p>You need Windows 10 or 11, 64-bit, 4 GB of memory and about 1 GB of free space.</p>
+        </section>
+
+        <section id="first-launch">
+          <h2>First launch</h2>
+          <p>
+            First choose the app's language, English or French. It is also the language papers are translated and
+            explained in. Then choose your interests: from the catalogue, or by typing any subject in the search.
+          </p>
+          <p>
+            A short tour then walks you through the settings. You can see it again later from
+            <span class="ui">Settings</span>, <span class="ui">Tour</span> section.
+          </p>
+          <h3>The first feed takes a few minutes</h3>
+          <p>
+            The app queries every source, then downloads, once, a 130 MB model used to understand what papers mean. If the
+            connection drops, the download resumes where it stopped. In <span class="ui">Mobile data</span> mode, this
+            model is not downloaded and recommendations rely on words only.
+          </p>
+        </section>
+
+        <section id="key">
+          <h2>The Google key, for translating</h2>
+          <p>
+            Translations and explanations go through Gemini, Google's AI. Its free quota is enough for daily use, but you
+            need your own key.
+          </p>
+          <ol>
+            <li>
+              Open <a href="https://aistudio.google.com/apikey">aistudio.google.com/apikey</a> and sign in with your Google
+              account.
+            </li>
+            <li>Click <span class="ui">Create API key</span> and copy the key.</li>
+            <li>
+              In Nùkún, open <span class="ui">Settings</span>, <span class="ui">Artificial intelligence</span> section, and
+              paste it into the Gemini key field.
+            </li>
+          </ol>
+          <p>No credit card is required. The key stays on your PC.</p>
+          <h3>The other AI modes</h3>
+          <p>In the same section, you choose who does the work:</p>
+          <ul>
+            <li><strong>Gemini only</strong>: free with your key. The local AI takes over if the daily quota is reached.</li>
+            <li><strong>Local AI only</strong>: free and offline with Ollama, on your graphics card. Slower, less accurate.</li>
+            <li><strong>My Claude subscription</strong>: goes through Claude Code if it is installed and signed in on this PC.</li>
+            <li><strong>Hybrid</strong>: Gemini translates most of the text, Claude takes the most technical passages.</li>
+          </ul>
+        </section>
+
+        <section id="where">
+          <h2>Where to change what</h2>
+          <table class="where">
+            <thead>
+              <tr>
+                <th scope="col">I want to</th>
+                <th scope="col">Where</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Switch the app to French</td>
+                <td>Settings, Language section. Translations already made in the other language stay in memory.</td>
+              </tr>
+              <tr>
+                <td>Add or remove an interest</td>
+                <td>Settings, Interests section, or the Edit button at the top of the feed.</td>
+              </tr>
+              <tr>
+                <td>See what the app has learned about me</td>
+                <td>The My tastes page, in the left bar.</td>
+              </tr>
+              <tr>
+                <td>Start again from scratch</td>
+                <td>My tastes, Reset button. Your saved papers and notes are kept.</td>
+              </tr>
+              <tr>
+                <td>Change AI or paste my key</td>
+                <td>Settings, Artificial intelligence section.</td>
+              </tr>
+              <tr>
+                <td>Use less data</td>
+                <td>Settings, Save data section. Papers are only downloaded when you open them; cards stay without an image until then.</td>
+              </tr>
+              <tr>
+                <td>Turn a source on or off</td>
+                <td>Settings, Science sources section.</td>
+              </tr>
+              <tr>
+                <td>Change how often the feed refreshes</td>
+                <td>Settings, Science sources section, Refresh every… hours.</td>
+              </tr>
+              <tr>
+                <td>Switch to the dark theme</td>
+                <td>The moon icon at the bottom of the left bar.</td>
+              </tr>
+              <tr>
+                <td>Make a paper's text larger</td>
+                <td>The smaller A and larger A buttons, at the top of the reader.</td>
+              </tr>
+              <tr>
+                <td>Read the original or both languages</td>
+                <td>At the top of the reader: Translation, Original or Side by side.</td>
+              </tr>
+              <tr>
+                <td>Choose where my texts are exported</td>
+                <td>Settings, Export section.</td>
+              </tr>
+              <tr>
+                <td>See the tour again</td>
+                <td>Settings, Tour section.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="messages">
+          <h2>Messages, and what to do</h2>
+
+          <h3>A paper won't open</h3>
+          <figure>
+            <img class="shot crop-top" src="../site/img/erreur-en.webp" width="1440" height="900" loading="lazy" alt="The reader shows a message: the full text of this article is not online yet, with Try again and Open on the website buttons." />
+            <figcaption>The screen shown when the full text could not be retrieved.</figcaption>
+          </figure>
+          <div class="message">
+            <q>The full text of this article is not online yet. It will be checked again later.</q>
+            <p>
+              This is common for very recent papers: the journal announces the paper before publishing its text. The app
+              checks again on its own, about every 12 hours. You can click <span class="ui">Try again</span> right away, or
+              <span class="ui">Open on the website</span> to read the abstract on the journal's site.
+            </p>
+          </div>
+          <div class="message">
+            <q>The full text of this article is not free to read yet.</q>
+            <p>
+              The paper exists, but it is not open access yet. Journals sometimes release it a few months after
+              publication. <span class="ui">Open on the website</span> leads to the official page.
+            </p>
+          </div>
+          <div class="message">
+            <q>A paper disappeared from my feed.</q>
+            <p>
+              If a paper's website blocks automated reading, the paper is removed from the feed rather than left there with
+              no content. Nùkún does not get around any protection.
+            </p>
+          </div>
+
+          <h3>The AI does not answer</h3>
+          <div class="message">
+            <q>Google free quotas used up for today.</q>
+            <p>
+              Gemini's free quota is counted per day. The app already moves from one free model to another before getting
+              there. Wait until tomorrow, or install Ollama so a local AI takes over. Translations already made stay
+              readable.
+            </p>
+          </div>
+          <div class="message">
+            <q>No AI available: add a Gemini key, start Ollama or connect Claude Code.</q>
+            <p>
+              None of the chosen modes can answer. The simplest fix: <a href="#key">add a Google key</a>. If you use the
+              local AI, check that Ollama is running and a model is installed.
+            </p>
+          </div>
+
+          <h3>A source does not answer</h3>
+          <div class="message">
+            <q>Unavailable: the service limits requests, new try at the next refresh</q>
+            <p>
+              Shown in Settings, Science sources section. The source refused too many requests in a row. Nothing to do: the
+              app tries again on its own. For Semantic Scholar, a free API key, pasted in the same section, almost always
+              removes this message.
+            </p>
+          </div>
+        </section>
+
+        <section id="gestures">
+          <h2>Handy gestures</h2>
+          <ul>
+            <li><kbd>Esc</kbd> closes what is open and goes back to the previous screen.</li>
+            <li>
+              Select a passage in a paper: <span class="ui">Explain</span> explains it simply,
+              <span class="ui">Note</span> adds it to your reading notes.
+            </li>
+            <li>On a figure, <span class="ui">Explain this figure</span> describes what it shows.</li>
+            <li>
+              On a card, the crossed-out eye means “not interested”: the algorithm will show you less like this. The
+              bookmark saves the paper to your library.
+            </li>
+            <li><span class="ui">Translate everything</span> translates the whole paper at once, to read later. Otherwise only what is on screen is translated.</li>
+            <li>
+              <span class="ui">Write my article</span> opens the editor with your notes beside it. From the editor,
+              <span class="ui">Read the article again</span> takes you back to the original paper.
+            </li>
+            <li>In the library, the bin removes a paper. You are asked to confirm.</li>
+          </ul>
+        </section>
+
+        <section id="updates">
+          <h2>Updates</h2>
+          <p>
+            When a new version exists, a window appears at the bottom of the screen with an <span class="ui">Update</span>
+            button. Nothing downloads or installs without your click. Your papers, notes and settings are kept, and you
+            never need to reinstall.
+          </p>
+        </section>
+
+        <section id="data">
+          <h2>Your data</h2>
+          <p>
+            Everything the app keeps is on your PC, in <span class="ui">%APPDATA%\Nukun</span>: reading profile, library,
+            translations, notes and settings. None of it is sent anywhere. Only the passages to translate or explain go to
+            the AI you chose.
+          </p>
+          <p>
+            To uninstall, go through Windows Settings, then Apps. To erase your data too, then delete the folder above.
+          </p>
+          <p>
+            A problem not covered here? Open an issue on
+            <a href="https://github.com/hantanHugues/nukun/issues">GitHub</a>.
+          </p>
+        </section>
+      </div>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <span>Nùkún, MIT licence</span>
+        <span><a href="./">Home</a> &nbsp; <a href="https://github.com/hantanHugues/nukun">GitHub</a> &nbsp; <a href="../aide.html" hreflang="fr">Français</a></span>
+      </div>
+    </footer>
+    <script src="../site/site.js" defer></script>
+  </body>
+</html>
