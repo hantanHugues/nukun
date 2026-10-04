@@ -2,6 +2,12 @@
 
 Application de bureau (Windows) pour lire des articles scientifiques en libre accès, traduits en français, avec un fil de recommandations qui apprend de tes lectures.
 
+![Le fil d'articles recommandés](docs/screenshots/fil.png)
+
+| Lecture traduite et discussion avec l'IA | Réglages de l'IA |
+|---|---|
+| ![Un article traduit en français, avec la discussion ouverte](docs/screenshots/lecteur.png) | ![Les modes d'IA et la clé Google gratuite](docs/screenshots/reglages.png) |
+
 ## Installer
 
 Lance `release/Veille-Scientifique-Setup-1.0.0.exe`. L'installateur crée un raccourci sur le Bureau et dans le menu Démarrer.
