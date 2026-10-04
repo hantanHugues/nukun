@@ -1,4 +1,4 @@
-import { CornerDownLeft, Plus, Quote, Trash2, X } from "lucide-react";
+import { Check, CornerDownLeft, Pencil, Plus, Quote, Trash2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { Note } from "@shared/types";
 import { api } from "../api";
@@ -24,6 +24,8 @@ export function Notes({
   const [notes, setNotes] = useState<Note[]>([]);
   const [text, setText] = useState("");
   const input = useRef<HTMLTextAreaElement>(null);
+  /** The note being edited, and its text while editing. */
+  const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
 
   useEffect(() => {
     void api.getNotes(articleId).then(setNotes);
@@ -40,6 +42,12 @@ export function Notes({
     setNotes(await api.saveNote(articleId, n));
     setText("");
     onQuoteUsed?.();
+  };
+
+  const saveEdit = async (n: Note) => {
+    if (!editing) return;
+    setNotes(await api.saveNote(articleId, { ...n, text: editing.text.trim() }));
+    setEditing(null);
   };
 
   const remove = async (n: Note) => {
@@ -86,9 +94,42 @@ export function Notes({
         [...notes].reverse().map((n) => (
           <div key={n.id} className="note">
             {n.quote && <blockquote>{n.quote}</blockquote>}
-            {n.text && <div className="note-text">{n.text}</div>}
+            {editing?.id === n.id ? (
+              <textarea
+                className="textarea"
+                rows={3}
+                autoFocus
+                value={editing.text}
+                onChange={(e) => setEditing({ id: n.id, text: e.target.value })}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    void saveEdit(n);
+                  } else if (e.key === "Escape") {
+                    e.stopPropagation();
+                    setEditing(null);
+                  }
+                }}
+              />
+            ) : (
+              n.text && <div className="note-text">{n.text}</div>
+            )}
             <div className="row small muted" style={{ gap: 6 }}>
               <span className="grow">{timeAgo(n.at)}</span>
+              {editing?.id === n.id ? (
+                <button className="btn sm ghost" onClick={() => void saveEdit(n)}>
+                  <Check size={13} /> Enregistrer
+                </button>
+              ) : (
+                <button
+                  className="btn sm ghost icon"
+                  aria-label="Modifier la note"
+                  title="Modifier la note"
+                  onClick={() => setEditing({ id: n.id, text: n.text })}
+                >
+                  <Pencil size={13} />
+                </button>
+              )}
               {onInsert && (
                 <button className="btn sm ghost" onClick={() => onInsert(n)} title="Insérer dans ton texte">
                   <CornerDownLeft size={13} /> Insérer

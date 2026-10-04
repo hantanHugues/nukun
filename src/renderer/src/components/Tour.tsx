@@ -1,7 +1,6 @@
 import type React from "react";
 import { ArrowLeft, ArrowRight, X } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { api } from "../api";
 import { type Route, useApp } from "../App";
 
 /**
@@ -9,8 +8,8 @@ import { type Route, useApp } from "../App";
  * explaining what it is for. Highlighted controls stay usable (e.g. paste a key).
  */
 interface Step {
-  /** Screen to show first; "article" opens the first article of the feed. */
-  view?: Route["view"] | "article";
+  /** Screen to show first. */
+  view?: Route["view"];
   /** `data-tour` name of the element to highlight; none = centered bubble. */
   target?: string;
   title: string;
@@ -65,7 +64,6 @@ export function Tour({ onDone }: { onDone: () => void }) {
   const { go, view } = useApp();
   const [i, setI] = useState(0);
   const [rect, setRect] = useState<DOMRect | null>(null);
-  const [articleId, setArticleId] = useState<string | null>(null);
   const [bubbleH, setBubbleH] = useState(0);
   const bubbleRef = useRef<HTMLDivElement>(null);
   const lastPos = useRef<{ left: number; top: number } | null>(null);
@@ -77,19 +75,12 @@ export function Tour({ onDone }: { onDone: () => void }) {
     if (h && h !== bubbleH) setBubbleH(h);
   });
 
-  useEffect(() => {
-    void api.getFeed({ limit: 1 }).then((f) => setArticleId(f[0]?.article.id ?? null));
-  }, []);
-
   // Go to the right screen, then wait for the element to appear and bring it into view.
   useEffect(() => {
     let cancelled = false;
     setRect(null);
     // Navigate only when the screen changes: navigating resets the page to the top.
-    if (step.view === "article") {
-      if (!articleId) return;
-      if (view !== "reader") go({ view: "reader", articleId, from: { view: "feed" } });
-    } else if (step.view && step.view !== view) go({ view: step.view } as Route);
+    if (step.view && step.view !== view) go({ view: step.view } as Route);
     if (!step.target) return;
     const started = Date.now();
     const find = () => {
@@ -119,7 +110,7 @@ export function Tour({ onDone }: { onDone: () => void }) {
     return () => {
       cancelled = true;
     };
-  }, [i, articleId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [i]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Follow the element when the window is resized or the page scrolls.
   useLayoutEffect(() => {
@@ -140,18 +131,8 @@ export function Tour({ onDone }: { onDone: () => void }) {
     go({ view: "feed" });
     onDone();
   };
-  const next = () => {
-    // Without any article yet, the reading steps are skipped.
-    let n = i + 1;
-    while (n < STEPS.length && STEPS[n].view === "article" && !articleId) n++;
-    if (n >= STEPS.length) close();
-    else setI(n);
-  };
-  const prev = () => {
-    let n = i - 1;
-    while (n > 0 && STEPS[n].view === "article" && !articleId) n--;
-    setI(Math.max(0, n));
-  };
+  const next = () => (i + 1 >= STEPS.length ? close() : setI(i + 1));
+  const prev = () => setI(Math.max(0, i - 1));
 
   // The page is frozen during the tour: only the tour moves it (wheel, keys and the
   // scrollbar are blocked). Escape leaves the tour at any time.

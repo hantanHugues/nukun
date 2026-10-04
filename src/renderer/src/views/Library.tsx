@@ -96,7 +96,8 @@ export function Library() {
                   onClick={(e) => {
                     e.stopPropagation();
                     const n = noteCounts[a.id] ?? 0;
-                    if (n && !confirm(`Cet article a ${n} note${n > 1 ? "s" : ""} : ${n > 1 ? "elles seront supprimées" : "elle sera supprimée"} aussi. Retirer quand même ?`)) return;
+                    const notes = n ? ` Ses ${n} note${n > 1 ? "s" : ""} ${n > 1 ? "seront supprimées" : "sera supprimée"} aussi.` : "";
+                    if (!confirm(`Retirer « ${a.titleFr ?? a.title} » de la bibliothèque ?${notes}`)) return;
                     void api.interact({ id: a.id, type: "remove" });
                     setItems((xs) => xs.filter((x) => x.id !== a.id));
                     toast("Retiré de la bibliothèque.");
