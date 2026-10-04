@@ -446,6 +446,17 @@ export function SettingsView() {
             </button>
           </div>
         </section>
+
+        <p className="small muted credit">
+          {t("Nùkún, créé par")}{" "}
+          <a href="#" onClick={(e) => (e.preventDefault(), void api.openExternal("https://hantan-hugues.vercel.app"))}>
+            Ashlynx
+          </a>
+          .{" "}
+          <a href="#" onClick={(e) => (e.preventDefault(), void api.openExternal("https://github.com/hantanHugues/nukun"))}>
+            {t("Code source")}
+          </a>
+        </p>
       </div>
       </div>
     </div>

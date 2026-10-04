@@ -1616,3 +1616,9 @@ figure.blk .fig-explain {
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.55);
 }
+
+/* ------------------------------------------------------------ signature */
+.credit {
+  margin: 8px 4px 24px;
+  text-align: center;
+}

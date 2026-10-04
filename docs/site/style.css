@@ -735,3 +735,10 @@ footer a {
   object-fit: cover;
   object-position: top;
 }
+
+/* The maker's name, under the last call to download. */
+.final .signature {
+  margin: 34px 0 0;
+  color: var(--muted);
+  font-size: 16px;
+}

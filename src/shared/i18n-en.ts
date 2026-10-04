@@ -261,6 +261,8 @@ export const EN: Record<string, string> = {
   "Mes notes": "My notes",
   "Aperçu": "Preview",
   "Exporter (.mdx)": "Export (.mdx)",
+  "Nùkún, créé par": "Nùkún, made by",
+  "Code source": "Source code",
   "Copier pour un post": "Copy for a post",
   "Choisis un brouillon à gauche, ou ouvre un article pour en commencer un.": "Pick a draft on the left, or open an article to start one.",
   // ---------------------------------------------------------------- visite guidée

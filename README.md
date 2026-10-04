@@ -92,6 +92,10 @@ L'architecture (sources, formats de texte intégral, traduction hybride, mémoir
 - `scripts/cdp.mjs` : capture d'écran ou évaluation dans l'app lancée en débogage.
 - `scripts/fake-ollama.mjs` : fausse IA locale pour tester la chaîne de traduction sans modèle.
 
+## Auteur
+
+Conçu et développé par **Ashlynx** (HANTAN Hugues). Portfolio : [hantan-hugues.vercel.app](https://hantan-hugues.vercel.app).
+
 ## Licences
 
 Code : MIT. L'icône reprend le pictogramme « scan-eye » de [Lucide](https://lucide.dev) (licence ISC), voir `resources/THIRD_PARTY_LICENSES.md`. Les articles affichés restent la propriété de leurs auteurs et éditeurs, sous leurs licences respectives.
