@@ -25,7 +25,7 @@ export function UpdateToast() {
         {u.status === "ready" && (
           <>
             <strong>Nùkún {u.version} est prête</strong>
-            <div className="small muted">Elle s'installe en redémarrant l'app, sinon à la prochaine fermeture.</div>
+            <div className="small muted">L'app redémarre à jour. « Plus tard » : elle te sera reproposée au prochain lancement.</div>
           </>
         )}
         {u.status === "available" && (
