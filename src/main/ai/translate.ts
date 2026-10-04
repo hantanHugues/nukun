@@ -2,7 +2,7 @@ import type { Article, ArticleContent, GlossaryTerm } from "@shared/types";
 import { languageLabel } from "@shared/types";
 import { claudeKey, geminiKey, getSettings } from "../settings";
 import { claudeCodeAvailable } from "./claudeCode";
-import { recall, remember } from "./memory";
+import { recall, recallGlossary, remember, rememberGlossary } from "./memory";
 import { llmJson, OutputTooLongError } from "./llm";
 
 const RULES = `Tu es un traducteur scientifique professionnel. Tu traduis vers le français des articles écrits en anglais ou dans une autre langue (indiquée avec l'article).
@@ -65,14 +65,26 @@ export async function buildGlossary(a: Article, c: ArticleContent): Promise<Glos
     sample += plain(b.segs[0]) + "\n";
     if (sample.length > 6000) break;
   }
+  const lang = a.lang ?? "en";
+  // Terms already decided in other articles: reused as they are.
+  const known = recallGlossary(`${a.title}\n${headings.join("\n")}\n${sample}`, lang).slice(0, 40);
+  // Well covered already: no AI call at all.
+  if (known.length >= 20) return known;
+  const knownList = known.length
+    ? `\n\nTermes déjà connus (ne les répète pas, ils sont déjà dans le glossaire) : ${known.map((t) => t.term).join(", ")}.`
+    : "";
   const { data } = await llmJson<{ terms: GlossaryTerm[] }>({
     system: `${RULES}\n\nTa tâche ici : préparer le glossaire technique d'un article avant sa traduction.`,
-    user: `Article : « ${a.title} »\nLangue de l'article : ${languageLabel(a.lang)}\nDomaine :${a.categories.join(", ") || a.venue || ""}\n\nTitres des sections :\n${headings.join("\n")}\n\nExtrait :\n${sample}\n\nListe 10 à 30 termes techniques importants de cet article. Pour chacun : "term" (tel qu'écrit dans l'article, dans sa langue), "keep" (true si les spécialistes francophones emploient ce terme en anglais), "fr" (la forme à utiliser dans la traduction : la traduction française de référence, ou le terme anglais d'usage si keep=true), "definition" (une explication très simple en français, une phrase, pour quelqu'un qui découvre le domaine).${getSettings().keepTermsHint ? `\n\nPréférences de l'utilisateur : ${getSettings().keepTermsHint}` : ""}`,
+    user: `Article : « ${a.title} »\nLangue de l'article : ${languageLabel(a.lang)}\nDomaine :${a.categories.join(", ") || a.venue || ""}\n\nTitres des sections :\n${headings.join("\n")}\n\nExtrait :\n${sample}${knownList}\n\nListe ${known.length ? "0 à 20 autres" : "10 à 30"} termes techniques importants de cet article. Pour chacun : "term" (tel qu'écrit dans l'article, dans sa langue), "keep" (true si les spécialistes francophones emploient ce terme en anglais), "fr" (la forme à utiliser dans la traduction : la traduction française de référence, ou le terme anglais d'usage si keep=true), "definition" (une explication très simple en français, une phrase, pour quelqu'un qui découvre le domaine).${getSettings().keepTermsHint ? `\n\nPréférences de l'utilisateur : ${getSettings().keepTermsHint}` : ""}`,
     schema: GLOSSARY_SCHEMA,
     maxTokens: 8000,
     tier: "heavy",
   });
-  return data.terms.filter((t) => t.term?.trim());
+  const fresh = data.terms.filter((t) => t.term?.trim() && !known.some((k) => k.term.toLowerCase() === t.term.toLowerCase()));
+  rememberGlossary(fresh, lang);
+  // Known terms were used again: they count as more common.
+  rememberGlossary(known, lang);
+  return [...known, ...fresh];
 }
 
 interface Segment {

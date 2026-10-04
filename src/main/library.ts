@@ -39,7 +39,7 @@ import {
 import { get } from "./http";
 import { claudeCodeAvailable } from "./ai/claudeCode";
 import { describeError, geminiAvailableToday } from "./ai/llm";
-import { recallExplanation, rememberExplanation } from "./ai/memory";
+import { glossarySize, recallExplanation, rememberExplanation, rememberGlossary } from "./ai/memory";
 import { translateContent } from "./ai/translate";
 import { loadFullText, PendingError } from "./content/loader";
 import { Recommender } from "./reco/recommender";
@@ -193,6 +193,15 @@ export class Library {
       this.reco.seedSemantic(vectors);
     } catch {
       /* model unavailable for now: tried again at next launch */
+    }
+  }
+
+  /** First launch with the glossary memory: fill it from the articles already translated. */
+  seedGlossaryMemory() {
+    if (glossarySize()) return;
+    for (const a of this.all()) {
+      const c = readJson<ArticleContent | null>(contentFile(a.id), null);
+      if (c?.glossary?.length) rememberGlossary(c.glossary, a.lang ?? "en");
     }
   }
 

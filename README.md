@@ -26,6 +26,8 @@ arXiv, Europe PMC (PubMed Central), bioRxiv, medRxiv, PLOS, eLife, NASA Science,
 
 En plus des mots, l'app compare le **sens** des articles, dans toutes les langues : un article allemand sur la solitude est reconnu comme proche d'articles anglais sur les émotions, même sans aucun mot en commun. Un petit modèle multilingue (multilingual-e5-small, 130 Mo, téléchargé une seule fois au premier lancement) tourne sur le processeur du PC : pas de carte graphique, pas de clé, pas de coût. Sans connexion au premier lancement, le fil se base sur les mots en attendant.
 
+Limite connue : le sens sert à **classer** le fil, pas aux **filtres**. Un filtre (« Psychologie et émotions »…) suit la discipline donnée par OpenAlex à chaque article ; un article mal classé par OpenAlex (par exemple de la linguistique rangée en psychologie) peut donc apparaître sous un filtre, même s'il descend dans le fil « Tout ».
+
 ## IA
 
 Mode par défaut : **Hybride**, sans aucun coût.
@@ -34,6 +36,10 @@ Mode par défaut : **Hybride**, sans aucun coût.
 - **Ton abonnement Claude** (via Claude Code, déjà connecté sur le PC) prépare le lexique de chaque article, prend les passages très techniques et corrige les traductions qui échouent aux contrôles automatiques.
 - **L'IA locale** (Ollama) sert de relais hors ligne ou quand les quotas sont atteints. L'app détecte la carte graphique et conseille le modèle adapté à sa mémoire (`aya-expanse:8b` pour 8 Go, des modèles plus gros sur les PC plus puissants).
 - Sans Claude Code installé, l'app le détecte et fonctionne avec Google et l'IA locale.
+
+**Mémoire du lexique** : un terme technique décidé une fois (gardé en anglais ou traduit, avec sa définition) est réutilisé dans tous les articles. L'IA ne prépare que les termes nouveaux, et un article déjà bien couvert n'a plus besoin d'elle pour son lexique ; un même terme se lit aussi de la même façon partout.
+
+**Perspective** : partager cette mémoire (et celle des traductions) entre tous les utilisateurs grâce à un petit serveur gratuit, pour que personne ne fasse traduire deux fois la même chose.
 
 Traduction « comme un navigateur » : seuls les passages affichés à l'écran (plus un écran d'avance) sont traduits. Chaque traduction est gardée dans une mémoire partagée entre tous les articles : rien n'est jamais payé ni demandé deux fois. Le bouton « Tout traduire » prépare un article entier pour plus tard.
 

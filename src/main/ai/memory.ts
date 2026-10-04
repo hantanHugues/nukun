@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import type { GlossaryTerm } from "@shared/types";
 import { JsonDoc } from "../store";
 
 /**
@@ -54,4 +55,54 @@ export function rememberExplanation(passage: string, a: string, by: string) {
 
 export function flushExplanations() {
   explDoc?.flush();
+}
+
+/**
+ * Glossary memory shared by every article: a technical term decided once (kept in
+ * English or translated, and its definition) is reused everywhere, so the AI only
+ * works on new terms and the same term reads the same in every article.
+ * Keyed by language and lower-case term.
+ */
+const MAX_TERMS = 20000;
+type StoredTerm = GlossaryTerm & { uses: number };
+let glossDoc: JsonDoc<Record<string, StoredTerm>> | null = null;
+const gloss = () => (glossDoc ??= new JsonDoc<Record<string, StoredTerm>>("glossary-memory.json", {}));
+const termKey = (lang: string, term: string) => `${lang}:${term.toLowerCase().trim()}`;
+
+/** Known terms that appear in a text (whole words), most used first. */
+export function recallGlossary(text: string, lang: string): GlossaryTerm[] {
+  const hay = ` ${text.toLowerCase().replace(/\s+/g, " ")} `;
+  const prefix = `${lang}:`;
+  const found: StoredTerm[] = [];
+  for (const [k, t] of Object.entries(gloss().data)) {
+    if (!k.startsWith(prefix)) continue;
+    const i = hay.indexOf(k.slice(prefix.length));
+    if (i < 0) continue;
+    // Whole word: "cell" must not match "cellular".
+    const before = hay[i - 1];
+    const after = hay[i + k.length - prefix.length];
+    if (/[\p{L}\p{N}]/u.test(before ?? "") || /[\p{L}\p{N}]/u.test(after ?? "")) continue;
+    found.push(t);
+  }
+  return found.sort((x, y) => y.uses - x.uses).map(({ uses: _u, ...t }) => t);
+}
+
+export function rememberGlossary(terms: GlossaryTerm[], lang: string) {
+  const d = gloss();
+  for (const t of terms) {
+    if (!t.term?.trim() || t.term.length > 80) continue;
+    const k = termKey(lang, t.term);
+    d.data[k] = { ...t, uses: (d.data[k]?.uses ?? 0) + 1 };
+  }
+  const keys = Object.keys(d.data);
+  if (keys.length > MAX_TERMS) for (const k of keys.slice(0, keys.length - MAX_TERMS)) delete d.data[k];
+  d.save();
+}
+
+export function glossarySize() {
+  return Object.keys(gloss().data).length;
+}
+
+export function flushGlossary() {
+  glossDoc?.flush();
 }

@@ -37,6 +37,11 @@ Every item has a `kind`: `paper` (research) or `news` (official organisations an
 - The recommender keeps a meaning profile next to the term profile: the vectors of what is read, liked or dismissed (same weights and fading as terms), plus the vectors of the chosen interests as a starting point. Older profiles are rebuilt once from the reading history (`replayMeaning`).
 - Ranking mixes words and meaning half and half, meaning alone for articles in another language. Cross-language similarities run lower than same-language ones, so each language is compared to its own median. The slot for other languages only takes articles close in meaning.
 - Diversification (no run of near-identical articles) uses meaning vectors and computes each pair once.
+- Known limit: interest filters (`matchesInterest`) still rely on the OpenAlex field, not on meaning, so a paper misfiled by OpenAlex can show under a filter.
+
+## Glossary memory
+
+`glossary-memory.json` (in `ai/memory.ts`) keeps every glossary term ever decided, keyed by language and term. `buildGlossary` first looks for known terms in the article (whole words), asks the AI only for new ones, and skips the AI when 20 known terms or more are found. It is filled once from the glossaries of articles already translated (`Library.seedGlossaryMemory`). Perspective: share it, and the translation memory, between users through a small free server.
 
 ## Disciplines and languages
 

@@ -5,7 +5,7 @@ import type { DomainId, Draft, Interaction, Interest, Settings } from "@shared/t
 import { claudeCodeAvailable } from "./ai/claudeCode";
 import { adviseLocalModel, detectHardware } from "./ai/hardware";
 import { ollamaModels, ollamaReachable, testAi } from "./ai/llm";
-import { flushExplanations, flushMemory } from "./ai/memory";
+import { flushExplanations, flushGlossary, flushMemory } from "./ai/memory";
 import { BROWSER_UA, get } from "./http";
 import { Library } from "./library";
 import { geminiKey, getSettings, getUsage, saveSettings } from "./settings";
@@ -216,6 +216,7 @@ if (!app.requestSingleInstanceLock()) {
     scheduleRefresh();
     // Meaning of the articles not analysed yet (first launch: downloads the model once).
     setTimeout(() => lib.indexMeaning(), 5000);
+    setTimeout(() => lib.seedGlossaryMemory(), 8000);
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow();
     });
@@ -225,6 +226,7 @@ if (!app.requestSingleInstanceLock()) {
     lib?.flush();
     flushMemory();
     flushExplanations();
+    flushGlossary();
   });
   app.on("window-all-closed", () => {
     if (process.platform !== "darwin") app.quit();
