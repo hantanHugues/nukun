@@ -1,7 +1,7 @@
 import DOMPurify from "dompurify";
 import type { Article, DomainId } from "@shared/types";
 import { fieldGroup, fieldLabel, SOURCES } from "@shared/types";
-import { locale, t } from "@shared/i18n";
+import { lang, locale, t } from "@shared/i18n";
 
 export const domainLabel = (d: DomainId) => fieldLabel(d);
 export const sourceLabel = (a: Article) => a.venue || SOURCES.find((s) => s.id === a.source)?.label || a.source;
@@ -48,4 +48,10 @@ export function authorsShort(a: Article) {
   return a.authors.length - 1 > 1
     ? t("{first} et {n} autres", { first: a.authors[0], n: a.authors.length - 1 })
     : t("{first} et {second}", { first: a.authors[0], second: a.authors[1] });
+}
+
+/** The help page of the website, in the app's language (anchors are the same in both). */
+export function helpUrl(anchor = ""): string {
+  const page = lang() === "en" ? "en/help.html" : "aide.html";
+  return `https://hantanhugues.github.io/nukun/${page}${anchor}`;
 }

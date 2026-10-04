@@ -1,4 +1,4 @@
-import { AArrowDown, AArrowUp, ArrowLeft, Bookmark, BookmarkCheck, ExternalLink, Heart, Languages, Lightbulb, NotebookPen, PanelRight, PenLine, Play, RotateCcw } from "lucide-react";
+import { AArrowDown, AArrowUp, ArrowLeft, Bookmark, BookmarkCheck, CircleHelp, ExternalLink, Heart, Languages, Lightbulb, NotebookPen, PanelRight, PenLine, Play, RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Article, ArticleContent, Block, TranslationProgress } from "@shared/types";
 import { lang, locale, t } from "@shared/i18n";
@@ -7,7 +7,7 @@ import { api } from "../api";
 import { type Route, useApp } from "../App";
 import { Discussion, type ThreadItem } from "../components/Discussion";
 import { Notes } from "../components/Notes";
-import { authorsShort, domainLabel, plain, sanitize, sourceLabel, timeAgo } from "../util";
+import { authorsShort, domainLabel, helpUrl, plain, sanitize, sourceLabel, timeAgo } from "../util";
 
 type Mode = "fr" | "en" | "bi" | "pdf";
 type SideTab = "lexique" | "discussion" | "notes" | "infos";
@@ -285,6 +285,9 @@ export function Reader({ id, back }: { id: string; back: Route }) {
                 <ExternalLink size={15} /> {t("Ouvrir sur le site")}
               </button>
             )}
+            <button className="btn ghost" onClick={() => void api.openExternal(helpUrl("#messages"))}>
+              <CircleHelp size={15} /> {t("Comprendre ce message")}
+            </button>
           </div>
         </div>
       </div>

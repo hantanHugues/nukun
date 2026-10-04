@@ -18,7 +18,7 @@ const SECTIONS = [
 ];
 import { api } from "../api";
 import { useApp } from "../App";
-import { timeAgo } from "../util";
+import { helpUrl, timeAgo } from "../util";
 
 const MODELS = [
   // Notes are written in French and shown in the app's language.
@@ -455,6 +455,10 @@ export function SettingsView() {
           .{" "}
           <a href="#" onClick={(e) => (e.preventDefault(), void api.openExternal("https://github.com/hantanHugues/nukun"))}>
             {t("Code source")}
+          </a>
+          .{" "}
+          <a href="#" onClick={(e) => (e.preventDefault(), void api.openExternal(helpUrl()))}>
+            {t("Aide")}
           </a>
         </p>
       </div>
