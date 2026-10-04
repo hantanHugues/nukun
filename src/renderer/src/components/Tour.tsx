@@ -18,21 +18,26 @@ interface Step {
 }
 
 const STEPS: Step[] = [
-  { view: "feed", title: "Bienvenue", text: "En 1 minute, on fait le tour de l'app. Tu peux quitter à tout moment." },
-  { view: "feed", target: "filters", title: "Filtres", text: "Un filtre par centre d'intérêt ; « Modifier » pour en ajouter ou en retirer." },
-  { view: "feed", target: "first-card", title: "Un article", text: "Clique pour le lire. Au survol : sauvegarder pour plus tard, ou « pas intéressé »." },
-  { view: "feed", target: "refresh", title: "Actualiser", text: "Va chercher les derniers articles. L'app le fait aussi toute seule." },
-  { view: "article", target: "lang-modes", title: "Langue", text: "Français, côte à côte ou original. Seul ce qui est à l'écran est traduit." },
-  { view: "article", target: "side-tabs", title: "Lexique et discussion", text: "Les termes techniques expliqués, et une IA qui répond à tes questions sur l'article." },
-  { view: "article", target: "write", title: "Ton article", text: "Rédige ce que tu as compris, puis exporte-le vers ton portfolio." },
-  { view: "settings", target: "ai-modes", title: "Ton IA", text: "Choisis comment l'IA travaille. Hybride : gratuit, avec Claude pour les passages techniques." },
-  { view: "settings", target: "gemini-key", title: "Clé Google gratuite", text: "Crée-la sur aistudio.google.com/apikey et colle-la ici." },
-  { view: "settings", target: "ollama", title: "IA locale", text: "Ta carte graphique est détectée : installe le modèle conseillé avec Ollama." },
-  { view: "settings", target: "ai-test", title: "Tester", text: "Vérifie que ton IA répond." },
+  { view: "feed", title: "Bienvenue", text: "Un tour rapide : les onglets, puis les réglages en détail. Tu peux quitter à tout moment." },
+  // The tabs, one sentence each: the pages speak for themselves.
+  { view: "feed", target: "nav-feed", title: "Articles", text: "Les articles de recherche choisis pour toi d'après tes centres d'intérêt. Clique sur une carte pour la lire en français." },
+  { view: "feed", target: "nav-news", title: "Actus", text: "Les actualités officielles liées à tes sujets : agences spatiales, instituts de recherche, outils de développement…" },
+  { view: "feed", target: "nav-library", title: "Bibliothèque", text: "Les articles que tu as ouverts, sauvegardés, aimés ou finis, avec tes notes." },
+  { view: "feed", target: "nav-writing", title: "Mes articles", text: "Tes textes écrits à partir de tes lectures, tes notes à côté. Prêts à exporter ou à partager." },
+  { view: "feed", target: "nav-profile", title: "Mes goûts", text: "Ce que l'algorithme a compris de toi : la part de chaque sujet et les domaines voisins qu'il explore." },
+  { view: "feed", target: "nav-settings", title: "Réglages", text: "Tout se règle ici. On y va." },
+  // The settings, section by section.
+  { view: "settings", target: "settings-nav", title: "Sommaire", text: "Clique sur une section pour y aller directement." },
+  { view: "settings", target: "ai-modes", title: "Ton IA", text: "Elle traduit, explique et répond à tes questions. Hybride (conseillé) : gratuit, avec Claude pour les passages techniques si tu l'as." },
+  { view: "settings", target: "gemini-key", title: "Clé Google gratuite", text: "Crée-la sur aistudio.google.com/apikey et colle-la ici : c'est elle qui fait l'essentiel des traductions." },
+  { view: "settings", target: "ollama", title: "IA locale", text: "Facultatif : une IA sur ton PC, sans connexion. Ta carte graphique est détectée et le bon modèle conseillé." },
+  { view: "settings", target: "ai-test", title: "Tester", text: "Vérifie en un clic que ton IA répond." },
   { view: "settings", target: "domains", title: "Centres d'intérêt", text: "Ajoute ou retire des sujets (même « couture » ou « football » via la recherche) et choisis les langues des articles." },
-  { view: "settings", target: "sources", title: "Sources", text: "Active ou désactive chaque source scientifique." },
-  { view: "feed", target: "nav", title: "Le menu", text: "Les articles de chercheurs, les Actus (science et outils de dev), ta bibliothèque, tes écrits et tes goûts." },
-  { view: "feed", title: "C'est parti", text: "Bonne lecture ! Tu peux relancer cette visite depuis les Réglages." },
+  { view: "settings", target: "data", title: "Données mobiles", text: "Connexion limitée ? Les articles ne sont alors téléchargés qu'à l'ouverture." },
+  { view: "settings", target: "sources", title: "Sources", text: "D'où viennent les articles : uniquement des archives et éditeurs officiels. Active ou coupe chacune, et choisis la fréquence d'actualisation." },
+  { view: "settings", target: "tour", title: "Tutoriel", text: "Relance cette visite quand tu veux." },
+  { view: "settings", target: "export", title: "Export", text: "Le dossier où tes articles écrits sont enregistrés." },
+  { view: "feed", title: "C'est parti", text: "Bonne lecture !" },
 ];
 
 const PAD = 8;
@@ -63,6 +68,7 @@ export function Tour({ onDone }: { onDone: () => void }) {
   const [articleId, setArticleId] = useState<string | null>(null);
   const [bubbleH, setBubbleH] = useState(0);
   const bubbleRef = useRef<HTMLDivElement>(null);
+  const lastPos = useRef<{ left: number; top: number } | null>(null);
   const step = STEPS[i];
 
   // Real bubble height, for exact placement.
@@ -101,8 +107,11 @@ export function Tour({ onDone }: { onDone: () => void }) {
           const offset = block < main.clientHeight - 32 ? (main.clientHeight - block) / 2 : 24;
           const top = main.scrollTop + r.top - m.top - offset;
           glide(main, Math.min(Math.max(0, top), main.scrollHeight - main.clientHeight));
+          setTimeout(() => !cancelled && setRect(el.getBoundingClientRect()), 480);
+        } else {
+          // Always on screen (the menu): no scrolling to wait for.
+          setRect(el.getBoundingClientRect());
         }
-        setTimeout(() => !cancelled && setRect(el.getBoundingClientRect()), 480);
       } else if (Date.now() - started < 4000) setTimeout(find, 150);
     };
     // Let the new screen render before looking for the element.
@@ -186,6 +195,7 @@ export function Tour({ onDone }: { onDone: () => void }) {
   // Bubble: below the zone, else above, else beside it, else inside its lower part;
   // always kept fully on screen.
   const bh = bubbleH || BUBBLE_H;
+  const waiting = !!step.target && !rect;
   let pos = { left: (vw - W) / 2, top: (vh - bh) / 2 };
   if (spot && spot.bottom > spot.top) {
     const cx = Math.min(Math.max(16, (spot.left + spot.right) / 2 - W / 2), vw - W - 16);
@@ -198,6 +208,10 @@ export function Tour({ onDone }: { onDone: () => void }) {
     pos.left = Math.min(Math.max(16, pos.left), vw - W - 16);
     pos.top = Math.min(Math.max(TOP, pos.top), vh - bh - 16);
   }
+  // While the next zone is being reached, the bubble stays where it was: it then
+  // glides from the previous zone to the new one, never through the middle.
+  if (waiting && lastPos.current) pos = lastPos.current;
+  else lastPos.current = pos;
 
   return (
     <div className="tour" aria-live="polite">
@@ -218,7 +232,15 @@ export function Tour({ onDone }: { onDone: () => void }) {
       ) : (
         <div key="dim" className="tour-dim" />
       )}
-      <div ref={bubbleRef} className="tour-bubble card" style={{ left: pos.left, top: pos.top, width: W }} role="dialog" aria-label={step.title}>
+      {/* Hidden until its zone is found and in view: it appears in place, never in the
+          middle first. */}
+      <div
+        ref={bubbleRef}
+        className="tour-bubble card"
+        style={{ left: pos.left, top: pos.top, width: W, ...(waiting ? { opacity: 0, pointerEvents: "none" } : null) }}
+        role="dialog"
+        aria-label={step.title}
+      >
         <div className="row" style={{ justifyContent: "space-between" }}>
           <strong>{step.title}</strong>
           <button className="btn sm icon ghost" onClick={close} title="Quitter la visite" aria-label="Quitter la visite">

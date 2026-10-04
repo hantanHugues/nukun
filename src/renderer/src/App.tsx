@@ -93,6 +93,8 @@ export function App() {
       if (el && (el.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName))) return;
       // A selection in the article (explain bubble): Escape only clears it.
       if (window.getSelection()?.toString()) return;
+      // Something open on top (an enlarged figure): Escape closes it instead.
+      if (document.querySelector("[data-escape-closes]")) return;
       if (route.view === "reader") go(route.from);
       else if (route.view !== "feed") go({ view: "feed" });
     };
@@ -145,13 +147,19 @@ export function App() {
           </div>
           <nav className="nav" aria-label="Navigation principale" data-tour="nav">
             {nav.map((n) => (
-              <button key={n.id} className={`toggle ${active === n.id ? "active" : ""}`} onClick={() => go({ view: n.id } as Route)}>
+              <button
+                key={n.id}
+                data-tour={`nav-${n.id}`}
+                className={`toggle ${active === n.id ? "active" : ""}`}
+                onClick={() => go({ view: n.id } as Route)}
+              >
                 {n.icon}
                 <span>{n.label}</span>
               </button>
             ))}
             <div className="sep" />
             <button
+              data-tour="nav-settings"
               className={`toggle icon ${active === "settings" ? "active" : ""}`}
               onClick={() => go({ view: "settings" })}
               title="Réglages"

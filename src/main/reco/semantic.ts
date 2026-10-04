@@ -28,8 +28,10 @@ function model(): Promise<Embedder> {
     state = "loading";
     // ESM-only package: loaded on demand.
     const { env, pipeline } = await import("@huggingface/transformers");
-    env.cacheDir = path.join(app.getPath("userData"), "models");
+    env.cacheDir = modelsDir();
     removeStaleDownloads(env.cacheDir);
+    // Our own download, which resumes where it stopped (slow or cut connections).
+    await downloadModel();
     const pipe = await pipeline("feature-extraction", MODEL, { dtype: "q8" });
     state = "ready";
     return pipe as unknown as Embedder;
@@ -39,6 +41,63 @@ function model(): Promise<Embedder> {
     throw e;
   });
   return embedder;
+}
+
+const modelsDir = () => path.join(app.getPath("userData"), "models");
+
+/** The model's files, as the library expects them in its cache folder. */
+const FILES = ["config.json", "tokenizer_config.json", "tokenizer.json", "onnx/model_quantized.onnx"];
+const fileOf = (f: string) => path.join(modelsDir(), ...MODEL.split("/"), ...f.split("/"));
+
+export function modelDownloaded() {
+  return FILES.every((f) => fs.existsSync(fileOf(f)));
+}
+
+/** Bytes of the model downloaded so far, while it downloads (for the "Mes goûts" page). */
+let progress: number | undefined;
+export function modelProgress() {
+  return state === "loading" ? progress : undefined;
+}
+
+/**
+ * Downloads the model file by file, into "<file>.part", asking the server for the
+ * rest only (HTTP Range) when a previous download was cut: nothing is fetched twice.
+ * A connection silent for a minute is dropped; the next launch picks up again.
+ */
+async function downloadModel() {
+  for (const f of FILES) {
+    const dest = fileOf(f);
+    if (fs.existsSync(dest)) continue;
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    const part = `${dest}.part`;
+    const have = fs.existsSync(part) ? fs.statSync(part).size : 0;
+    const ctrl = new AbortController();
+    let idle = setTimeout(() => ctrl.abort(), 60000);
+    try {
+      const res = await fetch(`https://huggingface.co/${MODEL}/resolve/main/${f}`, {
+        headers: have ? { Range: `bytes=${have}-` } : {},
+        signal: ctrl.signal,
+      });
+      if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
+      // 206: the rest of the file; 200: the server sent it all again.
+      const out = fs.createWriteStream(part, { flags: res.status === 206 ? "a" : "w" });
+      let done = res.status === 206 ? have : 0;
+      const reader = res.body.getReader();
+      for (;;) {
+        const { value, done: end } = await reader.read();
+        if (end) break;
+        clearTimeout(idle);
+        idle = setTimeout(() => ctrl.abort(), 60000);
+        done += value.length;
+        if (f.endsWith(".onnx")) progress = done;
+        if (!out.write(value)) await new Promise((r) => out.once("drain", r));
+      }
+      await new Promise<void>((r, j) => out.end((e?: Error | null) => (e ? j(e) : r())));
+      fs.renameSync(part, dest);
+    } finally {
+      clearTimeout(idle);
+    }
+  }
 }
 
 /** Pieces of a download interrupted by closing the app ("model.onnx.tmp.<pid>.xxxx"). */

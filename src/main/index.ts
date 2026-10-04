@@ -148,6 +148,8 @@ function registerIpc() {
   ipcMain.handle("prepareCards", (_e, ids: string[]) => lib.prepareCards(ids));
   ipcMain.handle("getSettings", () => getSettings());
   ipcMain.handle("saveSettings", (_e, s: Partial<Settings> & { claudeKey?: string }) => {
+    // Data saving switched off: the meaning model can be fetched now.
+    if (s.dataSaver === false) setTimeout(() => lib.indexMeaning(), 1000);
     const res = saveSettings(s);
     send("feed-updated");
     return res;

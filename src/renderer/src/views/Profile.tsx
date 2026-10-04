@@ -49,8 +49,10 @@ export function Profile() {
           peu, comme sur un réseau social. {p.signals} signaux enregistrés.
         </p>
         <p className="small muted" style={{ maxWidth: 640, margin: 0 }}>
-          {p.semantic.state === "loading"
-            ? "Recommandations par le sens : préparation du modèle multilingue (130 Mo, téléchargé une seule fois)…"
+          {p.semantic.state === "off"
+            ? "Recommandations par le sens en pause : le modèle (130 Mo) n'est pas téléchargé tant que l'économie de données est active."
+            : p.semantic.state === "loading"
+            ? `Recommandations par le sens : téléchargement du modèle multilingue, une seule fois${p.semantic.downloaded ? ` (${Math.round(p.semantic.downloaded / 1048576)} Mo sur 113)` : ""}… Il reprend là où il s'est arrêté si l'app est fermée.`
             : p.semantic.state === "error"
               ? "Recommandations par le sens indisponibles pour l'instant (connexion ?) : le fil se base sur les mots."
               : `Recommandations par le sens, dans toutes les langues : ${p.semantic.analysed} articles analysés sur ton PC.`}

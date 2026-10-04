@@ -274,6 +274,11 @@ export interface Settings {
   /** Interest suggestions the reader turned down. */
   dismissedSuggestions?: string[];
   refreshHours: number;
+  /**
+   * Save mobile data: an article is downloaded only when opened (cards keep no
+   * image until then), and nothing big is downloaded in the background.
+   */
+  dataSaver?: boolean;
   exportDir: string;
   theme: "system" | "dark" | "light";
   readerSize: number;
@@ -325,7 +330,7 @@ export interface InterestProfileView {
   /** Disciplines explored next to the interests at the moment. */
   explore: DomainId[];
   /** Recommendations by meaning (multilingual model): state and articles analysed. */
-  semantic: { state: "idle" | "loading" | "ready" | "error"; analysed: number };
+  semantic: { state: "idle" | "loading" | "ready" | "error" | "off"; analysed: number; downloaded?: number };
   topTerms: { term: string; weight: number }[];
   domains: { id: DomainId; weight: number; impressions: number }[];
   aiInterests: { label: string; keywords: string[] }[];

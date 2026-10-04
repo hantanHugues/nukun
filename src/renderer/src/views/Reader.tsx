@@ -164,6 +164,16 @@ export function Reader({ id, back }: { id: string; back: Route }) {
     };
   }, [id]);
 
+  // Escape closes the enlarged figure (and nothing else: the app's "back" waits).
+  useEffect(() => {
+    if (!lightbox) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLightbox(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [lightbox]);
+
   // ---------------------------------------------------------------- selection → explain
   useEffect(() => {
     const onUp = () => {
@@ -666,7 +676,7 @@ export function Reader({ id, back }: { id: string; back: Route }) {
         </div>
       )}
       {lightbox && (
-        <div className="lightbox" onClick={() => setLightbox(null)}>
+        <div className="lightbox" data-escape-closes onClick={() => setLightbox(null)}>
           <img src={lightbox} alt="" />
         </div>
       )}

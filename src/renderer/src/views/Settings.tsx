@@ -9,6 +9,7 @@ import { SectionNav } from "../components/SectionNav";
 const SECTIONS = [
   { id: "s-ai", label: "Intelligence artificielle" },
   { id: "s-interests", label: "Centres d'intérêt" },
+  { id: "s-data", label: "Données mobiles" },
   { id: "s-sources", label: "Sources" },
   { id: "s-tour", label: "Tutoriel" },
   { id: "s-export", label: "Export" },
@@ -319,6 +320,25 @@ export function SettingsView() {
           )}
         </section>
 
+        {/* ---------------------------------------------------------------- data */}
+        <section className="card section" id="s-data" data-tour="data">
+          <div className="setting-row" style={{ borderTop: "none", paddingTop: 0 }}>
+            <div className="grow">
+              <h2 className="h2">Économiser les données</h2>
+              <p className="small muted" style={{ margin: "6px 0 0" }}>
+                Pour une connexion mobile ou limitée. Un article n'est téléchargé que quand tu l'ouvres : les cartes restent sans
+                image jusque-là, et l'ouverture prend quelques secondes de plus. Le modèle de recommandations par le sens (130 Mo)
+                n'est pas téléchargé ; s'il est déjà là, il continue de servir.
+              </p>
+            </div>
+            <button
+              className={`switch ${settings.dataSaver ? "on" : ""}`}
+              aria-label="Économiser les données"
+              onClick={() => void save({ dataSaver: !settings.dataSaver })}
+            />
+          </div>
+        </section>
+
         {/* ---------------------------------------------------------------- sources */}
         <section className="card section" id="s-sources" data-tour="sources">
           <div className="row">
@@ -374,7 +394,7 @@ export function SettingsView() {
         </section>
 
         {/* ---------------------------------------------------------------- tutorial */}
-        <section className="card section" id="s-tour">
+        <section className="card section" id="s-tour" data-tour="tour">
           <div className="row">
             <div className="grow">
               <h2 className="h2">Tutoriel</h2>
@@ -389,7 +409,7 @@ export function SettingsView() {
         </section>
 
         {/* ---------------------------------------------------------------- export */}
-        <section className="card section" id="s-export">
+        <section className="card section" id="s-export" data-tour="export">
           <h2 className="h2">Export vers le portfolio</h2>
           <p className="small muted" style={{ marginTop: 6 }}>
             Tes articles sont exportés en .mdx, au même format que les pages de ton portfolio (titre, date, résumé, image).

@@ -44,7 +44,7 @@ import { glossarySize, recallExplanation, rememberExplanation, rememberGlossary 
 import { translateContent } from "./ai/translate";
 import { loadFullText, PendingError } from "./content/loader";
 import { Recommender } from "./reco/recommender";
-import { embedQueries, SemanticIndex } from "./reco/semantic";
+import { embedQueries, modelDownloaded, modelProgress, SemanticIndex } from "./reco/semantic";
 import { getSettings, saveSettings, semanticScholarKey } from "./settings";
 import { epmcFindByDoi, FETCHERS, openalexClassify, searchTopics, type RawArticle } from "./sources";
 import { classifyText, detectLanguage, LEGACY_DOMAINS } from "./sources/classify";
@@ -221,7 +221,10 @@ export class Library {
 
   /** Meaning of the articles not analysed yet, in the background. */
   indexMeaning() {
-    if (!getSettings().interestsChosen) return;
+    const s = getSettings();
+    if (!s.interestsChosen) return;
+    // Saving data: the model (130 MB) is not downloaded; if already there, it is used.
+    if (s.dataSaver && !modelDownloaded()) return;
     // Read and dismissed articles too: they tell what the reader likes or not.
     void this.semantic.indexMissing(this.all().filter((a) => a.availability === "ok" || a.state.opened)).then(() => {
       if (!this.reco.hasSemanticSeed) void this.seedMeaning();
@@ -287,7 +290,11 @@ export class Library {
         custom: i.custom,
       })),
       explore: [...this.explore],
-      semantic: { state: this.semantic.state, analysed: this.semantic.size },
+      semantic: {
+        state: getSettings().dataSaver && !modelDownloaded() ? "off" : this.semantic.state,
+        analysed: this.semantic.size,
+        downloaded: modelProgress(),
+      },
     };
   }
 
@@ -552,7 +559,7 @@ export class Library {
             a.fullText = { kind: "pmc", pmcid: hit.pmcid };
             a.availability = "ok";
           }
-        } else {
+        } else if (!getSettings().dataSaver) {
           // Other kinds became pending after a failed load: try again.
           await this.loadContent(a.id);
         }
@@ -605,6 +612,8 @@ export class Library {
    */
   prepareCards(ids: string[]) {
     void this.queueTeasers(ids, true);
+    // Saving data: full texts only when an article is opened.
+    if (getSettings().dataSaver) return;
     const todo = ids.filter((id) => !this.prepared.has(id) && this.get(id));
     todo.forEach((id) => this.prepared.add(id));
     this.prepareQueue = [...todo, ...this.prepareQueue];

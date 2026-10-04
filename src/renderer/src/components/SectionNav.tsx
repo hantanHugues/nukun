@@ -11,7 +11,8 @@ export function SectionNav({ items }: { items: { id: string; label: string }[] }
     const main = document.getElementById("main-scroll");
     if (!main) return;
     const onScroll = () => {
-      const top = main.getBoundingClientRect().top + 140;
+      // The section that reaches the middle of the screen is the one being read.
+      const top = main.getBoundingClientRect().top + main.clientHeight * 0.45;
       let current = items[0]?.id;
       for (const it of items) {
         const el = document.getElementById(it.id);
@@ -35,7 +36,7 @@ export function SectionNav({ items }: { items: { id: string; label: string }[] }
   };
 
   return (
-    <nav className="section-nav" aria-label="Sections de la page">
+    <nav className="section-nav" aria-label="Sections de la page" data-tour="settings-nav">
       {items.map((it) => (
         <button
           key={it.id}
