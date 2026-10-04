@@ -31,7 +31,7 @@ async function loadRef(ref: FullTextRef, a: Article): Promise<Loaded> {
     case "jats":
       return jats(ref, a);
     case "html":
-      return ref.mode === "scielo" ? scielo(ref.url, ref.pdf) : nature(ref.url);
+      return ref.mode === "scielo" ? scielo(ref.url, ref.pdf) : ref.mode === "readable" ? readable(ref.url) : nature(ref.url);
     case "inline":
       return inline(ref.html, ref.baseUrl);
     case "pdf":
@@ -211,6 +211,18 @@ async function scielo(url: string, pdfUrl?: string): Promise<Loaded> {
   }
   if (!pdfUrl) throw new Error("Texte intégral SciELO indisponible.");
   return pdf(pdfUrl, url);
+}
+
+// ---------------------------------------------------------------- News pages (reader mode)
+/** The article part of an official news page, extracted like Firefox's reader view. */
+async function readable(url: string): Promise<Loaded> {
+  const html = await getText(url, { browser: true, timeoutMs: 45000 });
+  const { parseHTML } = await import("linkedom");
+  const { Readability } = await import("@mozilla/readability");
+  const { document } = parseHTML(html);
+  const art = new Readability(document as unknown as Document).parse();
+  if (!art?.content) throw new Error("Impossible d'extraire l'article de cette page.");
+  return inline(art.content, url);
 }
 
 // ---------------------------------------------------------------- NASA (content embedded in the feed)

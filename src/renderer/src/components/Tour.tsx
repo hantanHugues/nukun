@@ -31,7 +31,7 @@ const STEPS: Step[] = [
   { view: "settings", target: "ai-test", title: "Tester", text: "Vérifie que ton IA répond." },
   { view: "settings", target: "domains", title: "Disciplines et langues", text: "Coche tes disciplines (26 au choix) et les langues des articles à recevoir." },
   { view: "settings", target: "sources", title: "Sources", text: "Active ou désactive chaque source scientifique." },
-  { view: "feed", target: "nav", title: "Le menu", text: "Ta bibliothèque, tes articles, et ce que l'algorithme a compris de tes goûts." },
+  { view: "feed", target: "nav", title: "Le menu", text: "Les articles de chercheurs, les Actus (science et outils de dev), ta bibliothèque, tes écrits et tes goûts." },
   { view: "feed", title: "C'est parti", text: "Bonne lecture ! Tu peux relancer cette visite depuis les Réglages." },
 ];
 

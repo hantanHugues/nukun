@@ -19,6 +19,10 @@ src/
 └── renderer/src/          React UI (feed, reader with discussion, library, writing, profile, settings, guided tour)
 ```
 
+## Articles and news
+
+Every item has a `kind`: `paper` (research) or `news` (official organisations and developer blogs, `topic` science or tech). Each kind has its own ranked, paged feed (`Library.feed(..., kind)`). News comes from `sources/news.ts`: RSS or Atom feeds; a feed that carries the whole post is used as is, otherwise the official page is reduced to its article with Mozilla Readability (`content/loader.ts`, mode `readable`). News is kept 21 days, research 45 days, unless read or saved.
+
 ## Disciplines and languages
 
 - Articles are classified in the 26 OpenAlex fields (`FIELDS` in `shared/types.ts`, grouped in 4 domains). Sources map their own categories to fields (arXiv categories, bioRxiv categories, PLOS subjects, HAL codes…) and are only queried for enabled fields. After each refresh, `Library.classifyNew` asks OpenAlex for the field of every new DOI (50 per request).

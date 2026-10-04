@@ -5,6 +5,7 @@ import type {
   ArticleContent,
   ArticleState,
   DomainId,
+  ArticleKind,
   ChatMessage,
   Draft,
   Explanation,
@@ -68,7 +69,22 @@ export class Library {
         migrated = true;
       }
     }
-    // SciELO Chile blocks automated downloads: its papers could never be opened.
+    // Feed items read with an empty link (fixed bug): drop them so they come back whole.
+    for (const a of this.all()) {
+      if (!a.url && ["nature", "nasa"].includes(a.source) && !a.state.opened && !a.state.saved) {
+        delete this.db.data[a.id];
+        migrated = true;
+      }
+    }
+        // News saved before the Articles / Actus split was stored as papers.
+    for (const a of this.all()) {
+      if (!a.kind && ["nasa", "esa", "cnrs", "inserm", "devtools"].includes(a.source)) {
+        a.kind = "news";
+        a.topic = a.source === "devtools" ? "tech" : "science";
+        migrated = true;
+      }
+    }
+        // SciELO Chile blocks automated downloads: its papers could never be opened.
     for (const a of this.all()) {
       const ft = a.fullText as { url?: string };
       if (a.source === "scielo" && ft.url?.includes("scielo.cl") && !a.state.opened && !a.state.saved) {
@@ -101,23 +117,37 @@ export class Library {
 
   // ------------------------------------------------------------ feed
   /** Articles that may appear in the feed: readable, not seen yet, in an enabled language. */
-  private candidates() {
+  /** Articles that may appear in a feed: readable, not seen yet, in an enabled language. */
+  private candidates(kind: ArticleKind = "paper") {
     const s = getSettings();
     return this.all().filter(
-      (a) => a.availability === "ok" && !a.state.dismissed && !a.state.opened && s.languages[a.lang ?? "en"] !== false,
+      (a) =>
+        (a.kind ?? "paper") === kind &&
+        a.availability === "ok" &&
+        !a.state.dismissed &&
+        !a.state.opened &&
+        s.languages[a.lang ?? "en"] !== false,
     );
   }
 
-  /** `filter` is "all", a field id, or "g:<group>" for one of the 4 big domains. */
-  /** Ranked feed kept between pages, so scrolling down never reshuffles what is above. */
-  private feedCache: { filter: string; items: FeedItem[] } | null = null;
+  /** Ranked feeds kept between pages, so scrolling down never reshuffles what is above. */
+  private feedCache = new Map<ArticleKind, { filter: string; items: FeedItem[] }>();
 
-  private rankFeed(filter: string, limit: number): FeedItem[] {
+  /**
+   * `filter` is "all", a field id, "g:<group>" for one of the 4 big domains, or
+   * "t:<topic>" for news (science, tech).
+   */
+  private rankFeed(filter: string, limit: number, kind: ArticleKind = "paper"): FeedItem[] {
     const s = getSettings();
     const match = (a: Article) =>
-      filter === "all" || a.domain === filter || (filter.startsWith("g:") && fieldGroup(a.domain) === filter.slice(2));
-    const candidates = this.candidates().filter(match);
-    return this.reco.rank(candidates, limit, filter === "all" ? s.domains : ({} as Record<DomainId, boolean>));
+      filter === "all" ||
+      a.domain === filter ||
+      (filter.startsWith("g:") && fieldGroup(a.domain) === filter.slice(2)) ||
+      (filter.startsWith("t:") && a.topic === filter.slice(2));
+    const candidates = this.candidates(kind).filter(match);
+    // News is not filtered by discipline: its sources are chosen in the settings.
+    const enabled = filter === "all" && kind === "paper" ? s.domains : ({} as Record<DomainId, boolean>);
+    return this.reco.rank(candidates, limit, enabled);
   }
 
   /**
@@ -125,18 +155,19 @@ export class Library {
    * otherwise pages come from the same ranking, extended when the reader goes further.
    * `filter` is "all", a field id, or "g:<group>" for one of the 4 big domains.
    */
-  feed(filter = "all", limit = 30, offset = 0, fresh = offset === 0): FeedItem[] {
-    const c = this.feedCache;
+  feed(filter = "all", limit = 30, offset = 0, fresh = offset === 0, kind: ArticleKind = "paper"): FeedItem[] {
+    let c = this.feedCache.get(kind);
     if (fresh || !c || c.filter !== filter) {
-      this.feedCache = { filter, items: this.rankFeed(filter, Math.max(offset + limit, 150)) };
+      c = { filter, items: this.rankFeed(filter, Math.max(offset + limit, 150), kind) };
+      this.feedCache.set(kind, c);
     } else if (c.items.length < offset + limit && c.items.length >= 150) {
       // Deeper than the first ranking: extend it, keeping the order already shown.
       const seen = new Set(c.items.map((x) => x.article.id));
-      const more = this.rankFeed(filter, offset + limit + 150).filter((x) => !seen.has(x.article.id));
+      const more = this.rankFeed(filter, offset + limit + 150, kind).filter((x) => !seen.has(x.article.id));
       c.items.push(...more);
     }
     // Raw slices: the page knows what it has hidden (dismissed cards).
-    return this.feedCache!.items.slice(offset, offset + limit);
+    return c.items.slice(offset, offset + limit);
   }
 
   /** How many readable articles each discipline has, for the feed filters. */
@@ -217,7 +248,7 @@ export class Library {
     this.emit.feedUpdated();
 
     progress("Traduction des titres");
-    const top = this.rankFeed("all", 30).map((f) => f.article.id);
+    const top = [...this.rankFeed("all", 30), ...this.rankFeed("all", 20, "news")].map((f) => f.article.id);
     await this.queueTeasers(top);
     done++;
     this.emit.refresh({ running: false, step: "Fil à jour", done, total: done, newArticles: added });
@@ -238,6 +269,10 @@ export class Library {
         }
         if (!existing.abstract && r.abstract) existing.abstract = r.abstract;
         if (!existing.image && r.image) existing.image = r.image;
+        if (r.kind && !existing.kind) {
+          existing.kind = r.kind;
+          existing.topic = r.topic;
+        }
         continue;
       }
       // Declared languages are sometimes wrong (an English paper tagged Spanish…):
@@ -302,9 +337,12 @@ export class Library {
 
   private prune() {
     const cutoff = Date.now() - 45 * 86400000;
+    // News ages faster than research.
+    const newsCutoff = Date.now() - 21 * 86400000;
     for (const a of this.all()) {
       const touched = a.state.opened || a.state.saved || a.state.liked || a.state.posted || this.drafts.data[a.id];
-      if (!touched && Date.parse(a.fetchedAt) < cutoff) {
+      const limit = a.kind === "news" ? newsCutoff : cutoff;
+      if (!touched && Date.parse(a.fetchedAt) < limit) {
         delete this.db.data[a.id];
         removeFile(contentFile(a.id));
       }

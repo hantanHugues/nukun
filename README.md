@@ -33,7 +33,8 @@ Traduction « comme un navigateur » : seuls les passages affichés à l'écran 
 
 Au premier lancement, une **visite guidée** met en lumière chaque zone de l'app (fil, lecteur, réglages de l'IA, domaines, sources). Elle se relance depuis les Réglages.
 
-- **Pour toi** : le fil recommandé, qui se charge à l'infini en descendant. Filtres par grand domaine et par discipline. Ouvrir, lire jusqu'au bout, aimer, sauvegarder ou écarter un article ajuste les recommandations. Une place régulière revient aux articles des autres langues.
+- **Articles** : les publications de chercheurs. Le fil recommandé, qui se charge à l'infini en descendant. Filtres par grand domaine et par discipline. Ouvrir, lire jusqu'au bout, aimer, sauvegarder ou écarter un article ajuste les recommandations. Une place régulière revient aux articles des autres langues.
+- **Actus** : les actualités courtes, dans un fil séparé avec deux filtres. **Science** : NASA, ESA, CNRS, Inserm. **Outils de dev** : blogs officiels de GitHub, VS Code, TypeScript, Node.js, React, Rust, Kotlin, Android, Chrome, Docker et Mozilla. Quand un flux ne contient qu'un résumé, l'article est extrait de la page officielle avec Readability (le mode lecture de Firefox).
 - **Lecteur** : affichage en français, côte à côte ou en version originale (et PDF quand il existe). L'icône de langue sur un paragraphe affiche l'original. Le lexique liste les termes techniques gardés en anglais. L'onglet **Discussion** permet de poser des questions sur l'article : l'IA répond à partir de son texte. Sélectionne un passage puis « Expliquer » pour une explication simple, ou clique sur « Expliquer cette figure » sous une figure : l'IA lit l'image et sa légende. Explications et conversations sont gardées avec l'article.
 - **Mes articles** : rédige ton article à partir de ta lecture, puis exporte-le en `.mdx` (même format que le portfolio) ou copie-le pour un post.
 

@@ -15,8 +15,10 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",
+    "@mozilla/readability": "^0.6.0",
     "cheerio": "^1.2.0",
     "fast-xml-parser": "^5.11.2",
+    "linkedom": "^0.18.13",
     "mammoth": "^1.13.0",
     "marked": "^18.0.14",
     "pdfjs-dist": "^6.4.299"

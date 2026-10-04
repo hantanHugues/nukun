@@ -2,6 +2,7 @@ import { XMLParser } from "fast-xml-parser";
 import type { Article, DomainId, SourceId } from "@shared/types";
 import { getJson, getText, isoDaysAgo, stripTags } from "../http";
 import { classifyText } from "./classify";
+import { news } from "./news";
 
 export type RawArticle = Omit<Article, "state" | "fetchedAt">;
 
@@ -316,13 +317,15 @@ async function nasa(): Promise<RawArticle[]> {
   return items.map((it) => {
     const html = text(it["content:encoded"]);
     const img = html.match(/<img[^>]+src="([^"]+)"/)?.[1];
-    const link = text(it.link);
+    const link = text(arr<any>(it.link)[0]);
     const cats = arr<any>(it.category).map(text);
     return {
       id: `url:${link}`,
       source: "nasa" as const,
+      kind: "news" as const,
+      topic: "science" as const,
       domain: "31",
-      title: clean(text(it.title)),
+      title: stripTags(text(it.title)),
       abstract: stripTags(text(it.description)).replace(/The post .* appeared first on NASA Science\.?/, "").trim(),
       authors: ["NASA"],
       published: new Date(text(it.pubDate)).toISOString(),
@@ -349,7 +352,7 @@ async function nature(): Promise<RawArticle[]> {
     const doc = xml.parse(body);
     const items = arr<any>(doc["rdf:RDF"]?.item ?? doc.rss?.channel?.item);
     for (const it of items.slice(0, 40)) {
-      const link = text(it.link);
+      const link = text(arr<any>(it.link)[0]);
       const title = clean(stripTags(text(it.title)));
       // The feed text is "<Journal>, Published online: <date>; doi:<doi><title>": not an abstract.
       const desc = stripTags(text(it["content:encoded"] ?? it.description))
@@ -396,7 +399,7 @@ async function sciadv(): Promise<RawArticle[]> {
       abstract: desc,
       authors: arr<any>(it["dc:creator"]).map(text),
       published: text(it["dc:date"]) || new Date().toISOString(),
-      url: text(it.link) || `https://doi.org/${doi}`,
+      url: text(arr<any>(it.link)[0]) || `https://doi.org/${doi}`,
       doi,
       venue: "Science Advances",
       categories: arr<any>(it["dc:subject"]).map(text),
@@ -771,4 +774,8 @@ export const FETCHERS: Record<SourceId, (o: FetchOptions) => Promise<RawArticle[
   psyarxiv: (o) => (o.fields.has("32") ? psyarxiv() : Promise.resolve([])),
   hal,
   scielo,
+  esa: () => news("esa"),
+  cnrs: () => news("cnrs"),
+  inserm: () => news("inserm"),
+  devtools: () => news("devtools"),
 };

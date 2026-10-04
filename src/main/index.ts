@@ -73,8 +73,10 @@ function scheduleRefresh() {
 }
 
 function registerIpc() {
-  ipcMain.handle("getFeed", (_e, o: { domain?: string; limit?: number; offset?: number; fresh?: boolean }) =>
-    lib.feed(o?.domain ?? "all", o?.limit ?? 30, o?.offset ?? 0, o?.fresh ?? (o?.offset ?? 0) === 0),
+  ipcMain.handle(
+    "getFeed",
+    (_e, o: { domain?: string; limit?: number; offset?: number; fresh?: boolean; kind?: "paper" | "news" }) =>
+      lib.feed(o?.domain ?? "all", o?.limit ?? 30, o?.offset ?? 0, o?.fresh ?? (o?.offset ?? 0) === 0, o?.kind ?? "paper"),
   );
   ipcMain.handle("fieldCounts", () => lib.fieldCounts());
   ipcMain.handle("getLibrary", () => lib.libraryList());

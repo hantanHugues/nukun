@@ -74,7 +74,16 @@ export type SourceId =
   | "semanticscholar"
   | "psyarxiv"
   | "hal"
-  | "scielo";
+  | "scielo"
+  | "esa"
+  | "cnrs"
+  | "inserm"
+  | "devtools";
+
+/** "paper": research published by scientists. "news": short news from official organisations. */
+export type ArticleKind = "paper" | "news";
+/** Topic of a news item. */
+export type NewsTopic = "science" | "tech";
 
 export const SOURCES: { id: SourceId; label: string; description: string }[] = [
   { id: "arxiv", label: "arXiv", description: "Prépublications en informatique, IA, robotique, physique et biologie quantitative" },
@@ -83,7 +92,7 @@ export const SOURCES: { id: SourceId; label: string; description: string }[] = [
   { id: "medrxiv", label: "medRxiv", description: "Prépublications en médecine et psychiatrie" },
   { id: "plos", label: "PLOS", description: "Revues entièrement en libre accès (PLOS One, Biology…)" },
   { id: "elife", label: "eLife", description: "Revue en libre accès en sciences du vivant et neurosciences" },
-  { id: "nasa", label: "NASA Science", description: "Actualités scientifiques officielles de la NASA" },
+  { id: "nasa", label: "NASA Science", description: "Actus : actualités scientifiques officielles de la NASA" },
   { id: "nature", label: "Nature (OA)", description: "Nature Communications et Scientific Reports, en libre accès" },
   { id: "sciadv", label: "Science Advances", description: "Revue en libre accès de l'AAAS (texte via Europe PMC)" },
   { id: "openalex", label: "OpenAlex", description: "Index mondial de toutes les disciplines, en libre accès, et articles en allemand, russe, japonais et chinois" },
@@ -91,6 +100,14 @@ export const SOURCES: { id: SourceId; label: string; description: string }[] = [
   { id: "psyarxiv", label: "PsyArXiv", description: "Prépublications en psychologie" },
   { id: "hal", label: "HAL", description: "Archive ouverte française, toutes disciplines, beaucoup d'articles en français" },
   { id: "scielo", label: "SciELO", description: "Revues d'Amérique latine, d'Espagne et du Portugal, en espagnol et en portugais" },
+  { id: "esa", label: "ESA", description: "Actus : Agence spatiale européenne" },
+  { id: "cnrs", label: "CNRS Le journal", description: "Actus : le journal du CNRS, toutes sciences, en français" },
+  { id: "inserm", label: "Inserm", description: "Actus : santé et recherche médicale, en français" },
+  {
+    id: "devtools",
+    label: "Outils de développement",
+    description: "Actus : blogs officiels de GitHub, VS Code, TypeScript, Node.js, React, Rust, Kotlin, Android, Chrome, Docker, Mozilla",
+  },
 ];
 
 /** How the full text of an article can be obtained. */
@@ -98,7 +115,7 @@ export type FullTextRef =
   | { kind: "arxiv"; arxivId: string }
   | { kind: "jats"; url: string; imageBase?: string; imageMode: "biorxiv" | "plos" | "pmc" | "elife"; pmcid?: string; articleId?: string }
   | { kind: "pmc"; pmcid: string }
-  | { kind: "html"; url: string; mode: "nature" | "scielo"; pdf?: string }
+  | { kind: "html"; url: string; mode: "nature" | "scielo" | "readable"; pdf?: string }
   | { kind: "inline"; html: string; baseUrl: string }
   | { kind: "pdf"; url: string }
   | { kind: "osf"; preprintId: string }
@@ -114,6 +131,8 @@ export interface Article {
   published: string; // ISO date
   fetchedAt: string;
   url: string; // landing page
+  kind?: ArticleKind; // "paper" when absent
+  topic?: NewsTopic; // for news
   lang?: string; // language of the article (ISO 639-1), "en" when unknown
   doi?: string;
   venue?: string;
@@ -316,7 +335,7 @@ export interface TranslationProgress {
 export interface VeilleApi {
   /** `domain`: "all", a field id, or "g:<group>". */
   /** One page of the feed; `fresh` ranks again instead of continuing the current ranking. */
-  getFeed(opts: { domain?: string; limit?: number; offset?: number; fresh?: boolean }): Promise<FeedItem[]>;
+  getFeed(opts: { domain?: string; limit?: number; offset?: number; fresh?: boolean; kind?: ArticleKind }): Promise<FeedItem[]>;
   fieldCounts(): Promise<Record<DomainId, number>>;
   getLibrary(): Promise<Article[]>;
   getArticle(id: string): Promise<Article | undefined>;

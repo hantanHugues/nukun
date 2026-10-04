@@ -1,5 +1,5 @@
 import type React from "react";
-import { BookMarked, Moon, PenLine, Settings2, Sparkles, Sun, UserRound } from "lucide-react";
+import { BookMarked, Moon, Newspaper, PenLine, Settings2, Sparkles, Sun, UserRound } from "lucide-react";
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useState } from "react";
 import type { RefreshProgress, Settings } from "@shared/types";
 import { api } from "./api";
@@ -14,6 +14,7 @@ import { Writing } from "./views/Writing";
 
 export type Route =
   | { view: "feed" }
+  | { view: "news" }
   | { view: "library" }
   | { view: "writing"; articleId?: string }
   | { view: "profile" }
@@ -87,7 +88,8 @@ export function App() {
   };
 
   const nav: { id: Route["view"]; label: string; icon: React.ReactNode }[] = [
-    { id: "feed", label: "Pour toi", icon: <Sparkles size={16} /> },
+    { id: "feed", label: "Articles", icon: <Sparkles size={16} /> },
+    { id: "news", label: "Actus", icon: <Newspaper size={16} /> },
     { id: "library", label: "Bibliothèque", icon: <BookMarked size={16} /> },
     { id: "writing", label: "Mes articles", icon: <PenLine size={16} /> },
     { id: "profile", label: "Mes goûts", icon: <UserRound size={16} /> },
@@ -127,7 +129,8 @@ export function App() {
           <div className="right">{now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</div>
         </header>
         <main className="main" id="main-scroll">
-          {route.view === "feed" && <Feed />}
+          {route.view === "feed" && <Feed key="paper" kind="paper" />}
+          {route.view === "news" && <Feed key="news" kind="news" />}
           {route.view === "library" && <Library />}
           {route.view === "writing" && <Writing articleId={route.articleId} />}
           {route.view === "profile" && <Profile />}

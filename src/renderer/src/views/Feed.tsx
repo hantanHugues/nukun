@@ -1,15 +1,20 @@
 import { RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { DomainId, FeedItem } from "@shared/types";
+import type { ArticleKind, DomainId, FeedItem } from "@shared/types";
 import { FIELD_GROUPS, FIELDS, fieldLabel } from "@shared/types";
 import { api } from "../api";
 import { useApp } from "../App";
 import { ArticleCard, CardSkeleton } from "../components/ArticleCard";
 
-/** "all", a field id, or "g:<group>" for one of the 4 big domains. */
-let lastDomain = "all";
-/** Where the reader was, to come back to the same place after reading an article. */
-let saved: { domain: string; count: number; scroll: number } | null = null;
+/** Per feed: "all", a field id, "g:<group>" (big domain) or "t:<topic>" (news). */
+const lastDomain: Record<ArticleKind, string> = { paper: "all", news: "all" };
+/** Where the reader was in each feed, to come back to the same place after reading. */
+const savedPos: Record<ArticleKind, { domain: string; count: number; scroll: number } | null> = { paper: null, news: null };
+
+const NEWS_TOPICS = [
+  { id: "t:science", label: "Science" },
+  { id: "t:tech", label: "Outils de dev" },
+];
 
 const PAGE = 30;
 
@@ -21,9 +26,9 @@ function greeting() {
   return "Bonsoir, voici";
 }
 
-export function Feed() {
+export function Feed({ kind }: { kind: ArticleKind }) {
   const { go, refresh, settings, toast } = useApp();
-  const [domain, setDomain] = useState<string>(lastDomain);
+  const [domain, setDomain] = useState<string>(lastDomain[kind]);
   const [counts, setCounts] = useState<Record<DomainId, number>>({});
   const [items, setItems] = useState<FeedItem[] | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -61,9 +66,10 @@ export function Feed() {
   /** First page: a fresh ranking, or the same list as before when coming back. */
   const loadFirst = useCallback(
     async (restore: boolean) => {
+      const saved = savedPos[kind];
       const back = restore && saved && saved.domain === domain && saved.count > 0 ? saved : null;
       const limit = back ? back.count : PAGE;
-      const [page, c] = await Promise.all([api.getFeed({ domain, offset: 0, limit, fresh: !back }), api.fieldCounts()]);
+      const [page, c] = await Promise.all([api.getFeed({ domain, offset: 0, limit, fresh: !back, kind }), api.fieldCounts()]);
       fetched.current = page.length;
       setCounts(c);
       setItems(visible(page));
@@ -78,7 +84,7 @@ export function Feed() {
   const loadMore = useCallback(async () => {
     if (loadingMore || end || items === null) return;
     setLoadingMore(true);
-    const page = await api.getFeed({ domain, offset: fetched.current, limit: PAGE, fresh: false });
+    const page = await api.getFeed({ domain, offset: fetched.current, limit: PAGE, fresh: false, kind });
     fetched.current += page.length;
     setItems((xs) => [...(xs ?? []), ...visible(page)]);
     setEnd(page.length < PAGE);
@@ -87,12 +93,12 @@ export function Feed() {
   }, [domain, loadingMore, end, items]);
 
   useEffect(() => {
-    lastDomain = domain;
+    lastDomain[kind] = domain;
     void loadFirst(true);
     // Titles translated or articles updated: refresh the cards in place, same order.
     const offUpdate = api.on("feed-updated", async () => {
       if (!fetched.current) return;
-      const page = await api.getFeed({ domain, offset: 0, limit: fetched.current, fresh: false });
+      const page = await api.getFeed({ domain, offset: 0, limit: fetched.current, fresh: false, kind });
       setItems(visible(page));
     });
     // A refresh found new articles: offer them without moving the reader.
@@ -102,7 +108,7 @@ export function Feed() {
     return () => {
       offUpdate();
       offRefresh();
-      saved = { domain, count: fetched.current, scroll: lastScroll.current };
+      savedPos[kind] = { domain, count: fetched.current, scroll: lastScroll.current };
     };
   }, [loadFirst, domain]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -119,7 +125,7 @@ export function Feed() {
   }, [loadMore]);
 
   const showNew = () => {
-    saved = null;
+    savedPos[kind] = null;
     document.getElementById("main-scroll")?.scrollTo({ top: 0 });
     void loadFirst(false);
   };
@@ -131,7 +137,7 @@ export function Feed() {
     toast("Compris : l'algorithme t'en montrera moins comme ça.");
   };
 
-  const open = (id: string) => go({ view: "reader", articleId: id, from: { view: "feed" } });
+  const open = (id: string) => go({ view: "reader", articleId: id, from: { view: kind === "news" ? "news" : "feed" } });
   const running = refresh?.running;
   // The disciplines with the most articles get a chip; the others are in a list.
   const ranked = FIELDS.filter((f) => settings?.domains[f.id] !== false && counts[f.id]).sort(
@@ -145,11 +151,15 @@ export function Feed() {
     <div className="page">
       <div className="feed-head">
         <div className="stack" style={{ gap: 10 }}>
-          <span className="label">Ton fil scientifique</span>
-          <h1 className="display">{greeting()} ce que la recherche a publié pour toi.</h1>
+          <span className="label">{kind === "news" ? "Actus" : "Ton fil scientifique"}</span>
+          <h1 className="display">
+            {kind === "news"
+              ? "Les actualités des organismes scientifiques et des outils de développement."
+              : `${greeting()} ce que la recherche a publié pour toi.`}
+          </h1>
         </div>
         <div className="stack" style={{ alignItems: "flex-end", gap: 8 }}>
-          <button className="btn" onClick={() => void api.refresh()} disabled={running} data-tour="refresh">
+          <button className="btn" onClick={() => void api.refresh()} disabled={running} data-tour={kind === "paper" ? "refresh" : undefined}>
             {running ? <div className="spinner" /> : <RefreshCw size={15} />}
             Actualiser
           </button>
@@ -167,22 +177,28 @@ export function Feed() {
         </button>
       )}
 
-      <div className="feed-filters" data-tour="filters">
+      <div className="feed-filters" data-tour={kind === "paper" ? "filters" : undefined}>
         <button className={`chip ${domain === "all" ? "active" : ""}`} onClick={() => setDomain("all")}>
           Tout
         </button>
-        {groups.map((g) => (
+        {kind === "news" &&
+          NEWS_TOPICS.map((t) => (
+            <button key={t.id} className={`chip ${domain === t.id ? "active" : ""}`} onClick={() => setDomain(t.id)}>
+              {t.label}
+            </button>
+          ))}
+        {kind === "paper" && groups.map((g) => (
           <button key={g.id} className={`chip ${domain === `g:${g.id}` ? "active" : ""}`} onClick={() => setDomain(`g:${g.id}`)}>
             {g.label}
           </button>
         ))}
-        <span className="filters-sep" />
-        {topFields.map((f) => (
+        {kind === "paper" && <span className="filters-sep" />}
+        {kind === "paper" && topFields.map((f) => (
           <button key={f.id} className={`chip ${domain === f.id ? "active" : ""}`} onClick={() => setDomain(f.id)}>
             {f.label}
           </button>
         ))}
-        {otherFields.length > 0 && (
+        {kind === "paper" && otherFields.length > 0 && (
           <select
             className={`chip select-chip ${otherFields.some((f) => f.id === domain) ? "active" : ""}`}
             value={otherFields.some((f) => f.id === domain) ? domain : ""}
@@ -224,7 +240,7 @@ export function Feed() {
         <div className="grid">
           {items.map((it, i) => (
             <ArticleCard
-              tour={i === 0 ? "first-card" : undefined}
+              tour={i === 0 && kind === "paper" ? "first-card" : undefined}
               key={it.article.id}
               item={it}
               hero={i === 0}
