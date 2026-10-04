@@ -1,5 +1,7 @@
 # Nùkún
 
+> **English** — Nùkún ("the eye" in Fon) is a free Windows app to follow research and official science news on whatever interests you. It finds open-access papers from official sources (arXiv, PubMed Central, PLOS, OpenAlex…), translates them into English or French, explains passages and figures, and learns your tastes like a social feed, across languages. **[Download the latest version](https://github.com/hantanHugues/nukun/releases/latest)**.
+
 *Nùkún* veut dire « l'œil » en fongbè. Application de bureau (Windows) pour suivre la recherche et l'actualité officielle sur les sujets qui t'intéressent, quels qu'ils soient : articles en libre accès traduits en français, et un fil de recommandations qui part de tes centres d'intérêt puis apprend de tes lectures.
 
 ![Le fil d'articles recommandés](docs/screenshots/fil.png)
@@ -12,7 +14,11 @@
 
 ## Installer
 
-Lance `release/Nukun-Setup-1.0.0.exe`. L'installateur crée un raccourci « Nùkún » sur le Bureau et dans le menu Démarrer (la recherche Windows le trouve aussi en tapant « nukun », sans accents).
+**[Télécharger la dernière version](https://github.com/hantanHugues/nukun/releases/latest)** (Windows 10 ou 11, 64 bits) : prends le fichier `Nukun-Setup-….exe` et lance-le. L'installateur, en français ou en anglais selon Windows, propose une icône sur le Bureau ; Nùkún est aussi dans le menu Démarrer (la recherche le trouve en tapant « nukun », sans accents). Les versions suivantes s'installent ensuite depuis l'app, sans réinstaller.
+
+L'app n'est pas signée par un certificat payant : au premier lancement, Windows peut afficher « Windows a protégé votre ordinateur ». Clique sur « Informations complémentaires » puis « Exécuter quand même ».
+
+Configuration minimale : 4 Go de mémoire (8 Go conseillés), environ 1 Go d'espace disque, une connexion internet. Pas besoin de carte graphique. Pour les traductions, une clé Google gratuite suffit (voir plus bas).
 
 Si l'ancienne version « Veille Scientifique » est installée, désinstalle-la : Nùkún reprend automatiquement ses articles, traductions et préférences au premier lancement.
 
