@@ -32,9 +32,11 @@ jobs:
         run: |
           v=$(node -p "require('./package.json').version")
           [ "v$v" = "$TAG" ] || { echo "package.json says $v, the tag is $TAG"; exit 1; }
+      # Not marked as the latest yet: the website's download links and the installed
+      # apps keep using the previous version until both builds are in.
       - name: Create the release if needed
         run: |
-          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "Nùkún ${TAG#v}" --generate-notes
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "Nùkún ${TAG#v}" --generate-notes --latest=false
 
   windows:
     needs: release
@@ -71,3 +73,11 @@ jobs:
         run: |
           ls -la release
           gh release upload "$TAG" release/Nukun-x86_64.AppImage release/nukun_amd64.deb release/latest-linux.yml --clobber
+
+  # Both versions are in: the release becomes the one people download and update to.
+  publish:
+    needs: [windows, linux]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mark the release as the latest
+        run: gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --latest
