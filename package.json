@@ -13,7 +13,8 @@
     "icon": "node scripts/make-icon.mjs",
     "dist": "npm run build && electron-builder --win --publish never",
     "release": "npm run dist && node scripts/release.mjs",
-    "i18n:check": "node scripts/i18n-check.mjs"
+    "i18n:check": "node scripts/i18n-check.mjs",
+    "dist:linux": "npm run build && electron-builder --linux --publish never"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",
@@ -67,8 +68,6 @@
       "out/**",
       "resources/**",
       "package.json",
-      "!node_modules/onnxruntime-node/bin/napi-v6/{darwin,linux}/**",
-      "!node_modules/onnxruntime-node/bin/napi-v6/win32/arm64/**",
       "!node_modules/onnxruntime-web/dist/*.wasm",
       "!node_modules/onnxruntime-web/**/*.map",
       "!node_modules/@img/sharp-wasm32/**"
@@ -88,7 +87,11 @@
         }
       ],
       "icon": "build/icon.ico",
-      "executableName": "Nukun"
+      "executableName": "Nukun",
+      "files": [
+        "!node_modules/onnxruntime-node/bin/napi-v6/{darwin,linux}/**",
+        "!node_modules/onnxruntime-node/bin/napi-v6/win32/arm64/**"
+      ]
     },
     "nsis": {
       "oneClick": false,
@@ -96,13 +99,46 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": false,
       "include": "build/installer.nsh",
-      "installerLanguages": ["fr_FR", "en_US"],
+      "installerLanguages": [
+        "fr_FR",
+        "en_US"
+      ],
       "createStartMenuShortcut": true,
       "shortcutName": "Nùkún",
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico",
       "artifactName": "Nukun-Setup-${version}.${ext}",
       "uninstallDisplayName": "Nùkún"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png",
+      "category": "Science",
+      "executableName": "nukun",
+      "synopsis": "Nùkún garde un œil sur le monde",
+      "description": "Veille scientifique : articles en libre accès traduits et expliqués, recommandés selon tes lectures.",
+      "maintainer": "Ashlynx <hugueshantan@gmail.com>",
+      "artifactName": "Nukun-${version}.${ext}",
+      "files": [
+        "!node_modules/onnxruntime-node/bin/napi-v6/{darwin,win32}/**",
+        "!node_modules/onnxruntime-node/bin/napi-v6/linux/arm64/**"
+      ]
+    },
+    "deb": {
+      "artifactName": "nukun_${version}_amd64.${ext}"
     }
   },
   "license": "MIT",

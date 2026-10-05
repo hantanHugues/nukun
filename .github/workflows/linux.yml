@@ -1,0 +1,42 @@
+# Builds the Linux version (AppImage and .deb) on Ubuntu and adds it to a GitHub release.
+# Runs on its own when a version tag is pushed, or by hand from the Actions tab
+# (choose the release to complete, v1.0.0 by default).
+name: Linux build
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release to add the Linux files to"
+        required: true
+        default: "v1.0.0"
+
+permissions:
+  contents: write
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # Installs the Linux builds of the native modules (sharp, onnxruntime).
+      - run: npm ci
+
+      - run: npm run dist:linux
+
+      - name: Add the files to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ls -la release
+          gh release upload "$TAG" release/*.AppImage release/*.deb release/latest-linux.yml --clobber
