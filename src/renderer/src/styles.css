@@ -1622,3 +1622,99 @@ figure.blk .fig-explain {
   margin: 8px 4px 24px;
   text-align: center;
 }
+
+/* ------------------------------------------------------------ drop-down lists */
+.dropdown {
+  position: relative;
+  width: 100%;
+}
+.dropdown.fit {
+  width: auto;
+  display: inline-block;
+}
+.dropdown-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  border: 1px solid var(--border);
+  background: var(--surface-strong);
+  color: var(--text);
+  border-radius: var(--radius-m);
+  padding: 9px 12px;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s var(--ease);
+}
+.dropdown-button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dropdown-button svg {
+  flex: none;
+  color: var(--text-weak);
+  transition: transform 0.2s var(--ease);
+}
+.dropdown-button:hover {
+  border-color: var(--border-strong);
+}
+.dropdown-button:focus-visible,
+.dropdown.open .dropdown-button {
+  border-color: var(--brand);
+  outline: none;
+}
+.dropdown.open .dropdown-button svg {
+  transform: rotate(180deg);
+}
+.dropdown-list {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 100%;
+  max-height: 280px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 5px;
+  list-style: none;
+  background: var(--surface-strong);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-m);
+  box-shadow: var(--shadow);
+  animation: dropdown-in 0.14s var(--ease);
+}
+.dropdown-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 8px 10px;
+  border-radius: var(--radius-s);
+  color: var(--text-medium);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.dropdown-list li.active {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+.dropdown-list li[aria-selected="true"] {
+  color: var(--brand);
+}
+.dropdown-list li svg {
+  flex: none;
+}
+@keyframes dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dropdown-list {
+    animation: none;
+  }
+}

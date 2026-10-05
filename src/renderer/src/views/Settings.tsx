@@ -4,6 +4,7 @@ import type { AiProvider, AiStatus, Settings, SourceStatus, UsageStats } from "@
 import { SOURCES } from "@shared/types";
 import type { Interest } from "@shared/types";
 import { InterestsEditor, MIN_INTERESTS } from "../components/Interests";
+import { Select } from "../components/Select";
 import { SectionNav } from "../components/SectionNav";
 import { lang, t } from "@shared/i18n";
 
@@ -196,32 +197,32 @@ export function SettingsView() {
               <a href="#" onClick={(e) => (e.preventDefault(), void api.openExternal("https://platform.claude.com/settings/keys"))}>
                 platform.claude.com
               </a>
-              {t(". Elle est chiffrée avec le coffre de Windows et ne quitte pas ton ordinateur, sauf pour appeler l'API.")}
+              {t(". Elle est chiffrée par le système (le coffre de Windows, ou le trousseau de clés sous Linux) et ne quitte pas ton ordinateur, sauf pour appeler l'API.")}
             </span>
           </div>
 
           <div className="field">
             <label>{t("Modèle utilisé avec ton abonnement Claude")}</label>
-            <select
-              className="select"
+            <Select
+              label={t("Modèle utilisé avec ton abonnement Claude")}
               value={settings.claudeCodeModel}
-              onChange={(e) => void save({ claudeCodeModel: e.target.value as Settings["claudeCodeModel"] })}
-            >
-              <option value="opus">{t("Opus : meilleure qualité, consomme plus vite tes limites")}</option>
-              <option value="sonnet">{t("Sonnet : très bon, plus économe")}</option>
-              <option value="haiku">{t("Haiku : le plus économe")}</option>
-            </select>
+              onChange={(v) => void save({ claudeCodeModel: v })}
+              options={[
+                { value: "opus" as Settings["claudeCodeModel"], label: t("Opus : meilleure qualité, consomme plus vite tes limites") },
+                { value: "sonnet" as Settings["claudeCodeModel"], label: t("Sonnet : très bon, plus économe") },
+                { value: "haiku" as Settings["claudeCodeModel"], label: t("Haiku : le plus économe") },
+              ]}
+            />
           </div>
 
           <div className="field">
             <label>{t("Modèle Claude (clé API)")}</label>
-            <select className="select" value={settings.claudeModel} onChange={(e) => void save({ claudeModel: e.target.value })}>
-              {MODELS.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.label} : {t(m.note)}
-                </option>
-              ))}
-            </select>
+            <Select
+              label={t("Modèle Claude (clé API)")}
+              value={settings.claudeModel}
+              onChange={(v) => void save({ claudeModel: v })}
+              options={MODELS.map((m) => ({ value: m.id, label: `${m.label} : ${t(m.note)}` }))}
+            />
           </div>
 
           <div className="field" data-tour="ollama">
@@ -233,14 +234,12 @@ export function SettingsView() {
               </span>
             )}
             {models.length ? (
-              <select className="select" value={settings.ollamaModel} onChange={(e) => void save({ ollamaModel: e.target.value })}>
-                <option value="">{t("Premier modèle disponible")}</option>
-                {models.map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-              </select>
+              <Select
+                label={t("IA locale (Ollama)")}
+                value={settings.ollamaModel}
+                onChange={(v) => void save({ ollamaModel: v })}
+                options={[{ value: "", label: t("Premier modèle disponible") }, ...models.map((m) => ({ value: m, label: m }))]}
+              />
             ) : (
               <div className="notice">
                 <span>
@@ -362,13 +361,13 @@ export function SettingsView() {
         <section className="card section" id="s-sources" data-tour="sources">
           <div className="row">
             <h2 className="h2 grow">{t("Sources scientifiques")}</h2>
-            <select className="select" style={{ width: "auto" }} value={settings.refreshHours} onChange={(e) => void save({ refreshHours: Number(e.target.value) })}>
-              {[1, 3, 6, 12, 24].map((h) => (
-                <option key={h} value={h}>
-                  {t("Actualiser toutes les {n} h", { n: h })}
-                </option>
-              ))}
-            </select>
+            <Select
+              fit
+              label={t("Fréquence d'actualisation")}
+              value={settings.refreshHours}
+              onChange={(v) => void save({ refreshHours: v })}
+              options={[1, 3, 6, 12, 24].map((h) => ({ value: h, label: t("Actualiser toutes les {n} h", { n: h }) }))}
+            />
           </div>
           <p className="small muted" style={{ marginTop: 6 }}>
             {t("Uniquement des éditeurs et archives officiels, et uniquement des articles lisibles gratuitement en entier.")}
