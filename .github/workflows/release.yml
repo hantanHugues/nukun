@@ -1,4 +1,5 @@
-# Builds Nùkún for Windows and Linux and publishes them in a GitHub release.
+# Builds Nùkún for Windows and Linux and publishes them in a GitHub release. File names
+# carry no version, so the website can link to releases/latest/download/<name>.
 # Runs only when a version tag is pushed (`npm run release` does it), never on an
 # ordinary push. Can also be run by hand from the Actions tab to rebuild a release.
 name: Release
@@ -50,7 +51,7 @@ jobs:
         shell: bash
         run: |
           ls -la release
-          gh release upload "$TAG" "release/Nukun-Setup-${TAG#v}.exe" "release/Nukun-Setup-${TAG#v}.exe.blockmap" release/latest.yml --clobber
+          gh release upload "$TAG" release/Nukun-Setup-x64.exe release/Nukun-Setup-x64.exe.blockmap release/latest.yml --clobber
 
   linux:
     needs: release
@@ -69,4 +70,4 @@ jobs:
       - name: Add the files to the release
         run: |
           ls -la release
-          gh release upload "$TAG" "release/Nukun-${TAG#v}.AppImage" "release/nukun_${TAG#v}_amd64.deb" release/latest-linux.yml --clobber
+          gh release upload "$TAG" release/Nukun-x86_64.AppImage release/nukun_amd64.deb release/latest-linux.yml --clobber

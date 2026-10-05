@@ -512,7 +512,7 @@ section {
 
 /* ------------------------------------------------------------ final call */
 .final {
-  padding: 110px 0 120px;
+  padding: 24px 0 90px;
   text-align: left;
 }
 .final p {
@@ -753,4 +753,37 @@ footer .socials {
 }
 footer .socials span {
   color: var(--muted);
+}
+
+/* ------------------------------------------------------------ download */
+.download {
+  padding-bottom: 40px;
+}
+.downloads {
+  max-width: 900px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 2px solid var(--ink);
+}
+.downloads li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px 24px;
+  padding: 22px 0;
+  border-bottom: 1px solid var(--line);
+}
+.downloads strong {
+  display: block;
+  font-size: 20px;
+  letter-spacing: -0.01em;
+}
+.downloads span {
+  color: var(--muted);
+  font-size: 16px;
+}
+.final .signature:first-child {
+  margin-top: 0;
 }

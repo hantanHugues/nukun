@@ -16,7 +16,7 @@
 
 ## Installer
 
-**[Télécharger la dernière version](https://github.com/hantanHugues/nukun/releases/latest)** (Windows 10 ou 11, 64 bits) : prends le fichier `Nukun-Setup-….exe` et lance-le. L'installateur, en français ou en anglais selon Windows, propose une icône sur le Bureau ; Nùkún est aussi dans le menu Démarrer (la recherche le trouve en tapant « nukun », sans accents). Les versions suivantes s'installent ensuite depuis l'app, sans réinstaller.
+Dernière version, 64 bits : **[Windows 10 et 11 (.exe)](https://github.com/hantanHugues/nukun/releases/latest/download/Nukun-Setup-x64.exe)**, **[Linux (AppImage)](https://github.com/hantanHugues/nukun/releases/latest/download/Nukun-x86_64.AppImage)**, **[Ubuntu et Debian (.deb)](https://github.com/hantanHugues/nukun/releases/latest/download/nukun_amd64.deb)**. Sous Windows, lance le `.exe`. L'installateur, en français ou en anglais selon Windows, propose une icône sur le Bureau ; Nùkún est aussi dans le menu Démarrer (la recherche le trouve en tapant « nukun », sans accents). Les versions suivantes s'installent ensuite depuis l'app, sans réinstaller.
 
 L'app n'est pas signée par un certificat payant : au premier lancement, Windows peut afficher « Windows a protégé votre ordinateur ». Clique sur « Informations complémentaires » puis « Exécuter quand même ».
 

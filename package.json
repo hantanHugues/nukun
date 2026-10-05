@@ -107,7 +107,7 @@
       "shortcutName": "Nùkún",
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico",
-      "artifactName": "Nukun-Setup-${version}.${ext}",
+      "artifactName": "Nukun-Setup-x64.${ext}",
       "uninstallDisplayName": "Nùkún"
     },
     "linux": {
@@ -131,7 +131,7 @@
       "synopsis": "Nùkún garde un œil sur le monde",
       "description": "Veille scientifique : articles en libre accès traduits et expliqués, recommandés selon tes lectures.",
       "maintainer": "Ashlynx <hugueshantan@gmail.com>",
-      "artifactName": "Nukun-${version}.${ext}",
+      "artifactName": "Nukun-x86_64.${ext}",
       "files": [
         "!node_modules/onnxruntime-node/bin/napi-v6/{darwin,win32}/**",
         "!node_modules/onnxruntime-node/bin/napi-v6/linux/arm64/**",
@@ -139,7 +139,7 @@
       ]
     },
     "deb": {
-      "artifactName": "nukun_${version}_amd64.${ext}"
+      "artifactName": "nukun_amd64.${ext}"
     }
   },
   "license": "MIT",

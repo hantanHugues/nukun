@@ -23,7 +23,7 @@
           <a href="help.html" aria-current="page">Help</a>
         </nav>
         <a class="lang-switch" href="../aide.html" hreflang="fr" lang="fr">Français</a>
-        <a class="btn btn-primary btn-small" href="https://github.com/hantanHugues/nukun/releases/latest">Download</a>
+        <a class="btn btn-primary btn-small" href="./#download">Download</a>
       </div>
     </header>
 
@@ -48,11 +48,11 @@
 
         <section id="install">
           <h2>Install</h2>
+          <p>Nùkún is available for Windows and Linux, on 64-bit computers. You need 4 GB of memory and about 1 GB of free space.</p>
+
+          <h3>Windows 10 and 11</h3>
           <ol>
-            <li>
-              Download <span class="ui">Nukun-Setup.exe</span> from the
-              <a href="https://github.com/hantanHugues/nukun/releases/latest">releases page</a>.
-            </li>
+            <li>Download <a href="https://github.com/hantanHugues/nukun/releases/latest/download/Nukun-Setup-x64.exe"><span class="ui">Nukun-Setup-x64.exe</span></a>.</li>
             <li>
               Run it. If Windows says “Windows protected your PC”, click <span class="ui">More info</span> then
               <span class="ui">Run anyway</span>. The app is not signed with a paid certificate; that is the only reason
@@ -63,7 +63,28 @@
               Start menu.
             </li>
           </ol>
-          <p>You need Windows 10 or 11, 64-bit, 4 GB of memory and about 1 GB of free space.</p>
+
+          <h3>Linux: AppImage, for every distribution</h3>
+          <ol>
+            <li>Download <a href="https://github.com/hantanHugues/nukun/releases/latest/download/Nukun-x86_64.AppImage"><span class="ui">Nukun-x86_64.AppImage</span></a>.</li>
+            <li>Make it executable: right-click, Properties, “Allow executing”, or in a terminal <kbd>chmod +x Nukun-x86_64.AppImage</kbd>.</li>
+            <li>Double-click it. Nothing else to install, and it updates itself from the app.</li>
+          </ol>
+          <p>
+            If nothing happens and a terminal mentions <span class="ui">libfuse.so.2</span>, install FUSE: on Ubuntu 24.04,
+            <kbd>sudo apt install libfuse2t64</kbd>; on older versions, <kbd>sudo apt install libfuse2</kbd>.
+          </p>
+
+          <h3>Linux: .deb package, for Ubuntu and Debian</h3>
+          <ol>
+            <li>Download <a href="https://github.com/hantanHugues/nukun/releases/latest/download/nukun_amd64.deb"><span class="ui">nukun_amd64.deb</span></a>.</li>
+            <li>Install it by double-clicking, or in a terminal: <kbd>sudo apt install ./nukun_amd64.deb</kbd>.</li>
+            <li>Nùkún then appears in your list of applications.</li>
+          </ol>
+          <p>
+            For a new version, download the new package and install it the same way. Every version is on the
+            <a href="https://github.com/hantanHugues/nukun/releases">releases page</a>.
+          </p>
         </section>
 
         <section id="first-launch">
@@ -271,12 +292,12 @@
         <section id="data">
           <h2>Your data</h2>
           <p>
-            Everything the app keeps is on your PC, in <span class="ui">%APPDATA%\Nukun</span>: reading profile, library,
+            Everything the app keeps is on your PC, in <span class="ui">%APPDATA%\Nukun</span> on Windows and <span class="ui">~/.config/Nukun</span> on Linux: reading profile, library,
             translations, notes and settings. None of it is sent anywhere. Only the passages to translate or explain go to
             the AI you chose.
           </p>
           <p>
-            To uninstall, go through Windows Settings, then Apps. To erase your data too, then delete the folder above.
+            To uninstall on Windows, go through Settings, then Apps. On Linux, delete the AppImage file, or run <kbd>sudo apt remove nukun</kbd> for the .deb package. To erase your data too, then delete the folder above.
           </p>
           <p>
             A problem not covered here? Open an issue on

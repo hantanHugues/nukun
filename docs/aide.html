@@ -23,7 +23,7 @@
           <a href="aide.html" aria-current="page">Aide</a>
         </nav>
         <a class="lang-switch" href="en/help.html" hreflang="en" lang="en">English</a>
-        <a class="btn btn-primary btn-small" href="https://github.com/hantanHugues/nukun/releases/latest">Télécharger</a>
+        <a class="btn btn-primary btn-small" href="./#telecharger">Télécharger</a>
       </div>
     </header>
 
@@ -48,11 +48,11 @@
 
         <section id="installer">
           <h2>Installer</h2>
+          <p>Nùkún existe pour Windows et pour Linux, sur les ordinateurs 64 bits. Il faut 4 Go de mémoire et environ 1 Go d'espace libre.</p>
+
+          <h3>Windows 10 et 11</h3>
           <ol>
-            <li>
-              Télécharge <span class="ui">Nukun-Setup.exe</span> sur la
-              <a href="https://github.com/hantanHugues/nukun/releases/latest">page des versions</a>.
-            </li>
+            <li>Télécharge <a href="https://github.com/hantanHugues/nukun/releases/latest/download/Nukun-Setup-x64.exe"><span class="ui">Nukun-Setup-x64.exe</span></a>.</li>
             <li>
               Lance-le. Si Windows affiche « Windows a protégé votre ordinateur », clique sur
               <span class="ui">Informations complémentaires</span> puis <span class="ui">Exécuter quand même</span>.
@@ -63,7 +63,28 @@
               tous les cas dans le menu Démarrer.
             </li>
           </ol>
-          <p>Il faut Windows 10 ou 11 en 64 bits, 4 Go de mémoire et environ 1 Go d'espace libre.</p>
+
+          <h3>Linux : AppImage, pour toutes les distributions</h3>
+          <ol>
+            <li>Télécharge <a href="https://github.com/hantanHugues/nukun/releases/latest/download/Nukun-x86_64.AppImage"><span class="ui">Nukun-x86_64.AppImage</span></a>.</li>
+            <li>Rends-le exécutable : clic droit, Propriétés, « Autoriser l'exécution », ou dans un terminal <kbd>chmod +x Nukun-x86_64.AppImage</kbd>.</li>
+            <li>Double-clique dessus. Rien d'autre à installer, et il se met à jour depuis l'app.</li>
+          </ol>
+          <p>
+            Si rien ne se passe et qu'un terminal parle de <span class="ui">libfuse.so.2</span>, installe FUSE : sur Ubuntu 24.04,
+            <kbd>sudo apt install libfuse2t64</kbd> ; sur les versions plus anciennes, <kbd>sudo apt install libfuse2</kbd>.
+          </p>
+
+          <h3>Linux : paquet .deb, pour Ubuntu et Debian</h3>
+          <ol>
+            <li>Télécharge <a href="https://github.com/hantanHugues/nukun/releases/latest/download/nukun_amd64.deb"><span class="ui">nukun_amd64.deb</span></a>.</li>
+            <li>Installe-le en double-cliquant dessus, ou dans un terminal : <kbd>sudo apt install ./nukun_amd64.deb</kbd>.</li>
+            <li>Nùkún apparaît ensuite dans la liste de tes applications.</li>
+          </ol>
+          <p>
+            Pour une nouvelle version, télécharge le nouveau paquet et installe-le de la même façon. Toutes les versions sont
+            sur la <a href="https://github.com/hantanHugues/nukun/releases">page des versions</a>.
+          </p>
         </section>
 
         <section id="premier-lancement">
@@ -277,12 +298,12 @@
         <section id="donnees">
           <h2>Tes données</h2>
           <p>
-            Tout ce que l'app garde est sur ton PC, dans <span class="ui">%APPDATA%\Nukun</span> : profil de lecture,
+            Tout ce que l'app garde est sur ton PC, dans <span class="ui">%APPDATA%\Nukun</span> sous Windows et <span class="ui">~/.config/Nukun</span> sous Linux : profil de lecture,
             bibliothèque, traductions, notes et réglages. Rien de cela n'est envoyé ailleurs. Seuls les passages à traduire
             ou à expliquer partent vers l'IA que tu as choisie.
           </p>
           <p>
-            Pour désinstaller, passe par Paramètres de Windows, puis Applications. Pour effacer aussi tes données, supprime
+            Pour désinstaller sous Windows, passe par Paramètres, puis Applications. Sous Linux, supprime le fichier AppImage, ou lance <kbd>sudo apt remove nukun</kbd> pour le paquet .deb. Pour effacer aussi tes données, supprime
             ensuite le dossier ci-dessus.
           </p>
           <p>
