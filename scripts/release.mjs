@@ -1,31 +1,24 @@
-// Publishes the installer built by `npm run dist` as a GitHub release, from which
-// installed apps update themselves. Usage: change "version" in package.json, then
-// `npm run release`. Needs the GitHub CLI (gh), signed in.
+// Starts a release: tags the current commit with the version of package.json and
+// pushes the tag. GitHub Actions (.github/workflows/release.yml) then builds the
+// Windows and Linux versions and publishes them; installed apps offer the update.
+// Usage: change "version" in package.json, commit, then `npm run release`.
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 
 const { version } = JSON.parse(fs.readFileSync("package.json", "utf8"));
-const files = [
-  `release/Nukun-Setup-${version}.exe`,
-  `release/Nukun-Setup-${version}.exe.blockmap`,
-  // What installed apps read to learn that a new version exists.
-  "release/latest.yml",
-];
-for (const f of files) {
-  if (!fs.existsSync(f)) {
-    console.error(`Fichier manquant : ${f}. Lance d'abord « npm run dist ».`);
-    process.exit(1);
-  }
-}
-
 const tag = `v${version}`;
-try {
-  execFileSync("gh", ["release", "view", tag], { stdio: "ignore" });
-  console.error(`La version ${tag} existe déjà sur GitHub : augmente "version" dans package.json.`);
+const git = (...args) => execFileSync("git", args, { encoding: "utf8" }).trim();
+
+if (git("status", "--porcelain", "--untracked-files=no")) {
+  console.error("Des changements ne sont pas commités : commite-les avant de publier.");
   process.exit(1);
-} catch {
-  /* not released yet: go on */
+}
+if (git("tag", "--list", tag)) {
+  console.error(`L'étiquette ${tag} existe déjà : augmente "version" dans package.json.`);
+  process.exit(1);
 }
 
-execFileSync("gh", ["release", "create", tag, ...files, "--title", `Nùkún ${version}`, "--generate-notes"], { stdio: "inherit" });
-console.log(`Version ${version} publiée : les apps installées la proposeront à leur prochaine vérification.`);
+git("push", "origin", "HEAD");
+git("tag", tag);
+git("push", "origin", tag);
+console.log(`Étiquette ${tag} poussée. GitHub construit Windows et Linux : suis l'avancement avec « gh run watch ».`);

@@ -1,0 +1,72 @@
+# Builds Nùkún for Windows and Linux and publishes them in a GitHub release.
+# Runs only when a version tag is pushed (`npm run release` does it), never on an
+# ordinary push. Can also be run by hand from the Actions tab to rebuild a release.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release to build (it is created if it does not exist)"
+        required: true
+        default: "v1.0.0"
+
+permissions:
+  contents: write
+
+env:
+  TAG: ${{ github.event.inputs.tag || github.ref_name }}
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  # The release is created once, before both builds add their files to it.
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # A tag that does not match package.json would publish a mislabelled installer.
+      - name: Check the version
+        run: |
+          v=$(node -p "require('./package.json').version")
+          [ "v$v" = "$TAG" ] || { echo "package.json says $v, the tag is $TAG"; exit 1; }
+      - name: Create the release if needed
+        run: |
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "Nùkún ${TAG#v}" --generate-notes
+
+  windows:
+    needs: release
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run dist
+      - name: Add the files to the release
+        shell: bash
+        run: |
+          ls -la release
+          gh release upload "$TAG" "release/Nukun-Setup-${TAG#v}.exe" "release/Nukun-Setup-${TAG#v}.exe.blockmap" release/latest.yml --clobber
+
+  linux:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      # The recommendation model runs on the processor: no NVIDIA (CUDA) libraries.
+      - run: npm ci
+        env:
+          ONNXRUNTIME_NODE_INSTALL: skip
+      - run: npm run dist:linux
+      - name: Add the files to the release
+        run: |
+          ls -la release
+          gh release upload "$TAG" "release/Nukun-${TAG#v}.AppImage" "release/nukun_${TAG#v}_amd64.deb" release/latest-linux.yml --clobber

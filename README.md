@@ -34,7 +34,7 @@ Les textes de l'interface sont écrits en français dans le code et traduits par
 
 L'app vérifie au lancement, puis toutes les 6 heures, si une nouvelle version est publiée dans les *Releases* GitHub du dépôt. Elle la télécharge en arrière-plan (seulement ce qui a changé), puis une fenêtre propose « Mettre à jour » : rien ne s'installe sans ce clic, et la proposition revient à chaque lancement. Avec l'économie de données, le téléchargement attend aussi un clic. Le dépôt doit être public pour que les apps installées voient les versions.
 
-Publier une version : augmenter `version` dans `package.json`, puis `npm run release` (construit l'installateur et le publie avec `gh`).
+Publier une version : augmenter `version` dans `package.json`, commiter, puis `npm run release`. Le script pousse l'étiquette `vX.Y.Z` ; GitHub Actions (`.github/workflows/release.yml`) construit alors les versions Windows et Linux et les publie dans la release. Un push ordinaire ne construit rien.
 
 ## Sources
 
