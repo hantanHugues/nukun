@@ -1,7 +1,7 @@
 {
   "name": "nukun",
   "productName": "Nukun",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Nùkún : la science et l'actualité qui t'intéressent, en libre accès, traduites et expliquées simplement.",
   "author": "HANTAN Hugues",
   "main": "./out/main/index.js",
