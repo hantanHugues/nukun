@@ -29,8 +29,11 @@ jobs:
           node-version: 22
           cache: npm
 
-      # Installs the Linux builds of the native modules (sharp, onnxruntime).
+      # Installs the Linux builds of the native modules (sharp, onnxruntime). The
+      # recommendation model runs on the processor: no NVIDIA (CUDA) libraries.
       - run: npm ci
+        env:
+          ONNXRUNTIME_NODE_INSTALL: skip
 
       - run: npm run dist:linux
 

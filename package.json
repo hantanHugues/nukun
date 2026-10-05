@@ -134,7 +134,8 @@
       "artifactName": "Nukun-${version}.${ext}",
       "files": [
         "!node_modules/onnxruntime-node/bin/napi-v6/{darwin,win32}/**",
-        "!node_modules/onnxruntime-node/bin/napi-v6/linux/arm64/**"
+        "!node_modules/onnxruntime-node/bin/napi-v6/linux/arm64/**",
+        "!node_modules/onnxruntime-node/bin/napi-v6/linux/x64/libonnxruntime_providers_*"
       ]
     },
     "deb": {
