@@ -742,3 +742,15 @@ footer a {
   color: var(--muted);
   font-size: 16px;
 }
+
+/* The maker's networks, on every page. */
+footer .socials {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 8px 20px;
+  margin-top: 18px;
+}
+footer .socials span {
+  color: var(--muted);
+}
