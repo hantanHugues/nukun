@@ -2,7 +2,7 @@ import { app, BrowserWindow, dialog, ipcMain, nativeTheme, protocol, shell } fro
 import fs from "node:fs";
 import path from "node:path";
 import type { DomainId, Draft, Interaction, Interest, Note, Settings } from "@shared/types";
-import { claudeCodeAvailable } from "./ai/claudeCode";
+import { claudeCodeInstalled } from "./ai/claudeCode";
 import { adviseLocalModel, detectHardware } from "./ai/hardware";
 import { ollamaModels, ollamaReachable, testAi } from "./ai/llm";
 import { flushExplanations, flushGlossary, flushMemory } from "./ai/memory";
@@ -132,7 +132,7 @@ function registerIpc() {
     const hw = await detectHardware();
     return {
       gemini: !!geminiKey(),
-      claudeCode: claudeCodeAvailable(),
+      claudeCode: claudeCodeInstalled(),
       ollama: await ollamaReachable(),
       ollamaModels: await ollamaModels(),
       gpu: hw.gpu,

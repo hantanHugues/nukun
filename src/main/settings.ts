@@ -12,7 +12,8 @@ interface StoredSettings extends Omit<Settings, "hasClaudeKey" | "hasSemanticSch
 }
 
 const defaults = (): StoredSettings => ({
-  provider: "hybrid",
+  provider: "gemini",
+  allowClaudeCode: false,
   claudeModel: "claude-opus-5-5",
   claudeCodeModel: "opus",
   geminiModel: "auto",
@@ -43,6 +44,13 @@ function stored() {
     // old choices covered only a few topics, so every discipline is switched on.
     const saved = doc.data.domains ?? {};
     const legacy = Object.keys(saved).some((k) => !/^\d+$/.test(k));
+    // Before the Claude subscription had to be switched on, "hybrid" was the default and
+    // used it whenever Claude Code was installed. Nobody is moved onto it silently: those
+    // modes go back to Gemini, and Claude is used only once chosen again in the settings.
+    const before = doc.data as Partial<StoredSettings>;
+    const unconsented = before.allowClaudeCode === undefined && Object.keys(before).length > 0;
+    const usesClaudeCode =
+      before.provider === "hybrid" || before.provider === "claude-code" || (before.provider === "auto" && !before.claudeKeyEnc);
     doc.data = {
       ...d,
       ...doc.data,
@@ -50,6 +58,11 @@ function stored() {
       domains: legacy ? d.domains : { ...d.domains, ...saved },
       languages: { ...d.languages, ...doc.data.languages },
     };
+    if (unconsented) {
+      doc.data.allowClaudeCode = false;
+      if (usesClaudeCode) doc.data.provider = "gemini";
+      doc.save();
+    }
     setLang(doc.data.uiLang ?? "fr");
   }
   return doc;

@@ -29,7 +29,7 @@ const STEPS: Step[] = [
   // The settings, section by section.
   { view: "settings", target: "settings-nav", title: "Sommaire", text: "Clique sur une section pour y aller directement." },
   { view: "settings", target: "lang", title: "Langue", text: "Français ou anglais : la langue de l'app et celle des traductions." },
-  { view: "settings", target: "ai-modes", title: "Ton IA", text: "Elle traduit, explique et répond à tes questions. Hybride (conseillé) : gratuit, avec Claude pour les passages techniques si tu l'as." },
+  { view: "settings", target: "ai-modes", title: "Ton IA", text: "Elle traduit, explique et répond à tes questions. Gemini seul (conseillé) : gratuit, avec ta clé Google. Ton abonnement Claude ne sert que si tu le choisis ici." },
   { view: "settings", target: "gemini-key", title: "Clé Google gratuite", text: "Crée-la sur aistudio.google.com/apikey et colle-la ici : c'est elle qui fait l'essentiel des traductions." },
   { view: "settings", target: "ollama", title: "IA locale", text: "Facultatif : une IA sur ton PC, sans connexion. Ta carte graphique est détectée et le bon modèle conseillé." },
   { view: "settings", target: "ai-test", title: "Tester", text: "Vérifie en un clic que ton IA répond." },

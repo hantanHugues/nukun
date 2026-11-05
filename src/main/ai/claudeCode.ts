@@ -26,11 +26,19 @@ function findExecutable(): string | null {
   return candidates.find((c) => fs.existsSync(c)) ?? null;
 }
 
-export function claudeCodeAvailable() {
+/** Claude Code is on this PC (shown in the settings). It is not used for that alone. */
+export function claudeCodeInstalled() {
   return findExecutable() !== null;
 }
 
+/** Usable: installed, and the reader switched their subscription on in the settings. */
+export function claudeCodeAvailable() {
+  return claudeCodeInstalled() && getSettings().allowClaudeCode === true;
+}
+
 export async function claudeCodeJson<T>(req: JsonRequest): Promise<T> {
+  // Whatever the mode, nothing goes through the subscription without the reader's consent.
+  if (!getSettings().allowClaudeCode) throw new Error(t("L'abonnement Claude n'est pas activé dans les réglages."));
   const exe = findExecutable();
   if (!exe) throw new Error(t("Claude Code n'est pas installé sur ce PC."));
   // An empty working folder, no tools, no MCP servers, no settings: a plain text request.

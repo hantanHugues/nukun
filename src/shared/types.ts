@@ -269,6 +269,8 @@ export type AiProvider = "hybrid" | "gemini" | "ollama" | "claude-code" | "claud
 
 export interface Settings {
   provider: AiProvider;
+  /** The reader switched on the use of their Claude subscription (Claude Code). Off until then. */
+  allowClaudeCode: boolean;
   claudeModel: string;
   claudeCodeModel: "opus" | "sonnet" | "haiku";
   geminiModel: string;

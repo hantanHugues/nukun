@@ -50,12 +50,12 @@ Limite connue : le sens sert à **classer** le fil, pas aux **filtres**. Un filt
 
 ## IA
 
-Mode par défaut : **Hybride**, sans aucun coût.
+Mode par défaut : **Gemini seul**, sans aucun coût. L'abonnement Claude n'est jamais utilisé sans que tu l'aies autorisé dans les Réglages.
 
 - **Google (gratuit)** traduit le gros du texte. Colle ta clé AI Studio dans les Réglages. L'app alterne entre plusieurs modèles gratuits (Gemini Flash, Gemma 4, Flash-Lite), car chacun a son propre quota journalier.
-- **Ton abonnement Claude** (via Claude Code, déjà connecté sur le PC) prépare le lexique de chaque article, prend les passages très techniques et corrige les traductions qui échouent aux contrôles automatiques.
+- **Ton abonnement Claude**, si tu l'actives (modes Hybride, Mon abonnement Claude ou Automatique, via Claude Code déjà connecté sur le PC), prépare le lexique de chaque article, prend les passages très techniques et corrige les traductions qui échouent aux contrôles automatiques.
 - **L'IA locale** (Ollama) sert de relais hors ligne ou quand les quotas sont atteints. L'app détecte la carte graphique et conseille le modèle adapté à sa mémoire (`aya-expanse:8b` pour 8 Go, des modèles plus gros sur les PC plus puissants).
-- Sans Claude Code installé, l'app le détecte et fonctionne avec Google et l'IA locale.
+- Sans Claude Code installé, ou tant que tu ne l'as pas autorisé, l'app fonctionne avec Google et l'IA locale.
 
 **Mémoire du lexique** : un terme technique décidé une fois (gardé en anglais ou traduit, avec sa définition) est réutilisé dans tous les articles. L'IA ne prépare que les termes nouveaux, et un article déjà bien couvert n'a plus besoin d'elle pour son lexique ; un même terme se lit aussi de la même façon partout.
 

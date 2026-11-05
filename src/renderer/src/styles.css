@@ -1718,3 +1718,11 @@ figure.blk .fig-explain {
     animation: none;
   }
 }
+
+/* A mode that spends something of the reader's says so on its card. */
+.radio-card .warn-note {
+  display: block;
+  margin-top: 8px;
+  color: var(--accent);
+  font-size: 0.8125rem;
+}

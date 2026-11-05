@@ -263,7 +263,7 @@ export async function llmJson<T>(req: JsonRequest): Promise<{ data: T; provider:
         : req.tier === "heavy"
           ? [sub, gemini, local]
           : [gemini, local, sub];
-    let lastErr: unknown = new LlmUnavailableError(t("Aucune IA disponible : ajoute une clé Gemini, lance Ollama ou connecte Claude Code."));
+    let lastErr: unknown = new LlmUnavailableError(t("Aucune IA disponible : ajoute une clé Gemini (gratuite) dans les réglages, ou lance Ollama."));
     for (const [i, step] of chain.entries()) {
       if (!(await step.available())) continue;
       try {

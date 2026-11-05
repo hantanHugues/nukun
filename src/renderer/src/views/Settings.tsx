@@ -21,6 +21,8 @@ import { api } from "../api";
 import { useApp } from "../App";
 import { helpUrl, timeAgo } from "../util";
 
+const USES_CLAUDE_CODE: AiProvider[] = ["hybrid", "claude-code", "auto"];
+
 const MODELS = [
   // Notes are written in French and shown in the app's language.
   { id: "claude-opus-5-5", label: "Claude Opus 5.5", note: "Meilleure qualité de traduction (recommandé)" },
@@ -67,10 +69,10 @@ export function SettingsView() {
   const providers: { id: AiProvider; title: string; text: string }[] = [
     {
       id: "hybrid",
-      title: t("Hybride (recommandé)"),
+      title: t("Hybride"),
       text: t("Gemini (gratuit) traduit le gros du texte. Claude (ton abonnement) prépare le lexique, prend les passages très techniques et corrige les erreurs détectées. L'IA locale sert de relais."),
     },
-    { id: "gemini", title: t("Gemini seul"), text: t("Gratuit avec ta clé Google. L'IA locale prend le relais si le quota du jour est atteint.") },
+    { id: "gemini", title: t("Gemini seul (recommandé)"), text: t("Gratuit avec ta clé Google. L'IA locale prend le relais si le quota du jour est atteint.") },
     { id: "ollama", title: t("IA locale seule"), text: t("Gratuit et hors ligne, sur ta carte graphique. Plus lent, moins précis.") },
     {
       id: "claude-code",
@@ -117,9 +119,15 @@ export function SettingsView() {
           </p>
           <div className="radio-cards" data-tour="ai-modes">
             {providers.map((p) => (
-              <button key={p.id} className={`radio-card ${settings.provider === p.id ? "active" : ""}`} onClick={() => void save({ provider: p.id })}>
+              <button
+                key={p.id}
+                className={`radio-card ${settings.provider === p.id ? "active" : ""}`}
+                // Choosing a mode that uses the Claude subscription is what allows it.
+                onClick={() => void save({ provider: p.id, allowClaudeCode: USES_CLAUDE_CODE.includes(p.id) })}
+              >
                 <strong>{p.title}</strong>
                 <span>{p.text}</span>
+                {USES_CLAUDE_CODE.includes(p.id) && <span className="warn-note">{t("Choisir ce mode autorise Nùkún à utiliser ton abonnement Claude.")}</span>}
               </button>
             ))}
           </div>
