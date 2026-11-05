@@ -59,8 +59,6 @@ Mode par défaut : **Gemini seul**, sans aucun coût. L'abonnement Claude n'est 
 
 **Mémoire du lexique** : un terme technique décidé une fois (gardé en anglais ou traduit, avec sa définition) est réutilisé dans tous les articles. L'IA ne prépare que les termes nouveaux, et un article déjà bien couvert n'a plus besoin d'elle pour son lexique ; un même terme se lit aussi de la même façon partout.
 
-**Lexique commun** : Réglages, Lexique commun. Quand au moins 20 termes appris attendent, une petite fenêtre propose, au plus une fois par semaine, de les soumettre. L'app n'envoie rien : elle ouvre un ticket GitHub déjà rédigé (étiquette `lexique`), que le lecteur relit et envoie depuis son compte. Au-delà de la longueur qu'une adresse supporte, le contenu est copié dans le presse-papiers. Le mainteneur relit les tickets avant de publier un lexique commun.
-
 **Perspective** : partager cette mémoire (et celle des traductions) entre tous les utilisateurs grâce à un petit serveur gratuit, pour que personne ne fasse traduire deux fois la même chose.
 
 Traduction « comme un navigateur » : seuls les passages affichés à l'écran (plus un écran d'avance) sont traduits. Chaque traduction est gardée dans une mémoire partagée entre tous les articles : rien n'est jamais payé ni demandé deux fois. Le bouton « Tout traduire » prépare un article entier pour plus tard.

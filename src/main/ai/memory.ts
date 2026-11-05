@@ -102,21 +102,6 @@ export function rememberGlossary(terms: GlossaryTerm[], lang: string) {
   d.save();
 }
 
-/**
- * Every learned term with its reading language and source language, to propose them to
- * the shared lexicon. Keys are "<src>:<term>" (French reading) or "en<<src>:<term>".
- */
-export function glossaryEntries() {
-  const out: { key: string; reading: "fr" | "en"; src: string; term: GlossaryTerm; uses: number }[] = [];
-  for (const [key, t] of Object.entries(gloss().data)) {
-    const m = /^(en<)?([^:<]+):/.exec(key);
-    if (!m) continue;
-    const { uses, ...term } = t;
-    out.push({ key, reading: m[1] ? "en" : "fr", src: m[2], term, uses });
-  }
-  return out;
-}
-
 export function glossarySize() {
   return Object.keys(gloss().data).length;
 }

@@ -1,10 +1,9 @@
 import { CheckCircle2, ExternalLink, FolderOpen, KeyRound, RefreshCw, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { AiProvider, AiStatus, LexiconStatus, Settings, SourceStatus, UsageStats } from "@shared/types";
+import type { AiProvider, AiStatus, Settings, SourceStatus, UsageStats } from "@shared/types";
 import { SOURCES } from "@shared/types";
 import type { Interest } from "@shared/types";
 import { InterestsEditor, MIN_INTERESTS } from "../components/Interests";
-import { LexiconDialog } from "../components/LexiconDialog";
 import { Select } from "../components/Select";
 import { SectionNav } from "../components/SectionNav";
 import { lang, t } from "@shared/i18n";
@@ -15,7 +14,6 @@ const SECTIONS = [
   { id: "s-interests", label: "Centres d'intérêt" },
   { id: "s-data", label: "Données mobiles" },
   { id: "s-sources", label: "Sources" },
-  { id: "s-lexicon", label: "Lexique commun" },
   { id: "s-tour", label: "Tutoriel" },
   { id: "s-export", label: "Export" },
 ];
@@ -43,11 +41,6 @@ export function SettingsView() {
   const [models, setModels] = useState<string[]>([]);
   const [hw, setHw] = useState<AiStatus | null>(null);
   const [usage, setUsage] = useState<UsageStats | null>(null);
-  const [lex, setLex] = useState<LexiconStatus | null>(null);
-  const [lexOpen, setLexOpen] = useState(false);
-  useEffect(() => {
-    void api.lexiconStatus().then(setLex);
-  }, []);
   const [status, setStatus] = useState<SourceStatus[]>([]);
   const [hint, setHint] = useState(settings?.keepTermsHint ?? "");
 
@@ -427,54 +420,6 @@ export function SettingsView() {
         </section>
 
         {/* ---------------------------------------------------------------- tutorial */}
-        <section className="card section" id="s-lexicon">
-          <div className="row">
-            <div className="grow">
-              <h2 className="h2">{t("Lexique commun")}</h2>
-              <p className="small muted" style={{ margin: "6px 0 0" }}>
-                {t("Nùkún retient les termes techniques qu'il a appris, pour les traduire toujours de la même façon. Tu peux proposer les nouveaux : après relecture, ils serviront aussi aux autres lecteurs.")}
-              </p>
-              {lex && (
-                <p className="small" style={{ margin: "8px 0 0" }}>
-                  {t("{n} termes à proposer, {m} déjà proposés.", { n: lex.pending, m: lex.proposed })}
-                </p>
-              )}
-            </div>
-            <button className="btn" disabled={!lex?.pending} onClick={() => setLexOpen(true)}>
-              {t("Proposer mes termes")}
-            </button>
-          </div>
-          {lex && (
-            <div className="setting-row">
-              <div className="grow">
-                <strong>{t("Me le rappeler une fois par semaine")}</strong>
-                <p className="small muted" style={{ margin: "4px 0 0" }}>
-                  {t("Une petite fenêtre te le propose quand {n} termes ou plus attendent.", { n: lex.min })}
-                </p>
-              </div>
-              <button
-                className={`switch ${lex.remind ? "on" : ""}`}
-                aria-label={t("Me le rappeler une fois par semaine")}
-                onClick={() => {
-                  void api.lexiconRemind(!lex.remind).then(() => api.lexiconStatus().then(setLex));
-                }}
-              />
-            </div>
-          )}
-        </section>
-        {lexOpen && (
-          <LexiconDialog
-            onClose={() => {
-              setLexOpen(false);
-              void api.lexiconStatus().then(setLex);
-            }}
-            onDone={() => {
-              setLexOpen(false);
-              void api.lexiconStatus().then(setLex);
-            }}
-          />
-        )}
-
         <section className="card section" id="s-tour" data-tour="tour">
           <div className="row">
             <div className="grow">
