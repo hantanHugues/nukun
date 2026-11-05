@@ -53,7 +53,7 @@ Every item has a `kind`: `paper` (research) or `news` (official organisations an
 
 ## Shared lexicon server
 
-`server/` is a separate small Node service (no framework, Postgres through `DATABASE_URL`) meant for Render's free plan (`render.yaml` at the root). It receives the glossary terms readers propose, has Gemini judge them with a daily call budget (models in rotation, quota state kept in the database so it resumes by itself), and publishes a term once Gemini accepted it and three different connections sent it. Abuse is limited rather than prevented, because the code is public and an app cannot prove who it is: per-address and per-installation limits, a signed single-use proof of work, strict input checks, and an admin endpoint to block a term. Details and deployment steps are in `server/README.md`. The app does not talk to it yet.
+The server that receives the glossary terms readers propose, has Gemini judge them (daily call budget, quota state kept in the database) and publishes the ones several different connections confirmed, lives in its own repository, `nukun-lexique` (private), so that Render deploys it alone. The app does not talk to it yet.
 
 ## Disciplines and languages
 
