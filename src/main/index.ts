@@ -6,6 +6,7 @@ import { claudeCodeInstalled } from "./ai/claudeCode";
 import { adviseLocalModel, detectHardware } from "./ai/hardware";
 import { ollamaModels, ollamaReachable, testAi } from "./ai/llm";
 import { flushExplanations, flushGlossary, flushMemory } from "./ai/memory";
+import { flushLexicon, lexiconOpen, lexiconPrepare, lexiconRemind, lexiconShown, lexiconStatus } from "./lexicon";
 import { BROWSER_UA, get } from "./http";
 import { Library } from "./library";
 import { downloadUpdate, installUpdate, startUpdates, updateState } from "./updater";
@@ -164,6 +165,11 @@ function registerIpc() {
   ipcMain.handle("getProfile", () => lib.profileView());
   ipcMain.handle("resetProfile", () => lib.resetProfile());
   ipcMain.handle("analyzeInterests", () => lib.analyzeInterests());
+  ipcMain.handle("lexiconStatus", () => lexiconStatus());
+  ipcMain.handle("lexiconPrepare", () => lexiconPrepare());
+  ipcMain.handle("lexiconOpen", (_e, keys: string[]) => lexiconOpen(Array.isArray(keys) ? keys.map(String) : []));
+  ipcMain.handle("lexiconShown", () => lexiconShown());
+  ipcMain.handle("lexiconRemind", (_e, on: boolean) => lexiconRemind(!!on));
   ipcMain.handle("updateState", () => updateState());
   ipcMain.handle("downloadUpdate", () => downloadUpdate());
   ipcMain.handle("installUpdate", () => {
@@ -243,6 +249,7 @@ if (!app.requestSingleInstanceLock()) {
     flushMemory();
     flushExplanations();
     flushGlossary();
+    flushLexicon();
   });
   app.on("window-all-closed", () => {
     if (process.platform !== "darwin") app.quit();

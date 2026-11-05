@@ -51,6 +51,10 @@ Every item has a `kind`: `paper` (research) or `news` (official organisations an
 
 `glossary-memory.json` (in `ai/memory.ts`) keeps every glossary term ever decided, keyed by language and term. `buildGlossary` first looks for known terms in the article (whole words), asks the AI only for new ones, and skips the AI when 20 known terms or more are found. It is filled once from the glossaries of articles already translated (`Library.seedGlossaryMemory`). Perspective: share it, and the translation memory, between users through a small free server.
 
+## Shared lexicon (proposals)
+
+`src/main/lexicon.ts` proposes the learned glossary terms (`glossary-memory.json`) to a shared lexicon, without the app sending anything. A proposal is a GitHub issue opened in the browser (`issues/new?title=&body=&labels=lexique`), one line per term (`reading | source | term | translation | keep or translate | definition`) in a fenced `lexique` block. GitHub answers with an error from about 7000 characters of address, so above 6000 the body goes to the clipboard and the issue opens with a short sentence to replace by a paste. `lexicon-share.json` keeps the keys already proposed, the date of the last reminder (at most one a week) and the reminder switch. The reminder is `components/LexiconToast.tsx` (left side, never on top of the update window), the list shown before opening is `components/LexiconDialog.tsx`. The terms are written by the AI: the maintainer reads each issue before anything joins a published lexicon.
+
 ## Disciplines and languages
 
 - Articles are classified in the 26 OpenAlex fields (`FIELDS` in `shared/types.ts`, grouped in 4 domains). Sources map their own categories to fields (arXiv categories, bioRxiv categories, PLOS subjects, HAL codes…) and are only queried for enabled fields. After each refresh, `Library.classifyNew` asks OpenAlex for the field of every new DOI (50 per request).

@@ -400,6 +400,27 @@ export interface TranslationProgress {
   finished?: boolean;
 }
 
+/** The terms the app learned, and whether the weekly reminder is due. */
+export interface LexiconStatus {
+  /** Learned terms not proposed yet. */
+  pending: number;
+  proposed: number;
+  remind: boolean;
+  due: boolean;
+  /** Number of waiting terms from which the reminder appears. */
+  min: number;
+}
+
+/** What a proposal to the shared lexicon would contain. */
+export interface LexiconProposal {
+  keys: string[];
+  terms: { term: string; translation?: string; keep: boolean; definition: string }[];
+  /** Terms waiting in all: the rest goes in a later proposal. */
+  total: number;
+  /** "clipboard": too long for an address, the reader pastes it into the GitHub message. */
+  method: "url" | "clipboard";
+}
+
 export interface NukunApi {
   /** `domain`: "all", a field id, or "g:<group>". */
   /** One page of the feed; `fresh` ranks again instead of continuing the current ranking. */
@@ -440,6 +461,13 @@ export interface NukunApi {
   getProfile(): Promise<InterestProfileView>;
   resetProfile(): Promise<void>;
   analyzeInterests(): Promise<void>;
+  lexiconStatus(): Promise<LexiconStatus>;
+  lexiconPrepare(): Promise<LexiconProposal>;
+  /** Opens the GitHub message with these terms (nothing is sent by the app). */
+  lexiconOpen(keys: string[]): Promise<void>;
+  /** The weekly reminder was shown. */
+  lexiconShown(): Promise<void>;
+  lexiconRemind(on: boolean): Promise<void>;
   updateState(): Promise<UpdateState>;
   /** Download the new version (when data saving kept it from downloading on its own). */
   downloadUpdate(): Promise<void>;
