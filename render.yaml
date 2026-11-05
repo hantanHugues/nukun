@@ -1,0 +1,33 @@
+# Blueprint Render du serveur du lexique commun (dossier server/).
+# Les secrets marqués « sync: false » se saisissent dans le tableau de bord de Render,
+# jamais dans ce fichier. Les trois autres sont générés par Render au premier déploiement.
+services:
+  - type: web
+    name: nukun-lexique
+    runtime: node
+    plan: free
+    region: frankfurt
+    rootDir: server
+    buildCommand: npm ci --omit=dev
+    startCommand: node src/server.js
+    healthCheckPath: /health
+    autoDeploy: true
+    # Un push qui ne touche pas au serveur (l'app, le site) ne le redéploie pas.
+    buildFilter:
+      paths:
+        - server/**
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      # Chaîne de connexion Postgres (Neon, Supabase…) : le disque de Render est effacé à chaque redémarrage.
+      - key: DATABASE_URL
+        sync: false
+      # Clé Google AI Studio, de préférence d'un projet à part : son quota est alors à part du tien.
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: ADMIN_TOKEN
+        generateValue: true
+      - key: IP_SALT
+        generateValue: true
+      - key: CHALLENGE_SECRET
+        generateValue: true

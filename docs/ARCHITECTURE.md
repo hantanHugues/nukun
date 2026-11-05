@@ -51,6 +51,10 @@ Every item has a `kind`: `paper` (research) or `news` (official organisations an
 
 `glossary-memory.json` (in `ai/memory.ts`) keeps every glossary term ever decided, keyed by language and term. `buildGlossary` first looks for known terms in the article (whole words), asks the AI only for new ones, and skips the AI when 20 known terms or more are found. It is filled once from the glossaries of articles already translated (`Library.seedGlossaryMemory`). Perspective: share it, and the translation memory, between users through a small free server.
 
+## Shared lexicon server
+
+`server/` is a separate small Node service (no framework, Postgres through `DATABASE_URL`) meant for Render's free plan (`render.yaml` at the root). It receives the glossary terms readers propose, has Gemini judge them with a daily call budget (models in rotation, quota state kept in the database so it resumes by itself), and publishes a term once Gemini accepted it and three different connections sent it. Abuse is limited rather than prevented, because the code is public and an app cannot prove who it is: per-address and per-installation limits, a signed single-use proof of work, strict input checks, and an admin endpoint to block a term. Details and deployment steps are in `server/README.md`. The app does not talk to it yet.
+
 ## Disciplines and languages
 
 - Articles are classified in the 26 OpenAlex fields (`FIELDS` in `shared/types.ts`, grouped in 4 domains). Sources map their own categories to fields (arXiv categories, bioRxiv categories, PLOS subjects, HAL codes…) and are only queried for enabled fields. After each refresh, `Library.classifyNew` asks OpenAlex for the field of every new DOI (50 per request).
