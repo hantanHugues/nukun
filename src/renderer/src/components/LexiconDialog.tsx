@@ -28,16 +28,16 @@ export function LexiconDialog({ onClose, onDone }: { onClose: () => void; onDone
         <h2 className="h2" id="lexicon-title">
           {t("Partager mes termes avec les autres lecteurs")}
         </h2>
-        <p>{t("En traduisant tes articles, Nùkún repère des termes techniques à laisser tels quels : noms, sigles, jargon. Les partager aide les autres lecteurs : après vérification, ils rejoignent le lexique commun.")}</p>
+        <p>{t("Ces termes techniques (noms, sigles, jargon) aideront les autres lecteurs, après vérification.")}</p>
         <p className="small muted">
-          {t("Seuls ces termes et leurs définitions sont envoyés au serveur de Nùkún : jamais le texte de tes articles, tes notes, ni ton nom. Les mots courants qui ont une traduction ne sont jamais partagés. Tu peux arrêter à tout moment dans les réglages.")}
+          {t("Seuls les termes et leurs définitions sont envoyés : jamais tes articles, tes notes ni ton nom.")}
         </p>
         {p && any && (
           <>
             <p className="small muted">
               {p.total > p.terms.length
-                ? t("{total} termes sont prêts. Voici les {n} premiers, les autres suivront ensuite.", { total: p.total, n: p.terms.length })
-                : t("{n} termes sont prêts à partir, en voici la liste.", { n: p.total })}
+                ? t("{total} termes prêts, voici les {n} premiers.", { total: p.total, n: p.terms.length })
+                : t("{n} termes prêts à partir :", { n: p.total })}
             </p>
             <ul className="lex-list">
               {p.terms.map((x, i) => (

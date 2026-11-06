@@ -253,18 +253,22 @@ const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
  * article's glossary and the shared lexicon) are cut out like formulas: the small model never
  * sees them, so it cannot translate "topic" into "sujet" or rename a gene.
  */
-function protectTerms(s: Segment, glossary: GlossaryTerm[]): Segment {
+function protectTerms(s: Segment, glossary: GlossaryTerm[]): Segment & { ambiguous: boolean } {
   let text = s.text;
   const tokens = [...s.tokens];
+  // A protected term that is also an ordinary word ("topic", "node", "cell") may be used
+  // in its everyday sense in this very sentence: the small model cannot tell, an AI can.
+  let ambiguous = false;
   for (const g of glossary) {
     if (!g.keep || g.term.trim().length < 2) continue;
     const re = new RegExp(`(?<![\\p{L}\\p{N}])${escapeRe(g.term.trim())}(?![\\p{L}\\p{N}])`, "giu");
     text = text.replace(re, (m) => {
+      if (!isDistinctiveName(g.term)) ambiguous = true;
       tokens.push(m);
       return `\u27e6${tokens.length}\u27e7`;
     });
   }
-  return { ...s, text, tokens };
+  return { ...s, text, tokens, ambiguous };
 }
 
 async function builtinBatch(a: Article, glossary: GlossaryTerm[], batch: Segment[]): Promise<BatchResult> {
@@ -281,7 +285,8 @@ async function builtinBatch(a: Article, glossary: GlossaryTerm[], batch: Segment
     res.fr.set(s.key, restore(text, prepared[i].tokens));
     // The memory keeps the text with the original markers only: terms are put back first.
     res.raw.set(s.key, text.replace(/\u27e6(\d+)\u27e7/g, (m, n) => (Number(n) > s.tokens.length ? prepared[i].tokens[Number(n) - 1] : m)));
-    if (looksWrong(prepared[i], text, glossary, a.lang)) res.suspicious.add(s.key);
+    // Doubtful by its form, or holding a term that may have two meanings: for help, when allowed.
+    if (prepared[i].ambiguous || looksWrong(prepared[i], text, glossary, a.lang)) res.suspicious.add(s.key);
   });
   return res;
 }

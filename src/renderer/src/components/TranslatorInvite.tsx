@@ -56,7 +56,6 @@ export function TranslatorInvite() {
       <div className="update-toast lexicon-toast card" role="status">
         <div className="grow">
           <strong>{t("La traduction est prête")}</strong>
-          <div className="small muted">{t("Les prochains articles s'ouvrent traduits. Tu peux tout régler plus tard dans les réglages.")}</div>
           <div className="row" style={{ marginTop: 10 }}>
             <button className="btn sm primary" onClick={() => void finish()}>
               {t("Compris")}
@@ -71,16 +70,16 @@ export function TranslatorInvite() {
   return (
     <div className="update-toast lexicon-toast card" role="status">
       <div className="grow">
-        <strong>{t("Lire les articles en français")}</strong>
-        <div className="small muted">{t("En attendant, ils s'affichent dans leur langue d'origine. Pour les traduire, Nùkún télécharge un petit traducteur ({mb} Mo, une seule fois) qui travaille sur ton ordinateur, sans compte ni clé.", { mb: pack.mb })}</div>
+        <strong>{t("Traduire les articles")}</strong>
+        <div className="small muted">{t("Télécharge le traducteur ({mb} Mo, une seule fois). Il marche sans compte ni clé, même hors ligne.", { mb: pack.mb })}</div>
         {wantsOther && (
           <div className="small muted" style={{ marginTop: 6 }}>
-            {t("Tu as choisi d'autres langues : un pack de plus ({mb} Mo) sera aussi téléchargé.", { mb: other!.mb })}
+            {t("Un pack de plus ({mb} Mo) pour les autres langues.", { mb: other!.mb })}
           </div>
         )}
         <label className="check-row small" style={{ marginTop: 8 }}>
           <input type="checkbox" checked={help} disabled={busy} onChange={(e) => setHelp(e.target.checked)} />
-          <span>{t("Aider le traducteur avec notre serveur : les phrases qu'il rate sont envoyées (elles seules) à notre serveur, qui les fait corriger par Gemini.")}</span>
+          <span>{t("Laisser notre serveur corriger les phrases ratées")}</span>
         </label>
         {busy && (
           <div className="progress" aria-label={t("Téléchargement")}>
