@@ -149,7 +149,10 @@ export function SettingsView() {
           </div>
 
           <p className="small muted" style={{ margin: "10px 0 0" }}>
-            {t("Limites : le traducteur intégré suffit pour lire et comprendre, mais il se trompe plus qu'une IA complète (mots techniques à double sens, longues phrases, nuances). Pour une traduction fidèle, des explications et la discussion d'un article, ajoute une IA dans les options avancées.")}
+            {t("Limites : le traducteur intégré suffit pour lire et comprendre, mais il se trompe plus qu'une IA complète (mots techniques à double sens, longues phrases, nuances). Pour une traduction fidèle, des explications et la discussion d'un article, ajoute une IA dans les options avancées.")}{" "}
+            <a href="#" onClick={(e) => (e.preventDefault(), void api.openExternal(helpUrl("#traducteur")))}>
+              {t("En savoir plus sur ces modèles")}
+            </a>
           </p>
 
           {bi && (

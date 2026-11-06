@@ -556,4 +556,5 @@ export const EN: Record<string, string> = {
   "Seuls les termes et leurs définitions sont envoyés : jamais tes articles, tes notes ni ton nom.": "Only the terms and their definitions are sent: never your articles, your notes or your name.",
   "{total} termes prêts, voici les {n} premiers.": "{total} terms ready, here are the first {n}.",
   "{n} termes prêts à partir :": "{n} terms ready to go:",
+  "En savoir plus sur ces modèles": "Learn more about these models",
 };
