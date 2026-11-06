@@ -556,4 +556,5 @@ export const EN: Record<string, string> = {
   "Aider le traducteur avec notre serveur : les phrases qu'il rate sont envoyées (elles seules) à notre serveur, qui les fait corriger par Gemini.": "Help the translator with our server: the sentences it gets wrong are sent (only them) to our server, which has Gemini fix them.",
   "Activer": "Turn on",
   "Tu as choisi d'autres langues : un pack de plus ({mb} Mo) sera aussi téléchargé.": "You chose other languages: one more pack ({mb} MB) will also be downloaded.",
+  "Limites : le traducteur intégré suffit pour lire et comprendre, mais il se trompe plus qu'une IA complète (mots techniques à double sens, longues phrases, nuances). Pour une traduction fidèle, des explications et la discussion d'un article, ajoute une IA dans les options avancées.": "Limits: the built-in translator is enough to read and understand, but it makes more mistakes than a full AI (technical words with two meanings, long sentences, nuance). For a faithful translation, explanations and discussion of a paper, add an AI in the advanced options.",
 };

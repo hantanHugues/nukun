@@ -501,6 +501,8 @@ export async function translateContent(
   // Running totals across every partial translation of this article.
   const by = { ...c.trBy };
   for (const [p, n] of used) by[p] = (by[p] ?? 0) + n;
+  // A translator whose passages were all redone by another has nothing left to claim.
+  for (const p of Object.keys(by)) if (by[p] <= 0) delete by[p];
   const fixes = t("Corrections par Claude");
   if (repairs.length) by[fixes] = (by[fixes] ?? 0) + repairs.length;
   c.trBy = by;

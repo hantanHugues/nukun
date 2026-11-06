@@ -124,6 +124,21 @@
             <li><strong>Aide du serveur</strong> : si tu la coches, les phrases que le traducteur rate sont corrigées par Gemini via le serveur de Nùkún. Seules ces phrases sont envoyées (voir la <a href="confidentialite.html#traducteur">confidentialité</a>).</li>
           </ul>
           <p>Les termes à laisser tels quels (noms, sigles, jargon) du lexique commun sont protégés : le traducteur ne les touche pas.</p>
+          <h3>Ses limites</h3>
+          <p>
+            Le traducteur intégré est un petit modèle : il sait transformer une phrase d'une langue dans une autre, mais il ne
+            comprend pas le texte. Il suffit pour lire et saisir l'essentiel d'un article, pas pour s'y fier sans réfléchir.
+          </p>
+          <ul>
+            <li>Il se trompe sur les mots techniques à double sens (« topic » devient « sujet » même dans un article de robotique), tant que le lexique ne les protège pas.</li>
+            <li>Il perd des nuances, notamment le niveau de certitude des auteurs (« suggère » ou « démontre »), et traduit parfois mal les longues phrases.</li>
+            <li>Il ne peut ni expliquer un passage difficile, ni discuter d'un article, ni préparer un glossaire : cela demande une IA complète.</li>
+          </ul>
+          <p>
+            Ce sont les IA des <span class="ui">Options avancées</span> (Gemini avec une clé gratuite, ton abonnement Claude,
+            une IA locale avec Ollama) qui font profiter pleinement de Nùkún : traduction fidèle, explications, discussion,
+            glossaire. L'aide du serveur corrige une partie des erreurs du petit modèle, sans les remplacer.
+          </p>
         </section>
 
         <section id="cle">

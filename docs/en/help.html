@@ -121,6 +121,21 @@
             <li><strong>Server help</strong>: if you tick it, sentences the translator gets wrong are fixed by Gemini through the Nùkún server. Only those sentences are sent (see <a href="privacy.html#translator">privacy</a>).</li>
           </ul>
           <p>Terms to leave as they are (names, acronyms, jargon) from the shared lexicon are protected: the translator does not touch them.</p>
+          <h3>Its limits</h3>
+          <p>
+            The built-in translator is a small model: it can turn a sentence from one language into another, but it does not
+            understand the text. It is enough to read and grasp the gist of a paper, not to rely on blindly.
+          </p>
+          <ul>
+            <li>It gets technical words with two meanings wrong (“topic” becomes “sujet” even in a robotics paper) unless the lexicon protects them.</li>
+            <li>It loses nuance and the authors' level of certainty (“suggests” or “shows”), and sometimes translates long sentences badly.</li>
+            <li>It cannot explain a difficult passage, discuss a paper or prepare a glossary: that takes a full AI.</li>
+          </ul>
+          <p>
+            The AIs under <span class="ui">Advanced options</span> (Gemini with a free key, your Claude subscription, a local AI
+            with Ollama) are what let you make the most of Nùkún: faithful translation, explanations, discussion, glossary. Server
+            help fixes some of the small model's mistakes, without replacing them.
+          </p>
         </section>
 
         <section id="key">
