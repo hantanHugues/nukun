@@ -121,6 +121,13 @@
             <li><strong>Server help</strong>: if you tick it, sentences the translator gets wrong are fixed by Gemini through the Nùkún server. Only those sentences are sent (see <a href="privacy.html#translator">privacy</a>).</li>
           </ul>
           <p>Terms to leave as they are (names, acronyms, jargon) from the shared lexicon are protected: the translator does not touch them.</p>
+          <h3>The three models the app downloads</h3>
+          <p>They are small models that work on your computer. None is a big AI like Claude or Gemini: each one does a single thing.</p>
+          <ul>
+            <li><strong>Recommendations</strong> (multilingual-e5-small, 130 MB, MIT licence): it measures the meaning of a paper to rank your feed, in every language. It downloads on first launch, unless you turn on “Mobile data”.</li>
+            <li><strong>English and French translator</strong> (Helsinki-NLP's Opus-MT, 113 MB, Apache 2.0 licence): it downloads when you click “Turn on”.</li>
+            <li><strong>Other languages pack</strong> (Meta's NLLB-200, 912 MB, CC BY-NC 4.0 licence, non-commercial use): optional, to download in Settings.</li>
+          </ul>
           <h3>Its limits</h3>
           <p>
             The built-in translator is a small model: it can turn a sentence from one language into another, but it does not

@@ -48,6 +48,18 @@ En plus des mots, l'app compare le **sens** des articles, dans toutes les langue
 
 Limite connue : le sens sert à **classer** le fil, pas aux **filtres**. Un filtre (« Psychologie et émotions »…) suit la discipline donnée par OpenAlex à chaque article ; un article mal classé par OpenAlex (par exemple de la linguistique rangée en psychologie) peut donc apparaître sous un filtre, même s'il descend dans le fil « Tout ».
 
+## Modèles téléchargés
+
+L'app télécharge trois petits modèles depuis Hugging Face, qui tournent sur le processeur du PC. Aucun n'est un LLM : ils n'écrivent rien d'autre que ce pour quoi ils ont été entraînés.
+
+| Modèle | Rôle | Taille | Téléchargé | Licence |
+|---|---|---|---|---|
+| `multilingual-e5-small` (intfloat) | Recommandations par le sens, toutes langues | 130 Mo | Au premier lancement, sauf en mode « Données mobiles » | MIT |
+| `opus-mt-en-fr` et `opus-mt-fr-en` (Helsinki-NLP) | Traducteur intégré, anglais et français | 113 Mo chacun, un seul selon la langue de lecture | Au clic sur « Activer » | Apache 2.0 |
+| `nllb-200-distilled-600M` (Meta) | Pack facultatif « autres langues » (allemand, espagnol, portugais, russe, japonais, chinois) | 912 Mo | Au clic sur « Télécharger » | CC BY-NC 4.0, usage non commercial |
+
+Les versions utilisées sont les conversions ONNX quantifiées en 8 bits publiées par Xenova. La licence de NLLB interdit l'usage commercial : elle convient à Nùkún, gratuit et open source, mais pas à une version vendue.
+
 ## IA
 
 Mode par défaut : **traducteur intégré**, sans clé, sans compte et sans coût. Claude, Gemini et Ollama sont des options avancées, repliées dans les Réglages. L'abonnement Claude n'est jamais utilisé sans que tu l'aies autorisé.

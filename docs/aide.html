@@ -124,6 +124,13 @@
             <li><strong>Aide du serveur</strong> : si tu la coches, les phrases que le traducteur rate sont corrigées par Gemini via le serveur de Nùkún. Seules ces phrases sont envoyées (voir la <a href="confidentialite.html#traducteur">confidentialité</a>).</li>
           </ul>
           <p>Les termes à laisser tels quels (noms, sigles, jargon) du lexique commun sont protégés : le traducteur ne les touche pas.</p>
+          <h3>Les trois modèles que l'app télécharge</h3>
+          <p>Ce sont de petits modèles qui travaillent sur ton ordinateur. Aucun n'est une grande IA comme Claude ou Gemini : chacun ne sait faire qu'une chose.</p>
+          <ul>
+            <li><strong>Recommandations</strong> (multilingual-e5-small, 130 Mo, licence MIT) : il mesure le sens d'un article pour classer ton fil, dans toutes les langues. Il se télécharge au premier lancement, sauf si tu actives « Données mobiles ».</li>
+            <li><strong>Traducteur anglais et français</strong> (Opus-MT de Helsinki-NLP, 113 Mo, licence Apache 2.0) : il se télécharge quand tu cliques sur « Activer ».</li>
+            <li><strong>Pack autres langues</strong> (NLLB-200 de Meta, 912 Mo, licence CC BY-NC 4.0, usage non commercial) : facultatif, à télécharger dans les Réglages.</li>
+          </ul>
           <h3>Ses limites</h3>
           <p>
             Le traducteur intégré est un petit modèle : il sait transformer une phrase d'une langue dans une autre, mais il ne
