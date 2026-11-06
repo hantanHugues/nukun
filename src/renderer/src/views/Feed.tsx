@@ -192,7 +192,7 @@ export function Feed({ kind }: { kind: ArticleKind }) {
     <div className="page">
       <div className="feed-head">
         <div className="stack" style={{ gap: 10 }}>
-          <span className="label">{kind === "news" ? t("Actus") : t("Ton fil scientifique")}</span>
+          <span className="label">{kind === "news" ? t("Actus") : t("Ton fil de lecture")}</span>
           <h1 className="display">{kind === "news" ? t("Les actualités officielles liées à ce qui t'intéresse.") : greeting()}</h1>
         </div>
         <div className="stack" style={{ alignItems: "flex-end", gap: 8 }}>

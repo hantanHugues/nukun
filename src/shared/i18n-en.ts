@@ -114,7 +114,7 @@ export const EN: Record<string, string> = {
   "Bonsoir, voici ce que la recherche a publié pour toi.": "Good evening, here is what research published for you.",
   "Compris : l'algorithme t'en montrera moins comme ça.": "Got it: the algorithm will show you less like this.",
   "« {label} » ajouté à tes centres d'intérêt.": "“{label}” added to your interests.",
-  "Ton fil scientifique": "Your science feed",
+  "Ton fil de lecture": "Your reading feed",
   "Les actualités officielles liées à ce qui t'intéresse.": "Official news about what interests you.",
   "Actualiser": "Refresh",
   "{n} nouveaux articles": "{n} new articles",
