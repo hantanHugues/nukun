@@ -15,10 +15,10 @@ import { JsonDoc } from "./store";
  */
 
 export const SERVER = (process.env.NUKUN_LEXIQUE_URL || "https://nukun-lexique.onrender.com").replace(/\/+$/, "");
-/** Terms waiting before the weekly question is asked. */
-export const LEXICON_MIN = 20;
+/** Terms waiting before the weekly question is asked: only what must stay as it is counts, so it is a small number. */
+export const LEXICON_MIN = 10;
 /** Terms waiting before an automatic send. */
-const SHARE_MIN = 10;
+const SHARE_MIN = 5;
 const BATCH_MAX = 60;
 /** A server asleep on a free plan takes up to a minute to answer. */
 const WAIT_MS = 90_000;
@@ -106,11 +106,29 @@ function installId() {
 }
 
 // ---------------------------------------------------------------- what could be shared
-/** Terms learned, not sent yet and not already in the shared lexicon, the most used first. */
+/** Whether a term is really written in the reader's articles (set by the library); open until then. */
+let sourceHas: (src: string, term: string) => boolean = () => true;
+export function setSourceCheck(fn: (src: string, term: string) => boolean) {
+  sourceHas = fn;
+}
+
+/**
+ * A name that cannot be a translation: one word with a digit or capitals inside (CD127,
+ * STED-FLIM, TIGIT, VGG16-UNet). Those do not need to be found in an article that may be
+ * gone from this PC; the server's own check judges them.
+ */
+const distinctive = (term: string) => /^\S+$/.test(term) && (/[0-9]/.test(term) || (term.match(/\p{Lu}/gu) ?? []).length >= 2);
+
+/**
+ * What may be shared: the terms the reader's app keeps AS THEY ARE (names, acronyms, jargon
+ * left untouched), written like that in their articles, not sent yet and not already in the
+ * shared lexicon. Words that have an ordinary translation stay on this PC: the lexicon is
+ * not a dictionary. The most used first.
+ */
 function pending() {
   const done = new Set(share().data.sent);
   return glossaryEntries()
-    .filter((e) => !done.has(e.key) && e.term.term.trim() && (e.term.fr?.trim() || e.term.keep) && !commonHas(e.reading, e.src, e.term.term))
+    .filter((e) => !done.has(e.key) && e.term.keep && e.term.term.trim() && !commonHas(e.reading, e.src, e.term.term) && (distinctive(e.term.term) || sourceHas(e.src, e.term.term)))
     .sort((a, b) => b.uses - a.uses || a.term.term.localeCompare(b.term.term));
 }
 

@@ -1772,3 +1772,17 @@ figure.blk .fig-explain {
   left: 20px;
   align-items: flex-start;
 }
+
+/* The definitions in the list of terms to share: one line each. */
+.lex-list li strong {
+  flex: none;
+}
+.lex-list li span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lex-list li span {
+  text-align: left;
+}

@@ -28,9 +28,9 @@ export function LexiconDialog({ onClose, onDone }: { onClose: () => void; onDone
         <h2 className="h2" id="lexicon-title">
           {t("Partager mes termes avec les autres lecteurs")}
         </h2>
-        <p>{t("En traduisant tes articles, Nùkún apprend des termes techniques. Les partager aide les autres lecteurs : après vérification, ils rejoignent le lexique commun.")}</p>
+        <p>{t("En traduisant tes articles, Nùkún repère des termes techniques à laisser tels quels : noms, sigles, jargon. Les partager aide les autres lecteurs : après vérification, ils rejoignent le lexique commun.")}</p>
         <p className="small muted">
-          {t("Seuls les termes, leurs traductions et leurs définitions sont envoyés au serveur de Nùkún : jamais le texte de tes articles, tes notes, ni ton nom. Tu peux arrêter à tout moment dans les réglages.")}
+          {t("Seuls ces termes et leurs définitions sont envoyés au serveur de Nùkún : jamais le texte de tes articles, tes notes, ni ton nom. Les mots courants qui ont une traduction ne sont jamais partagés. Tu peux arrêter à tout moment dans les réglages.")}
         </p>
         {p && any && (
           <>
@@ -43,7 +43,7 @@ export function LexiconDialog({ onClose, onDone }: { onClose: () => void; onDone
               {p.terms.map((x, i) => (
                 <li key={p.keys[i]}>
                   <strong>{x.term}</strong>
-                  <span>{x.translation ?? t("(gardé en anglais)")}</span>
+                  <span title={x.definition}>{x.definition}</span>
                 </li>
               ))}
             </ul>

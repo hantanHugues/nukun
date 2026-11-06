@@ -430,7 +430,7 @@ export function SettingsView() {
         <section className="card section" id="s-lexicon">
           <h2 className="h2">{t("Lexique commun")}</h2>
           <p className="small muted" style={{ margin: "6px 0 0" }}>
-            {t("Nùkún retient les termes techniques qu'il apprend, pour les traduire toujours de la même façon. Le lexique commun rassemble ceux que des lecteurs ont partagés et qui ont été vérifiés.")}
+            {t("Nùkún repère les termes techniques qu'il faut laisser tels quels dans une traduction (noms, sigles, jargon). Le lexique commun rassemble ceux que des lecteurs ont partagés et qui ont été vérifiés.")}
           </p>
           {lex && (
             <>
@@ -456,7 +456,7 @@ export function SettingsView() {
                 <div className="grow">
                   <strong>{t("Partager mes termes")}</strong>
                   <p className="small muted" style={{ margin: "4px 0 0" }}>
-                    {t("Envoie au serveur de Nùkún les termes appris, avec leur traduction et leur définition : jamais le texte de tes articles. Désactivé tant que tu ne l'as pas accepté.")}
+                    {t("Envoie au serveur de Nùkún les termes à laisser tels quels, avec leur définition : jamais le texte de tes articles. Désactivé tant que tu ne l'as pas accepté.")}
                   </p>
                   <p className="small" style={{ margin: "6px 0 0" }}>
                     {t("{n} termes à partager, {m} déjà envoyés.", { n: lex.pending, m: lex.sent })}

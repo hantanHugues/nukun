@@ -36,7 +36,7 @@ export function LexiconToast() {
     <div className="update-toast lexicon-toast card" role="status">
       <div className="grow">
         <strong>{t("Aide à enrichir le lexique commun")}</strong>
-        <div className="small muted">{t("Nùkún a appris {n} termes en traduisant tes articles. Veux-tu les partager avec les autres lecteurs ?", { n: st.pending })}</div>
+        <div className="small muted">{t("Nùkún a repéré {n} termes à laisser tels quels en traduisant tes articles. Veux-tu les partager avec les autres lecteurs ?", { n: st.pending })}</div>
         <div className="row" style={{ marginTop: 10 }}>
           <button className="btn sm primary" onClick={() => setOpen(true)}>
             {t("Voir et partager")}

@@ -247,6 +247,30 @@ export class Library {
     this.emit.feedUpdated();
   }
 
+  /** Source-language text of the articles this reader has, lower-cased, by language. */
+  private sourceText = new Map<string, { n: number; text: string }>();
+
+  /**
+   * Whether a term is written as such in an article of this reader, in its source language.
+   * The AI sometimes puts a translation in the term field ("mitochondries" for an English
+   * article): that is not a term to share, and it is not found here.
+   */
+  sourceHas(src: string, term: string): boolean {
+    const arts = this.all().filter((a) => (a.lang ?? "en") === src);
+    let have = this.sourceText.get(src);
+    if (!have || Math.abs(have.n - arts.length) >= 3) {
+      const parts: string[] = [];
+      for (const a of arts.slice(-200)) {
+        parts.push(a.title, a.abstract ?? "");
+        const c = readJson<ArticleContent | null>(contentFile(a.id), null);
+        for (const b of c?.blocks ?? []) for (const s of (b as { segs?: string[] }).segs ?? []) parts.push(s.replace(/<[^>]+>/g, " "));
+      }
+      have = { n: arts.length, text: ` ${parts.join(" ").toLowerCase().replace(/\s+/g, " ")} ` };
+      this.sourceText.set(src, have);
+    }
+    return have.text.includes(term.toLowerCase().replace(/\s+/g, " ").trim());
+  }
+
   /** First launch with the glossary memory: fill it from the articles already translated. */
   seedGlossaryMemory() {
     if (glossarySize()) return;

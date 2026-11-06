@@ -6,7 +6,7 @@ import { claudeCodeInstalled } from "./ai/claudeCode";
 import { adviseLocalModel, detectHardware } from "./ai/hardware";
 import { ollamaModels, ollamaReachable, testAi } from "./ai/llm";
 import { flushCommon, flushExplanations, flushGlossary, flushMemory } from "./ai/memory";
-import { flushLexicon, lexiconPrepare, lexiconRemind, lexiconShare, lexiconShown, lexiconStatus, startLexicon, syncCommon } from "./lexicon";
+import { flushLexicon, lexiconPrepare, lexiconRemind, lexiconShare, lexiconShown, lexiconStatus, setSourceCheck, startLexicon, syncCommon } from "./lexicon";
 import { BROWSER_UA, get } from "./http";
 import { Library } from "./library";
 import { downloadUpdate, installUpdate, startUpdates, updateState } from "./updater";
@@ -232,6 +232,7 @@ if (!app.requestSingleInstanceLock()) {
       translation: (p) => send("translation-progress", p),
       feedUpdated: () => send("feed-updated"),
     });
+    setSourceCheck((src, term) => lib.sourceHas(src, term));
     registerProtocol();
     registerIpc();
     createWindow();
