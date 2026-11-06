@@ -5,6 +5,8 @@ import type { DomainId, Draft, Interaction, Interest, Note, Settings } from "@sh
 import { claudeCodeInstalled } from "./ai/claudeCode";
 import { adviseLocalModel, detectHardware } from "./ai/hardware";
 import { ollamaModels, ollamaReachable, testAi } from "./ai/llm";
+import { builtinDownload, builtinRemove, builtinStatus } from "./ai/builtin";
+import type { BuiltinPack } from "@shared/types";
 import { flushCommon, flushExplanations, flushGlossary, flushMemory } from "./ai/memory";
 import { flushLexicon, lexiconPrepare, lexiconRemind, lexiconShare, lexiconShown, lexiconStatus, setSourceCheck, startLexicon, syncCommon } from "./lexicon";
 import { BROWSER_UA, get } from "./http";
@@ -165,6 +167,13 @@ function registerIpc() {
   ipcMain.handle("getProfile", () => lib.profileView());
   ipcMain.handle("resetProfile", () => lib.resetProfile());
   ipcMain.handle("analyzeInterests", () => lib.analyzeInterests());
+  ipcMain.handle("builtinStatus", () => builtinStatus());
+  ipcMain.handle("builtinDownload", async (_e, id: BuiltinPack) => {
+    // Runs in the background: the page follows it through builtinStatus.
+    void builtinDownload(id).catch(() => undefined);
+    return builtinStatus();
+  });
+  ipcMain.handle("builtinRemove", (_e, id: BuiltinPack) => (builtinRemove(id), builtinStatus()));
   ipcMain.handle("lexiconStatus", () => lexiconStatus());
   ipcMain.handle("lexiconPrepare", () => lexiconPrepare());
   ipcMain.handle("lexiconShare", () => lexiconShare());

@@ -10,7 +10,7 @@ const methods = [
   "prepareCards", "getSettings", "saveSettings", "testAi", "ollamaModels", "getUsage", "getSourceStatus",
   "getProfile", "resetProfile", "analyzeInterests", "getNotes", "saveNote", "deleteNote", "noteCounts", "getDraft", "listDrafts", "saveDraft", "exportDraft", "chooseDir",
   "openExternal", "setTitleBarTheme", "updateState", "downloadUpdate", "installUpdate",
-  "lexiconStatus", "lexiconPrepare", "lexiconShare", "lexiconSync", "lexiconShown", "lexiconRemind",
+  "builtinStatus", "builtinDownload", "builtinRemove", "lexiconStatus", "lexiconPrepare", "lexiconShare", "lexiconSync", "lexiconShown", "lexiconRemind",
 ];
 
 const api: Record<string, unknown> = Object.fromEntries(methods.map((m) => [m, invoke(m)]));

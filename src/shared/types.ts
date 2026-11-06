@@ -265,7 +265,19 @@ export interface FeedItem {
   discovery?: boolean;
 }
 
-export type AiProvider = "hybrid" | "gemini" | "ollama" | "claude-code" | "claude" | "auto";
+/** Packs of the built-in translator: one per direction for French/English, one for the other languages. */
+export type BuiltinPack = "en-fr" | "fr-en" | "other";
+export interface BuiltinStatus {
+  packs: { id: BuiltinPack; mb: number; downloaded: boolean }[];
+  /** The pack the current reading language needs most. */
+  need: BuiltinPack | null;
+  downloading?: BuiltinPack;
+  /** 0 to 1 while downloading. */
+  progress?: number;
+  error?: string;
+}
+
+export type AiProvider = "builtin" | "hybrid" | "gemini" | "ollama" | "claude-code" | "claude" | "auto";
 
 export interface Settings {
   provider: AiProvider;
@@ -275,6 +287,10 @@ export interface Settings {
   shareLexicon: boolean;
   /** Download and use the shared lexicon. */
   useCommonLexicon: boolean;
+  /** The reader agreed that a sentence the built-in translator got wrong may be sent to the Nùkún server for help. Off until then. */
+  assistServer: boolean;
+  /** The invitation to activate the built-in translator was answered (or put off for good). */
+  builtinAsked: boolean;
   claudeModel: string;
   claudeCodeModel: "opus" | "sonnet" | "haiku";
   geminiModel: string;
@@ -474,6 +490,9 @@ export interface NukunApi {
   resetProfile(): Promise<void>;
   analyzeInterests(): Promise<void>;
   lexiconStatus(): Promise<LexiconStatus>;
+  builtinStatus(): Promise<BuiltinStatus>;
+  builtinDownload(id: BuiltinPack): Promise<BuiltinStatus>;
+  builtinRemove(id: BuiltinPack): Promise<BuiltinStatus>;
   lexiconPrepare(): Promise<LexiconProposal>;
   /** The reader agreed: sharing is switched on and what is waiting goes out. */
   lexiconShare(): Promise<void>;

@@ -2,6 +2,7 @@ import { app } from "electron";
 import { createHash, randomBytes } from "node:crypto";
 import type { LexiconProposal, LexiconStatus } from "@shared/types";
 import { lang } from "@shared/i18n";
+import { isDistinctiveName } from "@shared/glossaryMatch";
 import { commonHas, commonSize, glossaryEntries, mergeCommon } from "./ai/memory";
 import { getSettings, saveSettings } from "./settings";
 import { JsonDoc } from "./store";
@@ -112,12 +113,8 @@ export function setSourceCheck(fn: (src: string, term: string) => boolean) {
   sourceHas = fn;
 }
 
-/**
- * A name that cannot be a translation: one word with a digit or capitals inside (CD127,
- * STED-FLIM, TIGIT, VGG16-UNet). Those do not need to be found in an article that may be
- * gone from this PC; the server's own check judges them.
- */
-const distinctive = (term: string) => /^\S+$/.test(term) && (/[0-9]/.test(term) || (term.match(/\p{Lu}/gu) ?? []).length >= 2);
+// A distinctive name (CD127, STED-FLIM…) does not need to be found in an article that may
+// be gone from this PC: the server's own check judges it.
 
 /**
  * What may be shared: the terms the reader's app keeps AS THEY ARE (names, acronyms, jargon
@@ -128,7 +125,7 @@ const distinctive = (term: string) => /^\S+$/.test(term) && (/[0-9]/.test(term) 
 function pending() {
   const done = new Set(share().data.sent);
   return glossaryEntries()
-    .filter((e) => !done.has(e.key) && e.term.keep && e.term.term.trim() && !commonHas(e.reading, e.src, e.term.term) && (distinctive(e.term.term) || sourceHas(e.src, e.term.term)))
+    .filter((e) => !done.has(e.key) && e.term.keep && e.term.term.trim() && !commonHas(e.reading, e.src, e.term.term) && (isDistinctiveName(e.term.term) || sourceHas(e.src, e.term.term)))
     .sort((a, b) => b.uses - a.uses || a.term.term.localeCompare(b.term.term));
 }
 
@@ -286,4 +283,47 @@ export function startLexicon() {
   };
   setTimeout(() => void tick(), 45_000).unref();
   setInterval(() => void tick(), 6 * HOUR).unref();
+}
+
+// ---------------------------------------------------------------- help with difficult sentences
+/** After a refusal or a failure, the server is left alone for a while. */
+let assistPausedUntil = 0;
+export const ASSIST_BATCH = 8;
+export const ASSIST_MAX_CHARS = 700;
+
+/**
+ * Asks the server for help with a few sentences the built-in translator got wrong, only when
+ * the reader allowed it. Only these sentences leave the PC (with the glossary lines that
+ * concern them): no title, no address, no identity. Returns one translation per sentence,
+ * or null where the server did not help. Never throws.
+ */
+export async function assistTranslate(
+  sentences: string[],
+  src: string,
+  glossary: { term: string; keep: boolean; fr: string }[],
+): Promise<(string | null)[]> {
+  const none = sentences.map(() => null);
+  if (!getSettings().assistServer || Date.now() < assistPausedUntil) return none;
+  try {
+    const c = await call("/v1/challenge");
+    if (!c.ok) throw new Error(String(c.status));
+    const { challenge } = (await c.json()) as { challenge: string };
+    const nonce = await solve(challenge);
+    const r = await call("/v1/assist", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ install: installId(), reading: lang(), src, sentences, glossary, pow: { challenge, nonce } }),
+    });
+    if (!r.ok) {
+      // Limits or no help for now: back off for half an hour (a day when told "too many").
+      assistPausedUntil = Date.now() + (r.status === 429 ? DAY : HOUR / 2);
+      return none;
+    }
+    const body = (await r.json()) as { translations?: unknown };
+    const out = Array.isArray(body.translations) ? body.translations : [];
+    return sentences.map((_, i) => (typeof out[i] === "string" && out[i].trim() ? out[i].replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, "").trim().slice(0, 4000) : null));
+  } catch {
+    assistPausedUntil = Date.now() + HOUR / 2;
+    return none;
+  }
 }

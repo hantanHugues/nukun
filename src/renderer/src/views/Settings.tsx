@@ -1,6 +1,6 @@
 import { CheckCircle2, ExternalLink, FolderOpen, KeyRound, RefreshCw, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { AiProvider, AiStatus, LexiconStatus, Settings, SourceStatus, UsageStats } from "@shared/types";
+import type { AiProvider, AiStatus, BuiltinPack, BuiltinStatus, LexiconStatus, Settings, SourceStatus, UsageStats } from "@shared/types";
 import { SOURCES } from "@shared/types";
 import type { Interest } from "@shared/types";
 import { InterestsEditor, MIN_INTERESTS } from "../components/Interests";
@@ -45,6 +45,16 @@ export function SettingsView() {
   const [usage, setUsage] = useState<UsageStats | null>(null);
   const [lex, setLex] = useState<LexiconStatus | null>(null);
   const [lexOpen, setLexOpen] = useState(false);
+  const [bi, setBi] = useState<BuiltinStatus | null>(null);
+  useEffect(() => {
+    void api.builtinStatus().then(setBi);
+  }, []);
+  // While a pack downloads, follow its progress.
+  useEffect(() => {
+    if (!bi?.downloading) return;
+    const id = setInterval(() => void api.builtinStatus().then(setBi), 700);
+    return () => clearInterval(id);
+  }, [bi?.downloading]);
   useEffect(() => {
     void api.lexiconStatus().then(setLex);
   }, []);
@@ -75,11 +85,16 @@ export function SettingsView() {
 
   const providers: { id: AiProvider; title: string; text: string }[] = [
     {
+      id: "builtin",
+      title: t("Traducteur intégré (recommandé)"),
+      text: t("Marche sans clé ni compte, même hors ligne. Il se télécharge une fois, puis traduit sur ton ordinateur sans le ralentir."),
+    },
+    {
       id: "hybrid",
       title: t("Hybride"),
       text: t("Gemini (gratuit) traduit le gros du texte. Claude (ton abonnement) prépare le lexique, prend les passages très techniques et corrige les erreurs détectées. L'IA locale sert de relais."),
     },
-    { id: "gemini", title: t("Gemini seul (recommandé)"), text: t("Gratuit avec ta clé Google. L'IA locale prend le relais si le quota du jour est atteint.") },
+    { id: "gemini", title: t("Gemini seul"), text: t("Gratuit avec ta clé Google. L'IA locale prend le relais si le quota du jour est atteint.") },
     { id: "ollama", title: t("IA locale seule"), text: t("Gratuit et hors ligne, sur ta carte graphique. Plus lent, moins précis.") },
     {
       id: "claude-code",
@@ -125,7 +140,70 @@ export function SettingsView() {
             {t("Elle traduit les articles, prépare les titres en français, explique les passages difficiles et affine tes recommandations.")}
           </p>
           <div className="radio-cards" data-tour="ai-modes">
-            {providers.map((p) => (
+            {providers.filter((p) => p.id === "builtin").map((p) => (
+              <button key={p.id} className={`radio-card ${settings.provider === p.id ? "active" : ""}`} onClick={() => void save({ provider: p.id, allowClaudeCode: false })}>
+                <strong>{p.title}</strong>
+                <span>{p.text}</span>
+              </button>
+            ))}
+          </div>
+
+          {bi && (
+            <div className="builtin-panel">
+              {bi.packs
+                .filter((p) => p.id !== "other" ? p.id === bi.need : true)
+                .map((p) => {
+                  const label = p.id === "other" ? t("Autres langues (allemand, espagnol, japonais…)") : p.id === "en-fr" ? t("Anglais vers français") : t("Français vers anglais");
+                  const busy = bi.downloading === p.id;
+                  return (
+                    <div className="setting-row" key={p.id}>
+                      <div className="grow">
+                        <div>{label}</div>
+                        <div className="small muted">
+                          {p.downloaded
+                            ? t("Prêt, {mb} Mo sur ton ordinateur.", { mb: p.mb })
+                            : p.id === "other"
+                              ? t("Facultatif. Plus lourd ({mb} Mo) et plus lent : à télécharger seulement si tu lis des articles dans ces langues.", { mb: p.mb })
+                              : t("{mb} Mo à télécharger une seule fois. Il traduit ensuite sans connexion.", { mb: p.mb })}
+                        </div>
+                        {busy && (
+                          <div className="progress" aria-label={t("Téléchargement")}>
+                            <div style={{ width: `${Math.round((bi.progress ?? 0) * 100)}%` }} />
+                          </div>
+                        )}
+                      </div>
+                      {p.downloaded ? (
+                        <button className="btn ghost" onClick={async () => setBi(await api.builtinRemove(p.id as BuiltinPack))}>
+                          {t("Supprimer")}
+                        </button>
+                      ) : (
+                        <button className="btn" disabled={!!bi.downloading} onClick={async () => setBi(await api.builtinDownload(p.id as BuiltinPack))}>
+                          {busy ? `${Math.round((bi.progress ?? 0) * 100)} %` : t("Télécharger")}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              {bi.error && <div className="small" style={{ color: "var(--accent)" }}>{bi.error}</div>}
+              <div className="setting-row">
+                <div className="grow">
+                  <div>{t("Aide du serveur Nùkún pour les phrases difficiles")}</div>
+                  <div className="small muted">
+                    {t("Quand le traducteur intégré se trompe, la phrase concernée (rien d'autre, aucun nom) est envoyée à notre serveur, qui la fait traduire par Gemini. Les termes à laisser tels quels qu'il repère enrichissent le lexique commun. Désactivé tant que tu ne l'actives pas.")}
+                  </div>
+                </div>
+                <button className={`switch ${settings.assistServer ? "on" : ""}`} onClick={() => void save({ assistServer: !settings.assistServer })} aria-label={t("Aide du serveur Nùkún pour les phrases difficiles")} />
+              </div>
+            </div>
+          )}
+
+          <details className="advanced" open={settings.provider !== "builtin"}>
+          <summary>{t("Options avancées : Claude, Gemini, IA locale")}</summary>
+          <p className="small muted" style={{ margin: "8px 0 0" }}>
+            {t("Pour ceux qui ont déjà une clé ou un abonnement. Ces IA expliquent mieux les passages difficiles et peuvent corriger le traducteur intégré.")}
+          </p>
+          <div className="radio-cards">
+            {providers.filter((p) => p.id !== "builtin").map((p) => (
               <button
                 key={p.id}
                 className={`radio-card ${settings.provider === p.id ? "active" : ""}`}
@@ -268,6 +346,8 @@ export function SettingsView() {
               </div>
             )}
           </div>
+
+          </details>
 
           <div className="field">
             <label>{t("Termes à toujours garder en anglais (facultatif)")}</label>

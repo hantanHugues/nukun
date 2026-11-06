@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { claudeKey, geminiKey, getSettings, recordClaudeUsage, recordGeminiCall, recordOllamaCall } from "../settings";
 import { HttpError } from "../http";
+import { builtinSelfTest } from "./builtin";
 import { claudeCodeAvailable, claudeCodeJson } from "./claudeCode";
 import { t } from "@shared/i18n";
 
@@ -254,16 +255,22 @@ export async function llmJson<T>(req: JsonRequest): Promise<{ data: T; provider:
   const local: Step = { name: () => ollamaName, available: ollamaReachable, run: () => ollamaJson<T>(req) };
   const sub: Step = { name: () => ccName, available: claudeCodeAvailable, run: () => claudeCodeJson<T>(req) };
 
-  if (s.provider === "hybrid" || s.provider === "gemini") {
+  if (s.provider === "hybrid" || s.provider === "gemini" || s.provider === "builtin") {
     // Hybrid: free Gemini (or the local model) does the bulk, Claude the technical work.
     // Every step covers for the one before: quota reached, service busy, offline…
     const chain =
       s.provider === "gemini"
         ? [gemini, local]
+        : s.provider === "builtin"
+          ? [gemini, local, sub] // the built-in translator needs no AI; these only help when set up in the advanced options
         : req.tier === "heavy"
           ? [sub, gemini, local]
           : [gemini, local, sub];
-    let lastErr: unknown = new LlmUnavailableError(t("Aucune IA disponible : ajoute une clé Gemini (gratuite) dans les réglages, ou lance Ollama."));
+    let lastErr: unknown = new LlmUnavailableError(
+      s.provider === "builtin"
+        ? t("Cette fonction demande une IA connectée. Le traducteur intégré fonctionne sans, mais pour expliquer ou discuter un article, ajoute une clé ou un abonnement dans les options avancées.")
+        : t("Aucune IA disponible : ajoute une clé Gemini (gratuite) dans les réglages, ou lance Ollama."),
+    );
     for (const [i, step] of chain.entries()) {
       if (!(await step.available())) continue;
       try {
@@ -328,6 +335,11 @@ export function describeError(e: unknown): string {
 
 export async function testAi(): Promise<{ ok: boolean; message: string }> {
   try {
+    if (getSettings().provider === "builtin") {
+      const t0 = Date.now();
+      const out = await builtinSelfTest();
+      return { ok: true, message: t("Traducteur intégré : « {phrase} » ({s} s)", { phrase: out, s: ((Date.now() - t0) / 1000).toFixed(1) }) };
+    }
     const { data, provider } = await llmJson<{ reply: string }>({
       system: t("Tu réponds en français, en une phrase courte."),
       user: t("Dis bonjour et confirme que tu es prêt à traduire des articles scientifiques."),

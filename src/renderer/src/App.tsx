@@ -8,6 +8,7 @@ import iconUrl from "./assets/icon.png";
 import { Welcome } from "./components/Interests";
 import { Tour } from "./components/Tour";
 import { LexiconToast } from "./components/LexiconToast";
+import { TranslatorInvite } from "./components/TranslatorInvite";
 import { UpdateToast } from "./components/UpdateToast";
 import { Feed } from "./views/Feed";
 import { Library } from "./views/Library";
@@ -203,6 +204,7 @@ export function App() {
         )}
         {toastMsg && <div className="toast">{toastMsg}</div>}
         <UpdateToast />
+        <TranslatorInvite />
         <LexiconToast />
       </div>
     </AppCtx.Provider>

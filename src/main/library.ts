@@ -42,6 +42,7 @@ import { BLOCKED_MESSAGE, get } from "./http";
 import { claudeCodeAvailable } from "./ai/claudeCode";
 import { describeError, geminiAvailableToday } from "./ai/llm";
 import { glossarySize, recallExplanation, rememberExplanation, rememberGlossary } from "./ai/memory";
+import { BuiltinUnavailableError } from "./ai/builtin";
 import { translateContent } from "./ai/translate";
 import { loadFullText, PendingError } from "./content/loader";
 import { Recommender } from "./reco/recommender";
@@ -802,7 +803,8 @@ export class Library {
         }
       } catch (e) {
         q.clear();
-        this.emit.translation({ id, done: 0, total: 0, error: describeError(e), finished: true });
+        // Translator not downloaded yet: the article simply stays in its language (the invitation does the asking).
+        this.emit.translation({ id, done: 0, total: 0, error: e instanceof BuiltinUnavailableError ? undefined : describeError(e), finished: true });
       }
     })().finally(() => this.visibleJobs.delete(id));
     this.visibleJobs.set(id, job);
@@ -831,7 +833,7 @@ export class Library {
         this.emit.translation({ id, done: 1, total: 1, finished: true });
       } catch (e) {
         writeJson(contentFile(id), c);
-        this.emit.translation({ id, done: 0, total: 0, error: describeError(e), finished: true });
+        this.emit.translation({ id, done: 0, total: 0, error: e instanceof BuiltinUnavailableError ? undefined : describeError(e), finished: true });
       }
     })().finally(() => this.translating.delete(id));
     this.translating.set(id, job);

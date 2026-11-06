@@ -1786,3 +1786,50 @@ figure.blk .fig-explain {
 .lex-list li span {
   text-align: left;
 }
+
+/* Built-in translator: download panel and the folded advanced options */
+.builtin-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+}
+.progress {
+  height: 6px;
+  margin-top: 8px;
+  border-radius: var(--radius-full);
+  background: var(--border);
+  overflow: hidden;
+}
+.progress > div {
+  height: 100%;
+  background: var(--brand);
+  transition: width 0.4s var(--ease);
+}
+details.advanced {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+details.advanced > summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-medium);
+}
+details.advanced[open] > summary {
+  margin-bottom: 4px;
+}
+
+.check-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  cursor: pointer;
+}
+.check-row input {
+  margin-top: 3px;
+  flex: none;
+}

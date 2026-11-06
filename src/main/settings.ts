@@ -12,10 +12,12 @@ interface StoredSettings extends Omit<Settings, "hasClaudeKey" | "hasSemanticSch
 }
 
 const defaults = (): StoredSettings => ({
-  provider: "gemini",
+  provider: "builtin",
   allowClaudeCode: false,
   shareLexicon: false,
   useCommonLexicon: true,
+  assistServer: false,
+  builtinAsked: false,
   claudeModel: "claude-opus-5-5",
   claudeCodeModel: "opus",
   geminiModel: "auto",
@@ -60,6 +62,13 @@ function stored() {
       domains: legacy ? d.domains : { ...d.domains, ...saved },
       languages: { ...d.languages, ...doc.data.languages },
     };
+    // Before the built-in translator, "Gemini" was the default and did nothing without a
+    // key: those who never added one move to the built-in translator (it still uses
+    // Ollama as a relay, like the Gemini mode did).
+    if (before.provider === "gemini" && !before.geminiKeyEnc && !before.claudeKeyEnc) {
+      doc.data.provider = "builtin";
+      doc.save();
+    }
     if (unconsented) {
       doc.data.allowClaudeCode = false;
       if (usesClaudeCode) doc.data.provider = "gemini";
