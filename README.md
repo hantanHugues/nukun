@@ -52,11 +52,11 @@ Limite connue : le sens sert à **classer** le fil, pas aux **filtres**. Un filt
 
 L'app télécharge trois petits modèles depuis Hugging Face, qui tournent sur le processeur du PC. Aucun n'est un LLM : ils n'écrivent rien d'autre que ce pour quoi ils ont été entraînés.
 
-| Modèle | Rôle | Taille | Téléchargé | Licence |
-|---|---|---|---|---|
-| `multilingual-e5-small` (intfloat) | Recommandations par le sens, toutes langues | 130 Mo | Au premier lancement, sauf en mode « Données mobiles » | MIT |
-| `opus-mt-en-fr` et `opus-mt-fr-en` (Helsinki-NLP) | Traducteur intégré, anglais et français | 113 Mo chacun, un seul selon la langue de lecture | Au clic sur « Activer » | Apache 2.0 |
-| `nllb-200-distilled-600M` (Meta) | Pack facultatif « autres langues » (allemand, espagnol, portugais, russe, japonais, chinois) | 912 Mo | Au clic sur « Télécharger » | CC BY-NC 4.0, usage non commercial |
+| Modèle | Type | Rôle | Taille | Téléchargé | Licence |
+|---|---|---|---|---|---|
+| [`multilingual-e5-small`](https://huggingface.co/intfloat/multilingual-e5-small) (intfloat) | Embedding : transforme un texte en 384 nombres dont la proximité mesure la ressemblance de sens | Recommandations par le sens, toutes langues | 130 Mo | Au premier lancement, sauf en mode « Données mobiles » | MIT |
+| [`opus-mt-en-fr`](https://huggingface.co/Helsinki-NLP/opus-mt-en-fr) et [`opus-mt-fr-en`](https://huggingface.co/Helsinki-NLP/opus-mt-fr-en) (Helsinki-NLP) | Traduction : réseau encodeur-décodeur (famille Marian), une paire de langues par modèle | Traducteur intégré, anglais et français | 113 Mo chacun, un seul selon la langue de lecture | Au clic sur « Activer » | Apache 2.0 |
+| [`nllb-200-distilled-600M`](https://huggingface.co/facebook/nllb-200-distilled-600M) (Meta) | Traduction : encodeur-décodeur multilingue (« No Language Left Behind »), 200 langues dans un seul modèle | Pack facultatif « autres langues » (allemand, espagnol, portugais, russe, japonais, chinois) | 912 Mo | Au clic sur « Télécharger » | CC BY-NC 4.0, usage non commercial |
 
 Les versions utilisées sont les conversions ONNX quantifiées en 8 bits publiées par Xenova. La licence de NLLB interdit l'usage commercial : elle convient à Nùkún, gratuit et open source, mais pas à une version vendue.
 

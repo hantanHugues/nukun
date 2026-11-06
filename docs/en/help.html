@@ -124,9 +124,9 @@
           <h3>The three models the app downloads</h3>
           <p>They are small models that work on your computer. None is a big AI like Claude or Gemini: each one does a single thing.</p>
           <ul>
-            <li><strong>Recommendations</strong> (multilingual-e5-small, 130 MB, MIT licence): it measures the meaning of a paper to rank your feed, in every language. It downloads on first launch, unless you turn on “Mobile data”.</li>
-            <li><strong>English and French translator</strong> (Helsinki-NLP's Opus-MT, 113 MB, Apache 2.0 licence): it downloads when you click “Turn on”.</li>
-            <li><strong>Other languages pack</strong> (Meta's NLLB-200, 912 MB, CC BY-NC 4.0 licence, non-commercial use): optional, to download in Settings.</li>
+            <li><strong>Recommendations</strong> (<a href="https://huggingface.co/intfloat/multilingual-e5-small">multilingual-e5-small</a>, 130 MB, MIT licence): an “embedding” model, which turns a text into numbers to measure how close it is to others. It measures the meaning of a paper to rank your feed, in every language. It downloads on first launch, unless you turn on “Mobile data”.</li>
+            <li><strong>English and French translator</strong> (Helsinki-NLP's Opus-MT: <a href="https://huggingface.co/Helsinki-NLP/opus-mt-en-fr">English to French</a> and <a href="https://huggingface.co/Helsinki-NLP/opus-mt-fr-en">French to English</a>, 113 MB, Apache 2.0 licence): a translation model, one per language pair. It downloads when you click “Turn on”.</li>
+            <li><strong>Other languages pack</strong> (<a href="https://huggingface.co/facebook/nllb-200-distilled-600M">Meta's NLLB-200</a>, 912 MB, CC BY-NC 4.0 licence, non-commercial use): a translation model that covers 200 languages on its own. Optional, to download in Settings.</li>
           </ul>
           <h3>Its limits</h3>
           <p>
