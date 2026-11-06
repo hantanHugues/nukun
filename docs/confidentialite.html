@@ -21,6 +21,7 @@
           <a href="./#fonctionnalites">Fonctionnalités</a>
           <a href="./#questions">Questions</a>
           <a href="aide.html">Aide</a>
+          <a href="nouveautes.html">Nouveautés</a>
         </nav>
         <a class="lang-switch" href="en/privacy.html" hreflang="en" lang="en">English</a>
         <a class="btn btn-primary btn-small" href="./#telecharger">Télécharger</a>
@@ -31,6 +32,7 @@
       <nav class="help-nav" aria-label="Sommaire">
         <a href="#app">L'app et tes données</a>
         <a href="#tiers">Services utilisés</a>
+        <a href="#traducteur">Traducteur intégré</a>
         <a href="#lexique">Proposer des termes</a>
         <a href="#site">Ce site</a>
         <a href="#contenus">Articles et traductions</a>
@@ -48,7 +50,7 @@
             Nùkún fonctionne sur ton ordinateur, sans compte. Ton profil de lecture, tes centres d'intérêt, ta
             bibliothèque, tes notes, tes textes, les traductions et tes réglages sont enregistrés uniquement sur ton PC,
             dans <span class="ui">%APPDATA%\Nukun</span> sous Windows et <span class="ui">~/.config/Nukun</span> sous Linux. L'auteur de l'app n'y a pas accès et ne reçoit aucune donnée,
-            aucune statistique d'usage et aucun rapport d'erreur, sauf les termes que tu acceptes de partager (voir « Lexique commun »).
+            aucune statistique d'usage et aucun rapport d'erreur, sauf ce que tu acceptes d'envoyer : des termes techniques (voir « Lexique commun ») ou des phrases à corriger (voir « Traducteur intégré »).
           </p>
           <p>
             Tes clés d'API (Google, Claude, Semantic Scholar) restent elles aussi sur ton PC. Elles servent uniquement à
@@ -82,6 +84,27 @@
             </li>
           </ul>
           <p>Ces services peuvent voir ton adresse IP, comme pour toute connexion à Internet.</p>
+        </section>
+
+        <section id="traducteur">
+          <h2>Traducteur intégré et aide du serveur</h2>
+          <p>
+            Le traducteur intégré est un petit modèle qui travaille sur ton ordinateur : une fois téléchargé, il traduit sans
+            connexion, sans compte et sans clé. Le téléchargement ne démarre que quand tu cliques sur « Activer » ou
+            « Télécharger ». Les fichiers du modèle viennent de Hugging Face, qui voit ton adresse IP à ce moment-là, comme tout
+            site que tu visites. Tant que tu n'as pas cliqué, les articles restent dans leur langue d'origine et rien n'est
+            téléchargé.
+          </p>
+          <p>
+            <strong>Aide du serveur</strong> : facultative et désactivée tant que tu ne l'as pas cochée. Quand le petit modèle
+            se trompe (par exemple un passage laissé presque tel quel), l'app peut envoyer au serveur de Nùkún cette phrase, et
+            elle seule, avec les lignes du glossaire qui la concernent, pour que Gemini la traduise. Jamais le titre de
+            l'article, son adresse, tes notes, tes lectures ni ton nom. Le serveur ne garde pas la phrase : il garde seulement,
+            comme pour le lexique commun, les termes à laisser tels quels que Gemini a repérés, avec leur définition. Le serveur
+            limite le nombre de demandes par jour et, si Gemini est indisponible, l'app garde sa propre traduction. Un numéro
+            tiré au hasard, propre à ton installation, sert à compter les demandes. Tu peux décocher l'aide à tout moment dans
+            Réglages, Intelligence artificielle.
+          </p>
         </section>
 
         <section id="lexique">

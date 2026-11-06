@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>What's new in Nùkún</title>
+    <meta name="description" content="What changes in Nùkún, version by version." />
+    <link rel="alternate" hreflang="fr" href="https://hantanhugues.github.io/nukun/nouveautes.html" />
+    <link rel="alternate" hreflang="en" href="https://hantanhugues.github.io/nukun/en/news.html" />
+    <link rel="icon" href="../site/img/icon.png" />
+    <link rel="stylesheet" href="../site/fonts.css" />
+    <link rel="stylesheet" href="../site/style.css" />
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="nav">
+      <div class="wrap">
+        <a class="brand" href="./"><img src="../site/img/icon.png" alt="" width="30" height="30" />Nùkún</a>
+        <nav class="nav-links" aria-label="Main navigation">
+          <a href="./#features">Features</a>
+          <a href="./#questions">Questions</a>
+          <a href="help.html">Help</a>
+          <a href="news.html" aria-current="page">What's new</a>
+        </nav>
+        <a class="lang-switch" href="../nouveautes.html" hreflang="fr" lang="fr">Français</a>
+        <a class="btn btn-primary btn-small" href="./#download">Download</a>
+      </div>
+    </header>
+
+    <main id="main" class="wrap news">
+      <h1>What's new</h1>
+      <p class="lede">What changes in Nùkún, version by version.</p>
+
+      <article class="release" id="v1-0-2">
+        <h2>Version 1.0.2 <span class="badge">Major update</span></h2>
+        <p class="when">November 2026</p>
+
+        <h3>A built-in translator, no key or account</h3>
+        <p>
+          Nùkún no longer needs a Google key or an installed AI to translate. A small 113 MB translator downloads once, when you
+          click “Turn on”, then works on your computer, even offline. It uses a single processor core and unloads when you stop
+          reading: your PC does not slow down. Meanwhile, articles stay in their original language.
+        </p>
+        <figure class="shot">
+          <img src="../site/img/traducteur-en.webp" width="1440" height="900" loading="lazy" alt="The Artificial intelligence section of the settings: the built-in translator, its downloads and the server help." />
+        </figure>
+        <ul>
+          <li><strong>English and French</strong> with the basic translator. An optional 912 MB pack adds German, Spanish, Portuguese, Russian, Japanese and Chinese.</li>
+          <li><strong>Lexicon terms are protected.</strong> Names, acronyms and jargon to leave as they are, and formulas, no longer go through the model.</li>
+          <li><strong>Server help, optional.</strong> If you tick it, sentences the small translator gets wrong are fixed by Gemini through the Nùkún server. Only those sentences are sent, and the terms it spots enrich the shared lexicon.</li>
+          <li><strong>Claude, Gemini and Ollama are still available</strong> under “Advanced options”, for those who already have a key or a subscription.</li>
+        </ul>
+        <p>For details, see the <a href="help.html#translator">help</a> and the <a href="privacy.html#translator">Privacy</a> page.</p>
+
+        <h3>The shared lexicon</h3>
+        <p>
+          When Nùkún translates a paper, some terms must not be translated: names, acronyms, the jargon specialists leave as it
+          is. Nùkún spots them and remembers them. From now on, the ones readers choose to share, once checked, serve everyone
+          else too.
+        </p>
+        <figure class="shot">
+          <img src="../site/img/lexique-en.webp" width="1440" height="900" loading="lazy" alt="The Shared lexicon section of Nùkún's settings, with its two switches." />
+        </figure>
+        <ul>
+          <li><strong>Downloaded by default.</strong> The published terms help translate consistently. A switch in Settings, Shared lexicon, turns it off.</li>
+          <li><strong>Sharing is optional, and off until you say yes.</strong> A small window offers it at most once a week, from 10 terms, with the full list before anything is sent. Never the text of your articles, your notes or your name.</li>
+          <li><strong>Checked, not a dictionary.</strong> Each term is checked by an AI, then published only if several different readers sent it. Common words that have a translation do not go in.</li>
+          <li><strong>For both languages.</strong> A term shared by a French reader can serve English readers, with a definition written for them.</li>
+        </ul>
+        <p>For the details, see <a href="help.html#lexicon">the help page</a> and <a href="privacy.html#lexicon">Privacy</a>.</p>
+
+        <h3>Claude only if you allow it</h3>
+        <p>
+          The built-in translator is the default mode. Your Claude subscription is used only if you choose a mode that includes it
+          (Hybrid, My Claude subscription or Automatic), and each says so on its card. Installations that had the old default
+          move to the built-in translator.
+        </p>
+
+        <h3>A finer translation</h3>
+        <p>
+          The AI now receives the meaning of each glossary term and applies it only where the word has that meaning: a technical
+          word left as it is in one context is still translated when it is used in its ordinary sense.
+        </p>
+
+        <h3>Also</h3>
+        <ul>
+          <li>The Papers page is called "Your reading feed", since your feed is not limited to science.</li>
+          <li>Drop-down lists in the app's colours, usable with the keyboard.</li>
+        </ul>
+      </article>
+
+      <article class="release" id="v1-0-0">
+        <h2>Version 1.0.0</h2>
+        <p class="when">October 2026</p>
+        <p>
+          The first public version: a feed of open-access papers and official news on the subjects you choose, translated into
+          English or French, with explanations, reading notes and writing. For Windows and Linux, with built-in updates.
+        </p>
+      </article>
+
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <span>Nùkún, made by <a href="https://hantan-hugues.vercel.app">Ashlynx</a>. MIT licence.</span>
+        <span><a href="./">Home</a> &nbsp; <a href="https://github.com/hantanHugues/nukun">GitHub</a> &nbsp; <a href="https://hantan-hugues.vercel.app">Portfolio</a> &nbsp; <a href="privacy.html">Privacy</a> &nbsp; <a href="../nouveautes.html" hreflang="fr">Français</a></span>
+      </div>
+      <nav class="wrap socials" aria-label="Follow Ashlynx">
+          <span>Follow Ashlynx</span>
+          <a href="https://www.linkedin.com/in/ash-hantan" rel="me">LinkedIn</a>
+          <a href="https://x.com/Ashlynx_005" rel="me">X</a>
+          <a href="https://www.instagram.com/von_ashlynx" rel="me">Instagram</a>
+          <a href="https://www.facebook.com/VonAshlynx" rel="me">Facebook</a>
+          <a href="https://github.com/hantanHugues" rel="me">GitHub</a>
+      </nav>
+    </footer>
+    <script src="../site/site.js" defer></script>
+  </body>
+</html>

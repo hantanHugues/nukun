@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>Nouveautés de Nùkún</title>
+    <meta name="description" content="Ce qui change dans Nùkún, version par version." />
+    <link rel="alternate" hreflang="fr" href="https://hantanhugues.github.io/nukun/nouveautes.html" />
+    <link rel="alternate" hreflang="en" href="https://hantanhugues.github.io/nukun/en/news.html" />
+    <link rel="icon" href="site/img/icon.png" />
+    <link rel="stylesheet" href="site/fonts.css" />
+    <link rel="stylesheet" href="site/style.css" />
+  </head>
+  <body>
+    <a class="skip" href="#main">Aller au contenu</a>
+    <header class="nav">
+      <div class="wrap">
+        <a class="brand" href="./"><img src="site/img/icon.png" alt="" width="30" height="30" />Nùkún</a>
+        <nav class="nav-links" aria-label="Navigation principale">
+          <a href="./#fonctionnalites">Fonctionnalités</a>
+          <a href="./#questions">Questions</a>
+          <a href="aide.html">Aide</a>
+          <a href="nouveautes.html" aria-current="page">Nouveautés</a>
+        </nav>
+        <a class="lang-switch" href="en/news.html" hreflang="en" lang="en">English</a>
+        <a class="btn btn-primary btn-small" href="./#telecharger">Télécharger</a>
+      </div>
+    </header>
+
+    <main id="main" class="wrap news">
+      <h1>Nouveautés</h1>
+      <p class="lede">Ce qui change dans Nùkún, version par version.</p>
+
+      <article class="release" id="v1-0-2">
+        <h2>Version 1.0.2 <span class="badge">Mise à jour majeure</span></h2>
+        <p class="when">Novembre 2026</p>
+
+        <h3>Un traducteur intégré, sans clé ni compte</h3>
+        <p>
+          Nùkún n'a plus besoin d'une clé Google ni d'une IA installée pour traduire. Un petit traducteur de 113 Mo se télécharge
+          une seule fois, quand tu cliques sur « Activer », puis travaille sur ton ordinateur, même hors ligne. Il n'utilise
+          qu'un cœur du processeur et se décharge quand tu ne lis plus : ton PC ne ralentit pas. En attendant, les articles
+          restent dans leur langue d'origine.
+        </p>
+        <figure class="shot">
+          <img src="site/img/traducteur-fr.webp" width="1440" height="900" loading="lazy" alt="La section Intelligence artificielle des réglages : le traducteur intégré, ses téléchargements et l'aide du serveur." />
+        </figure>
+        <ul>
+          <li><strong>Anglais et français</strong> avec le traducteur de base. Un pack facultatif de 912 Mo ajoute l'allemand, l'espagnol, le portugais, le russe, le japonais et le chinois.</li>
+          <li><strong>Les termes du lexique sont protégés.</strong> Les noms, sigles et jargon à laisser tels quels ne passent plus par le modèle, ni les formules.</li>
+          <li><strong>Aide du serveur, facultative.</strong> Si tu la coches, les phrases que le petit traducteur rate sont corrigées par Gemini via le serveur de Nùkún. Seules ces phrases sont envoyées, et les termes repérés enrichissent le lexique commun.</li>
+          <li><strong>Claude, Gemini et Ollama restent disponibles</strong> dans « Options avancées », pour ceux qui ont déjà une clé ou un abonnement.</li>
+        </ul>
+        <p>Pour le détail, voir <a href="aide.html#traducteur">l'aide</a> et la page <a href="confidentialite.html#traducteur">Confidentialité</a>.</p>
+
+        <h3>Le lexique commun</h3>
+        <p>
+          Quand Nùkún traduit un article, certains termes ne doivent pas être traduits : les noms, les sigles, le jargon que
+          les spécialistes laissent tel quel. Nùkún les repère et les retient. Désormais, ceux que des lecteurs choisissent de
+          partager, une fois vérifiés, servent aussi à tous les autres.
+        </p>
+        <figure class="shot">
+          <img src="site/img/lexique-fr.webp" width="1440" height="900" loading="lazy" alt="La section Lexique commun des réglages de Nùkún, avec ses deux interrupteurs." />
+        </figure>
+        <ul>
+          <li><strong>Téléchargé par défaut.</strong> Les termes publiés aident à traduire de façon régulière. Un interrupteur dans Réglages, Lexique commun, le coupe.</li>
+          <li><strong>Partage facultatif, désactivé tant que tu n'as pas dit oui.</strong> Une petite fenêtre te le propose au plus une fois par semaine, à partir de 10 termes, avec la liste complète avant tout envoi. Jamais le texte de tes articles, tes notes ni ton nom.</li>
+          <li><strong>Vérifié, pas un dictionnaire.</strong> Chaque terme est contrôlé par une IA, puis publié seulement si plusieurs lecteurs différents l'ont envoyé. Les mots courants qui ont une traduction n'y entrent pas.</li>
+          <li><strong>Pour les deux langues.</strong> Un terme partagé par un lecteur français peut servir aux lecteurs anglais, avec une définition écrite pour eux.</li>
+        </ul>
+        <p>Pour le détail, voir <a href="aide.html#lexique">l'aide</a> et la page <a href="confidentialite.html#lexique">Confidentialité</a>.</p>
+
+        <h3>Claude seulement si tu l'autorises</h3>
+        <p>
+          Le traducteur intégré est le mode par défaut. Ton abonnement Claude n'est utilisé que si tu choisis un mode qui le
+          prévoit (Hybride, Mon abonnement Claude ou Automatique), et chacun le dit sur sa carte. Les installations qui avaient
+          l'ancien réglage par défaut passent sur le traducteur intégré.
+        </p>
+
+        <h3>Une traduction plus fine</h3>
+        <p>
+          L'IA reçoit maintenant le sens de chaque terme du glossaire et ne l'applique que là où le mot a ce sens : un mot
+          technique laissé tel quel dans un contexte reste traduit quand il est employé au sens courant.
+        </p>
+
+        <h3>Et aussi</h3>
+        <ul>
+          <li>La page Articles s'appelle « Ton fil de lecture », puisque ton fil n'est pas limité à la science.</li>
+          <li>Des listes déroulantes aux couleurs de l'app, utilisables au clavier.</li>
+        </ul>
+      </article>
+
+      <article class="release" id="v1-0-0">
+        <h2>Version 1.0.0</h2>
+        <p class="when">Octobre 2026</p>
+        <p>
+          La première version publique : un fil d'articles en libre accès et d'actualités officielles sur les sujets de ton
+          choix, traduits en français ou en anglais, avec explications, notes de lecture et écriture. Pour Windows et pour Linux,
+          avec mises à jour intégrées.
+        </p>
+      </article>
+
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <span>Nùkún, créé par <a href="https://hantan-hugues.vercel.app">Ashlynx</a>. Licence MIT.</span>
+        <span><a href="./">Accueil</a> &nbsp; <a href="https://github.com/hantanHugues/nukun">GitHub</a> &nbsp; <a href="https://hantan-hugues.vercel.app">Portfolio</a> &nbsp; <a href="confidentialite.html">Confidentialité</a> &nbsp; <a href="en/news.html" hreflang="en">English</a></span>
+      </div>
+      <nav class="wrap socials" aria-label="Suivre Ashlynx">
+          <span>Suivre Ashlynx</span>
+          <a href="https://www.linkedin.com/in/ash-hantan" rel="me">LinkedIn</a>
+          <a href="https://x.com/Ashlynx_005" rel="me">X</a>
+          <a href="https://www.instagram.com/von_ashlynx" rel="me">Instagram</a>
+          <a href="https://www.facebook.com/VonAshlynx" rel="me">Facebook</a>
+          <a href="https://github.com/hantanHugues" rel="me">GitHub</a>
+      </nav>
+    </footer>
+    <script src="site/site.js" defer></script>
+  </body>
+</html>

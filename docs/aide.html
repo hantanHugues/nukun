@@ -21,6 +21,7 @@
           <a href="./#fonctionnalites">Fonctionnalités</a>
           <a href="./#questions">Questions</a>
           <a href="aide.html" aria-current="page">Aide</a>
+          <a href="nouveautes.html">Nouveautés</a>
         </nav>
         <a class="lang-switch" href="en/help.html" hreflang="en" lang="en">English</a>
         <a class="btn btn-primary btn-small" href="./#telecharger">Télécharger</a>
@@ -31,7 +32,8 @@
       <nav class="help-nav" aria-label="Sommaire">
         <a href="#installer">Installer</a>
         <a href="#premier-lancement">Premier lancement</a>
-        <a href="#cle">La clé Google</a>
+        <a href="#traducteur">Le traducteur intégré</a>
+        <a href="#cle">Les clés et IA (avancé)</a>
         <a href="#ou-regler">Où régler quoi</a>
         <a href="#messages">Les messages</a>
         <a href="#gestes">Gestes utiles</a>
@@ -108,11 +110,28 @@
           </p>
         </section>
 
-        <section id="cle">
-          <h2>La clé Google, pour traduire</h2>
+        <section id="traducteur">
+          <h2>Le traducteur intégré</h2>
           <p>
-            Les traductions et les explications passent par Gemini, l'IA de Google. Son quota gratuit suffit pour un usage
-            quotidien, mais il faut ta propre clé.
+            Au premier lancement, les articles s'affichent dans leur langue d'origine et une petite carte te propose
+            d'<span class="ui">Activer</span> la traduction. Un traducteur de 113 Mo se télécharge alors une seule fois, puis
+            travaille sur ton ordinateur : sans compte, sans clé, même hors ligne, et sans ralentir ton PC (il n'utilise qu'un
+            cœur du processeur et se décharge quand tu ne lis plus).
+          </p>
+          <ul>
+            <li><strong>Anglais et français</strong> : le traducteur de base suffit.</li>
+            <li><strong>Autres langues</strong> (allemand, espagnol, portugais, russe, japonais, chinois) : un pack facultatif de 912 Mo, plus lent, à télécharger dans <span class="ui">Réglages</span>, <span class="ui">Intelligence artificielle</span>.</li>
+            <li><strong>Aide du serveur</strong> : si tu la coches, les phrases que le traducteur rate sont corrigées par Gemini via le serveur de Nùkún. Seules ces phrases sont envoyées (voir la <a href="confidentialite.html#traducteur">confidentialité</a>).</li>
+          </ul>
+          <p>Les termes à laisser tels quels (noms, sigles, jargon) du lexique commun sont protégés : le traducteur ne les touche pas.</p>
+        </section>
+
+        <section id="cle">
+          <h2>Les clés et IA, pour aller plus loin (facultatif)</h2>
+          <p>
+            Le traducteur intégré suffit pour lire. Pour qu'une IA explique les passages difficiles ou discute d'un article, tu
+            peux ajouter, dans <span class="ui">Options avancées</span>, une clé Google (Gemini, gratuit), ton abonnement Claude
+            ou une IA locale (Ollama).
           </p>
           <ol>
             <li>
@@ -129,13 +148,13 @@
           <h3>Les autres modes d'IA</h3>
           <p>Dans la même section, tu choisis qui fait le travail :</p>
           <ul>
-            <li><strong>Gemini seul</strong> : gratuit avec ta clé. L'IA locale prend le relais si le quota du jour est atteint.</li>
+            <li><strong>Gemini seul</strong> : gratuit avec ta clé Google. L'IA locale prend le relais si le quota du jour est atteint.</li>
             <li><strong>IA locale seule</strong> : gratuit et hors ligne grâce à Ollama, sur ta carte graphique. Plus lent, moins précis.</li>
             <li><strong>Mon abonnement Claude</strong> : passe par Claude Code s'il est installé et connecté sur ce PC.</li>
             <li><strong>Hybride</strong> : Gemini traduit le gros du texte, Claude reprend les passages les plus techniques.</li>
           </ul>
           <p>
-            Le mode par défaut est Gemini seul. Ton abonnement Claude n'est jamais utilisé tant que tu ne l'as pas autorisé : les
+            Le mode par défaut est le traducteur intégré. Ton abonnement Claude n'est jamais utilisé tant que tu ne l'as pas autorisé : les
             modes Hybride, Mon abonnement Claude et Automatique l'autorisent en les choisissant, et chacun le rappelle sur sa carte.
             Il consomme alors les limites de ton abonnement.
           </p>

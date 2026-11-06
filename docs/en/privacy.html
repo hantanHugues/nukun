@@ -21,6 +21,7 @@
           <a href="./#features">Features</a>
           <a href="./#questions">Questions</a>
           <a href="help.html">Help</a>
+          <a href="news.html">What's new</a>
         </nav>
         <a class="lang-switch" href="../confidentialite.html" hreflang="fr" lang="fr">Français</a>
         <a class="btn btn-primary btn-small" href="./#download">Download</a>
@@ -31,6 +32,7 @@
       <nav class="help-nav" aria-label="Contents">
         <a href="#app">The app and your data</a>
         <a href="#services">Services used</a>
+        <a href="#translator">Built-in translator</a>
         <a href="#lexicon">Proposing terms</a>
         <a href="#site">This website</a>
         <a href="#content">Papers and translations</a>
@@ -47,8 +49,7 @@
           <p>
             Nùkún runs on your computer, without an account. Your reading profile, interests, library, notes, writing,
             translations and settings are stored only on your PC, in <span class="ui">%APPDATA%\Nukun</span> on Windows and <span class="ui">~/.config/Nukun</span> on Linux. The app's
-            author has no access to them and receives no data, no usage statistics and no error reports, except the terms you agree to share (see “Shared lexicon”).
-          </p>
+            author has no access to them and receives no data, no usage statistics and no error reports, except what you agree to send: technical terms (see “Shared lexicon”) or sentences to fix (see “Built-in translator”).</p>
           <p>
             Your API keys (Google, Claude, Semantic Scholar) also stay on your PC. They are only used to call the matching
             service.
@@ -79,6 +80,26 @@
             </li>
           </ul>
           <p>These services may see your IP address, as with any Internet connection.</p>
+        </section>
+
+        <section id="translator">
+          <h2>Built-in translator and server help</h2>
+          <p>
+            The built-in translator is a small model that works on your computer: once downloaded, it translates with no
+            connection, no account and no key. The download starts only when you click “Turn on” or “Download”. The model files
+            come from Hugging Face, which sees your IP address at that moment, like any site you visit. Until you click,
+            articles stay in their original language and nothing is downloaded.
+          </p>
+          <p>
+            <strong>Server help</strong>: optional, and off until you tick it. When the small model gets something wrong (for
+            example a passage left almost as it was), the app can send the Nùkún server that sentence, and only that sentence,
+            with the glossary lines that concern it, so that Gemini translates it. Never the article's title, its address, your
+            notes, your reading or your name. The server does not keep the sentence: it only keeps, as for the shared lexicon,
+            the terms to leave as they are that Gemini spotted, with their definition. The server limits the number of requests
+            per day and, if Gemini is unavailable, the app keeps its own translation. A random number specific to your
+            installation is used to count the requests. You can untick the help at any time in Settings, Artificial
+            intelligence.
+          </p>
         </section>
 
         <section id="lexicon">
