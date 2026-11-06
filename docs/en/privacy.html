@@ -31,6 +31,7 @@
       <nav class="help-nav" aria-label="Contents">
         <a href="#app">The app and your data</a>
         <a href="#services">Services used</a>
+        <a href="#lexicon">Proposing terms</a>
         <a href="#site">This website</a>
         <a href="#content">Papers and translations</a>
         <a href="#software">Licence and warranty</a>
@@ -39,14 +40,14 @@
 
       <div class="help-body">
         <h1>Privacy and legal notice</h1>
-        <p class="lede">In short: Nùkún collects nothing about you. No account, no ads, no analytics.</p>
+        <p class="lede">In short: Nùkún collects nothing about you, except the technical terms you choose to share. No account, no ads, no analytics.</p>
 
         <section id="app">
           <h2>The app and your data</h2>
           <p>
             Nùkún runs on your computer, without an account. Your reading profile, interests, library, notes, writing,
             translations and settings are stored only on your PC, in <span class="ui">%APPDATA%\Nukun</span> on Windows and <span class="ui">~/.config/Nukun</span> on Linux. The app's
-            author has no access to them and receives no data, no usage statistics and no error reports.
+            author has no access to them and receives no data, no usage statistics and no error reports, except the terms you agree to share (see “Shared lexicon”).
           </p>
           <p>
             Your API keys (Google, Claude, Semantic Scholar) also stay on your PC. They are only used to call the matching
@@ -78,6 +79,31 @@
             </li>
           </ul>
           <p>These services may see your IP address, as with any Internet connection.</p>
+        </section>
+
+        <section id="lexicon">
+          <h2>Shared lexicon (optional)</h2>
+          <p>
+            Nùkún remembers the technical terms it learns while translating your articles (for example “deep learning” and its
+            translation). A shared lexicon, fed by readers, lets everyone translate them the same way.
+          </p>
+          <p>
+            <strong>Downloading</strong> this lexicon is on by default: the app asks the Nùkún server for the list of published
+            terms. That server sees your IP address, like any site you visit. You can turn it off in Settings, Shared lexicon, and
+            data saving stops it too.
+          </p>
+          <p>
+            <strong>Sharing</strong> your terms is off until you accept. If you do, the app sends the server, from time to time,
+            the terms it learned with their translation, definition and languages, plus a random number specific to your
+            installation, used to count each reader once. Never the text of your articles, your notes, your reading or your name.
+            You see the list before accepting and can stop at any time. A small window offers it at most once a week, until you
+            accept or decline.
+          </p>
+          <p>
+            Every term received is checked by Gemini, Google's AI, then published only if several different readers sent it. The
+            server keeps the terms, and salted fingerprints of the IP address and installation number, never the address itself.
+            It is hosted by Render and its database by Neon, in Frankfurt.
+          </p>
         </section>
 
         <section id="site">

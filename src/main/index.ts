@@ -5,7 +5,8 @@ import type { DomainId, Draft, Interaction, Interest, Note, Settings } from "@sh
 import { claudeCodeInstalled } from "./ai/claudeCode";
 import { adviseLocalModel, detectHardware } from "./ai/hardware";
 import { ollamaModels, ollamaReachable, testAi } from "./ai/llm";
-import { flushExplanations, flushGlossary, flushMemory } from "./ai/memory";
+import { flushCommon, flushExplanations, flushGlossary, flushMemory } from "./ai/memory";
+import { flushLexicon, lexiconPrepare, lexiconRemind, lexiconShare, lexiconShown, lexiconStatus, startLexicon, syncCommon } from "./lexicon";
 import { BROWSER_UA, get } from "./http";
 import { Library } from "./library";
 import { downloadUpdate, installUpdate, startUpdates, updateState } from "./updater";
@@ -164,6 +165,12 @@ function registerIpc() {
   ipcMain.handle("getProfile", () => lib.profileView());
   ipcMain.handle("resetProfile", () => lib.resetProfile());
   ipcMain.handle("analyzeInterests", () => lib.analyzeInterests());
+  ipcMain.handle("lexiconStatus", () => lexiconStatus());
+  ipcMain.handle("lexiconPrepare", () => lexiconPrepare());
+  ipcMain.handle("lexiconShare", () => lexiconShare());
+  ipcMain.handle("lexiconSync", () => syncCommon(true).catch(() => {}));
+  ipcMain.handle("lexiconShown", () => lexiconShown());
+  ipcMain.handle("lexiconRemind", (_e, on: boolean) => lexiconRemind(!!on));
   ipcMain.handle("updateState", () => updateState());
   ipcMain.handle("downloadUpdate", () => downloadUpdate());
   ipcMain.handle("installUpdate", () => {
@@ -233,6 +240,7 @@ if (!app.requestSingleInstanceLock()) {
     setTimeout(() => lib.indexMeaning(), 5000);
     setTimeout(() => lib.seedGlossaryMemory(), 8000);
     startUpdates((s) => send("update-state", s));
+    startLexicon();
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow();
     });
@@ -243,6 +251,8 @@ if (!app.requestSingleInstanceLock()) {
     flushMemory();
     flushExplanations();
     flushGlossary();
+    flushLexicon();
+    flushCommon();
   });
   app.on("window-all-closed", () => {
     if (process.platform !== "darwin") app.quit();

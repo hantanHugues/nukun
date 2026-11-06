@@ -1,9 +1,10 @@
 import { CheckCircle2, ExternalLink, FolderOpen, KeyRound, RefreshCw, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { AiProvider, AiStatus, Settings, SourceStatus, UsageStats } from "@shared/types";
+import type { AiProvider, AiStatus, LexiconStatus, Settings, SourceStatus, UsageStats } from "@shared/types";
 import { SOURCES } from "@shared/types";
 import type { Interest } from "@shared/types";
 import { InterestsEditor, MIN_INTERESTS } from "../components/Interests";
+import { LexiconDialog } from "../components/LexiconDialog";
 import { Select } from "../components/Select";
 import { SectionNav } from "../components/SectionNav";
 import { lang, t } from "@shared/i18n";
@@ -14,6 +15,7 @@ const SECTIONS = [
   { id: "s-interests", label: "Centres d'intérêt" },
   { id: "s-data", label: "Données mobiles" },
   { id: "s-sources", label: "Sources" },
+  { id: "s-lexicon", label: "Lexique commun" },
   { id: "s-tour", label: "Tutoriel" },
   { id: "s-export", label: "Export" },
 ];
@@ -41,6 +43,11 @@ export function SettingsView() {
   const [models, setModels] = useState<string[]>([]);
   const [hw, setHw] = useState<AiStatus | null>(null);
   const [usage, setUsage] = useState<UsageStats | null>(null);
+  const [lex, setLex] = useState<LexiconStatus | null>(null);
+  const [lexOpen, setLexOpen] = useState(false);
+  useEffect(() => {
+    void api.lexiconStatus().then(setLex);
+  }, []);
   const [status, setStatus] = useState<SourceStatus[]>([]);
   const [hint, setHint] = useState(settings?.keepTermsHint ?? "");
 
@@ -420,6 +427,86 @@ export function SettingsView() {
         </section>
 
         {/* ---------------------------------------------------------------- tutorial */}
+        <section className="card section" id="s-lexicon">
+          <h2 className="h2">{t("Lexique commun")}</h2>
+          <p className="small muted" style={{ margin: "6px 0 0" }}>
+            {t("Nùkún retient les termes techniques qu'il apprend, pour les traduire toujours de la même façon. Le lexique commun rassemble ceux que des lecteurs ont partagés et qui ont été vérifiés.")}
+          </p>
+          {lex && (
+            <>
+              <div className="setting-row">
+                <div className="grow">
+                  <strong>{t("Utiliser le lexique commun")}</strong>
+                  <p className="small muted" style={{ margin: "4px 0 0" }}>
+                    {t("Télécharge les termes partagés par les autres lecteurs ({n} sur ce PC). Le serveur ne voit que ton adresse IP, comme pour toute connexion.", { n: lex.common })}
+                  </p>
+                </div>
+                <button
+                  className={`switch ${settings.useCommonLexicon ? "on" : ""}`}
+                  aria-label={t("Utiliser le lexique commun")}
+                  onClick={async () => {
+                    const on = !settings.useCommonLexicon;
+                    await save({ useCommonLexicon: on });
+                    if (on) await api.lexiconSync();
+                    setLex(await api.lexiconStatus());
+                  }}
+                />
+              </div>
+              <div className="setting-row">
+                <div className="grow">
+                  <strong>{t("Partager mes termes")}</strong>
+                  <p className="small muted" style={{ margin: "4px 0 0" }}>
+                    {t("Envoie au serveur de Nùkún les termes appris, avec leur traduction et leur définition : jamais le texte de tes articles. Désactivé tant que tu ne l'as pas accepté.")}
+                  </p>
+                  <p className="small" style={{ margin: "6px 0 0" }}>
+                    {t("{n} termes à partager, {m} déjà envoyés.", { n: lex.pending, m: lex.sent })}
+                    {lex.lastSendAt ? ` ${t("Dernier envoi : {quand}.", { quand: timeAgo(lex.lastSendAt) })}` : ""}
+                  </p>
+                </div>
+                <button
+                  className={`switch ${lex.shared ? "on" : ""}`}
+                  aria-label={t("Partager mes termes")}
+                  onClick={async () => {
+                    if (lex.shared) {
+                      await save({ shareLexicon: false });
+                      setLex(await api.lexiconStatus());
+                    } else setLexOpen(true);
+                  }}
+                />
+              </div>
+              {!lex.shared && (
+                <div className="setting-row">
+                  <div className="grow">
+                    <strong>{t("Me le proposer une fois par semaine")}</strong>
+                    <p className="small muted" style={{ margin: "4px 0 0" }}>
+                      {t("Une petite fenêtre te demande si tu veux partager, quand {n} termes ou plus attendent.", { n: lex.min })}
+                    </p>
+                  </div>
+                  <button
+                    className={`switch ${lex.remind ? "on" : ""}`}
+                    aria-label={t("Me le proposer une fois par semaine")}
+                    onClick={() => {
+                      void api.lexiconRemind(!lex.remind).then(() => api.lexiconStatus().then(setLex));
+                    }}
+                  />
+                </div>
+              )}
+            </>
+          )}
+        </section>
+        {lexOpen && (
+          <LexiconDialog
+            onClose={() => {
+              setLexOpen(false);
+              void api.lexiconStatus().then(setLex);
+            }}
+            onDone={() => {
+              setLexOpen(false);
+              void api.lexiconStatus().then(setLex);
+            }}
+          />
+        )}
+
         <section className="card section" id="s-tour" data-tour="tour">
           <div className="row">
             <div className="grow">

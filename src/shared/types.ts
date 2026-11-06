@@ -271,6 +271,10 @@ export interface Settings {
   provider: AiProvider;
   /** The reader switched on the use of their Claude subscription (Claude Code). Off until then. */
   allowClaudeCode: boolean;
+  /** The reader agreed to send the terms the app learned to the shared lexicon. Off until then. */
+  shareLexicon: boolean;
+  /** Download and use the shared lexicon. */
+  useCommonLexicon: boolean;
   claudeModel: string;
   claudeCodeModel: "opus" | "sonnet" | "haiku";
   geminiModel: string;
@@ -400,6 +404,35 @@ export interface TranslationProgress {
   finished?: boolean;
 }
 
+/** The shared lexicon, seen from the app: what waits to be shared, what was downloaded. */
+export interface LexiconStatus {
+  /** Learned terms not sent yet. */
+  pending: number;
+  /** Terms already sent. */
+  sent: number;
+  /** Sharing is switched on. */
+  shared: boolean;
+  /** The shared lexicon is downloaded and used. */
+  useCommon: boolean;
+  /** Terms of the shared lexicon kept on this PC. */
+  common: number;
+  /** The weekly question may be asked. */
+  remind: boolean;
+  /** The weekly question is due now. */
+  due: boolean;
+  /** Waiting terms from which the question is asked. */
+  min: number;
+  lastSendAt?: string;
+}
+
+/** What would be sent, shown before the reader agrees. */
+export interface LexiconProposal {
+  keys: string[];
+  terms: { term: string; translation?: string; keep: boolean; definition: string }[];
+  /** Terms waiting in all: the rest goes in a later send. */
+  total: number;
+}
+
 export interface NukunApi {
   /** `domain`: "all", a field id, or "g:<group>". */
   /** One page of the feed; `fresh` ranks again instead of continuing the current ranking. */
@@ -440,6 +473,15 @@ export interface NukunApi {
   getProfile(): Promise<InterestProfileView>;
   resetProfile(): Promise<void>;
   analyzeInterests(): Promise<void>;
+  lexiconStatus(): Promise<LexiconStatus>;
+  lexiconPrepare(): Promise<LexiconProposal>;
+  /** The reader agreed: sharing is switched on and what is waiting goes out. */
+  lexiconShare(): Promise<void>;
+  /** Downloads the shared lexicon now. */
+  lexiconSync(): Promise<void>;
+  /** The weekly reminder was shown. */
+  lexiconShown(): Promise<void>;
+  lexiconRemind(on: boolean): Promise<void>;
   updateState(): Promise<UpdateState>;
   /** Download the new version (when data saving kept it from downloading on its own). */
   downloadUpdate(): Promise<void>;

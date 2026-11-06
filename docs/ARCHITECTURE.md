@@ -51,9 +51,11 @@ Every item has a `kind`: `paper` (research) or `news` (official organisations an
 
 `glossary-memory.json` (in `ai/memory.ts`) keeps every glossary term ever decided, keyed by language and term. `buildGlossary` first looks for known terms in the article (whole words), asks the AI only for new ones, and skips the AI when 20 known terms or more are found. It is filled once from the glossaries of articles already translated (`Library.seedGlossaryMemory`). Perspective: share it, and the translation memory, between users through a small free server.
 
-## Shared lexicon server
+## Shared lexicon
 
-The server that receives the glossary terms readers propose, has Gemini judge them (daily call budget, quota state kept in the database) and publishes the ones several different connections confirmed, lives in its own repository, `nukun-lexique` (private), so that Render deploys it alone. The app does not talk to it yet.
+The shared lexicon comes from the Nùkún server, a separate repository (`nukun-lexique`, private) that Render deploys alone: it receives the terms readers propose, has Gemini judge them with a daily call budget (quota state kept in the database, so it resumes by itself) and publishes a term once Gemini accepted it and three different connections sent it.
+
+`src/main/lexicon.ts` is the app's side. **Download** (on by default, off with data saving): `GET /v1/lexicon` once a day, a full refresh weekly so blocked terms leave; the answer is untrusted, so it is cut to the server's own limits before landing in `common-lexicon.json`. `recallGlossary` (`ai/memory.ts`) adds those terms after the reader's own, and a known term spares the AI a call. **Sharing** (`shareLexicon`, off until the reader accepts in `components/LexiconDialog.tsx`, which lists everything first): the terms learned and not already in the shared lexicon go out through `POST /v1/terms`, with the server's proof of work solved in slices and a random installation number made only when sharing starts. A failure only means "later". `components/LexiconToast.tsx` asks at most once a week, from 20 waiting terms, left side so it never covers the update window. The address of the server is `NUKUN_LEXIQUE_URL` for trials.
 
 ## Disciplines and languages
 

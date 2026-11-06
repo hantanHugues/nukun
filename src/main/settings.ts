@@ -14,6 +14,8 @@ interface StoredSettings extends Omit<Settings, "hasClaudeKey" | "hasSemanticSch
 const defaults = (): StoredSettings => ({
   provider: "gemini",
   allowClaudeCode: false,
+  shareLexicon: false,
+  useCommonLexicon: true,
   claudeModel: "claude-opus-5-5",
   claudeCodeModel: "opus",
   geminiModel: "auto",

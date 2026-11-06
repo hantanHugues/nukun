@@ -31,6 +31,7 @@
       <nav class="help-nav" aria-label="Sommaire">
         <a href="#app">L'app et tes données</a>
         <a href="#tiers">Services utilisés</a>
+        <a href="#lexique">Proposer des termes</a>
         <a href="#site">Ce site</a>
         <a href="#contenus">Articles et traductions</a>
         <a href="#logiciel">Licence et garantie</a>
@@ -39,7 +40,7 @@
 
       <div class="help-body">
         <h1>Confidentialité et mentions légales</h1>
-        <p class="lede">En bref : Nùkún ne collecte rien sur toi. Il n'y a ni compte, ni publicité, ni mesure d'audience.</p>
+        <p class="lede">En bref : Nùkún ne collecte rien sur toi, sauf les termes techniques que tu choisis de partager. Il n'y a ni compte, ni publicité, ni mesure d'audience.</p>
 
         <section id="app">
           <h2>L'app et tes données</h2>
@@ -47,7 +48,7 @@
             Nùkún fonctionne sur ton ordinateur, sans compte. Ton profil de lecture, tes centres d'intérêt, ta
             bibliothèque, tes notes, tes textes, les traductions et tes réglages sont enregistrés uniquement sur ton PC,
             dans <span class="ui">%APPDATA%\Nukun</span> sous Windows et <span class="ui">~/.config/Nukun</span> sous Linux. L'auteur de l'app n'y a pas accès et ne reçoit aucune donnée,
-            aucune statistique d'usage et aucun rapport d'erreur.
+            aucune statistique d'usage et aucun rapport d'erreur, sauf les termes que tu acceptes de partager (voir « Lexique commun »).
           </p>
           <p>
             Tes clés d'API (Google, Claude, Semantic Scholar) restent elles aussi sur ton PC. Elles servent uniquement à
@@ -81,6 +82,31 @@
             </li>
           </ul>
           <p>Ces services peuvent voir ton adresse IP, comme pour toute connexion à Internet.</p>
+        </section>
+
+        <section id="lexique">
+          <h2>Lexique commun (facultatif)</h2>
+          <p>
+            Nùkún retient les termes techniques qu'il apprend en traduisant tes articles (par exemple « deep learning » et sa
+            traduction). Un lexique commun, nourri par des lecteurs, permet à tous de les traduire de la même façon.
+          </p>
+          <p>
+            <strong>Télécharger</strong> ce lexique est activé par défaut : l'app demande au serveur de Nùkún la liste des termes
+            publiés. Ce serveur voit ton adresse IP, comme tout site que tu visites. Tu peux le désactiver dans Réglages, Lexique
+            commun, et l'économie de données l'arrête aussi.
+          </p>
+          <p>
+            <strong>Partager</strong> tes termes est désactivé tant que tu ne l'as pas accepté. Si tu acceptes, l'app envoie au
+            serveur, de temps en temps, les termes appris avec leur traduction, leur définition et leurs langues, plus un numéro
+            tiré au hasard, propre à ton installation, qui sert à compter chaque lecteur une fois. Jamais le texte de tes
+            articles, tes notes, tes lectures ni ton nom. Tu vois la liste avant d'accepter et tu peux arrêter à tout moment.
+            Une petite fenêtre te le propose au plus une fois par semaine, tant que tu n'as pas accepté ni refusé.
+          </p>
+          <p>
+            Chaque terme reçu est vérifié par Gemini, l'IA de Google, puis publié seulement si plusieurs lecteurs différents l'ont
+            envoyé. Le serveur garde les termes, et des empreintes salées de l'adresse IP et du numéro d'installation, jamais
+            l'adresse elle-même. Il est hébergé chez Render et sa base de données chez Neon, à Francfort.
+          </p>
         </section>
 
         <section id="site">

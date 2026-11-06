@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import type { GlossaryTerm } from "@shared/types";
+import { findKnown } from "@shared/glossaryMatch";
 import { JsonDoc } from "../store";
 
 /**
@@ -72,22 +73,50 @@ let glossDoc: JsonDoc<Record<string, StoredTerm>> | null = null;
 const gloss = () => (glossDoc ??= new JsonDoc<Record<string, StoredTerm>>("glossary-memory.json", {}));
 const termKey = (lang: string, term: string) => `${lang}:${term.toLowerCase().trim()}`;
 
-/** Known terms that appear in a text (whole words), most used first. */
+/**
+ * The shared lexicon downloaded from the Nùkún server (lexicon.ts), by reading language.
+ * Keyed "<source language>:<lower-case term>". What this reader decided always wins.
+ */
+type Common = { fr: Record<string, GlossaryTerm>; en: Record<string, GlossaryTerm> };
+const MAX_COMMON = 20000;
+let commonDoc: JsonDoc<Common> | null = null;
+const commonOf = (reading: "fr" | "en") => {
+  commonDoc ??= new JsonDoc<Common>("common-lexicon.json", { fr: {}, en: {} });
+  return (commonDoc.data[reading] ??= {});
+};
+const commonKey = (src: string, term: string) => `${src}:${term.toLowerCase().trim()}`;
+
+/** Known terms that appear in a text (whole words): the reader's own, most used first, then the shared lexicon's. */
 export function recallGlossary(text: string, lang: string): GlossaryTerm[] {
-  const hay = ` ${text.toLowerCase().replace(/\s+/g, " ")} `;
-  const prefix = `${lang}:`;
-  const found: StoredTerm[] = [];
-  for (const [k, t] of Object.entries(gloss().data)) {
-    if (!k.startsWith(prefix)) continue;
-    const i = hay.indexOf(k.slice(prefix.length));
-    if (i < 0) continue;
-    // Whole word: "cell" must not match "cellular".
-    const before = hay[i - 1];
-    const after = hay[i + k.length - prefix.length];
-    if (/[\p{L}\p{N}]/u.test(before ?? "") || /[\p{L}\p{N}]/u.test(after ?? "")) continue;
-    found.push(t);
-  }
-  return found.sort((x, y) => y.uses - x.uses).map(({ uses: _u, ...t }) => t);
+  const own = findKnown(text, `${lang}:`, Object.entries(gloss().data)).sort((x, y) => y.uses - x.uses);
+  const m = /^(en<)?(.+)$/.exec(lang);
+  const shared = m ? findKnown(text, `${m[2]}:`, Object.entries(commonOf(m[1] ? "en" : "fr"))) : [];
+  const have = new Set(own.map((t) => t.term.toLowerCase()));
+  return [...own.map(({ uses: _u, ...t }) => t), ...shared.filter((t) => !have.has(t.term.toLowerCase()))];
+}
+
+/** Adds the terms the server published; a full refresh replaces what was there (blocked terms go away). */
+export function mergeCommon(reading: "fr" | "en", terms: (GlossaryTerm & { src: string })[], replace: boolean) {
+  if (!commonDoc) commonOf(reading);
+  if (replace) commonDoc!.data[reading] = {};
+  const d = commonOf(reading);
+  for (const { src, ...t } of terms) d[commonKey(src, t.term)] = t;
+  const keys = Object.keys(d);
+  if (keys.length > MAX_COMMON) for (const k of keys.slice(0, keys.length - MAX_COMMON)) delete d[k];
+  commonDoc!.save();
+}
+
+/** Already in the shared lexicon: there is nothing to propose. */
+export function commonHas(reading: "fr" | "en", src: string, term: string) {
+  return commonKey(src, term) in commonOf(reading);
+}
+
+export function commonSize() {
+  return Object.keys(commonOf("fr")).length + Object.keys(commonOf("en")).length;
+}
+
+export function flushCommon() {
+  commonDoc?.flush();
 }
 
 export function rememberGlossary(terms: GlossaryTerm[], lang: string) {
@@ -100,6 +129,21 @@ export function rememberGlossary(terms: GlossaryTerm[], lang: string) {
   const keys = Object.keys(d.data);
   if (keys.length > MAX_TERMS) for (const k of keys.slice(0, keys.length - MAX_TERMS)) delete d.data[k];
   d.save();
+}
+
+/**
+ * Every learned term with its reading language and source language, to propose them to
+ * the shared lexicon. Keys are "<src>:<term>" (French reading) or "en<<src>:<term>".
+ */
+export function glossaryEntries() {
+  const out: { key: string; reading: "fr" | "en"; src: string; term: GlossaryTerm; uses: number }[] = [];
+  for (const [key, t] of Object.entries(gloss().data)) {
+    const m = /^(en<)?([^:<]+):/.exec(key);
+    if (!m) continue;
+    const { uses, ...term } = t;
+    out.push({ key, reading: m[1] ? "en" : "fr", src: m[2], term, uses });
+  }
+  return out;
 }
 
 export function glossarySize() {
